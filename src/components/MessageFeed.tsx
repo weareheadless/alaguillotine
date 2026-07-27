@@ -14,49 +14,46 @@ function MessageCard({ message, isCurrentUser, onReply }: { message: FeedMessage
 
   return (
     <div
-      className={`animate-fade-in rounded-md border border-[#343536] bg-[#1A1A1B] p-3 transition-all hover:border-[#333] ${
-        isPaid ? "border-l-[3px] border-l-[#FF4500]" : ""
+      className={`font-mono text-sm transition-all ${
+        isPaid ? "border-l-[4px] border-l-hypeNeon" : ""
       } ${isOwn && message.is_shadowbanned ? "opacity-40" : ""} ${
-        isComment ? "ml-6 border-l-[#FF4500]/30" : ""
+        isComment ? "ml-8 border-l-[3px] border-l-spiteCrimson/30" : ""
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-3 px-3 py-2.5">
         <div className="min-w-0 flex-1">
-          <p className="break-words text-sm leading-relaxed text-[#D7DADC]">
+          <p className="break-words text-sm leading-relaxed text-canvasBlack">
             {message.text}
           </p>
         </div>
         {isPaid && (
-          <span className="flex-shrink-0 rounded-full bg-[#FF4500]/10 px-2 py-0.5 text-xs font-semibold text-[#FF4500]">
-            ${message.amount_paid.toFixed(2)}
+          <span className="flex-shrink-0 border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-0.5 text-xs font-bold text-hypeNeon">
+            ◎{message.amount_paid.toFixed(2)}
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-center gap-2 text-[10px] text-[#818384]">
-        <span>{message.author_name}</span>
-        <span>·</span>
+      <div className="flex items-center gap-2 border-t border-glitchGray/20 px-3 py-1.5 text-[10px] uppercase tracking-wider text-chop-muted">
+        <span className="font-bold">{message.author_name}</span>
+        <span>|</span>
         <span>
           {new Date(message.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
           })}
         </span>
         {isOwn && message.is_shadowbanned && (
           <>
-            <span>·</span>
-            <span className="text-[#FF4500]">visibility restricted</span>
+            <span>|</span>
+            <span className="text-spiteCrimson">[RESTRICTED]</span>
           </>
         )}
         {!isComment && (
           <>
-            <span>·</span>
+            <span>|</span>
             <button
               onClick={() => onReply(message.$id)}
-              className="cursor-pointer text-[#FF4500] transition-colors hover:text-[#FF6A33]"
+              className="cursor-pointer font-bold text-spiteCrimson transition-colors hover:text-black"
             >
-              Reply
+              [ REPLY ]
             </button>
           </>
         )}
@@ -65,93 +62,54 @@ function MessageCard({ message, isCurrentUser, onReply }: { message: FeedMessage
   );
 }
 
+const MESSAGES_PER_PAGE = 25;
+
 export function MessageFeed() {
   const [messages, setMessages] = useState<FeedMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showRepliesFor, setShowRepliesFor] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Get current user ID
   useEffect(() => {
-    account
-      .get()
-      .then((u) => setCurrentUserId(u.$id))
-      .catch(() => setCurrentUserId(null));
+    account.get().then((u) => setCurrentUserId(u.$id)).catch(() => setCurrentUserId(null));
   }, []);
 
   const fetchMessages = useCallback(async () => {
     try {
-      // Get visible (non-shadowbanned) messages for everyone
-      const visibleRes = await databases.listDocuments(
-        DATABASE_ID,
-        MESSAGES_COLLECTION_ID,
-        [
-          Query.equal("is_shadowbanned", false),
-          Query.limit(100),
-        ]
-      );
-
+      const visibleRes = await databases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
+        Query.equal("is_shadowbanned", false), Query.limit(100),
+      ]);
       let docs = visibleRes.documents as unknown as FeedMessage[];
-
-      // If user is logged in, also fetch their own shadowbanned messages
       if (currentUserId) {
-        const ownRes = await databases.listDocuments(
-          DATABASE_ID,
-          MESSAGES_COLLECTION_ID,
-          [
-            Query.equal("author_id", currentUserId),
-            Query.equal("is_shadowbanned", true),
-            Query.limit(50),
-          ]
-        );
-        const ownDocs = ownRes.documents as unknown as FeedMessage[];
-        docs = [...docs, ...ownDocs];
+        const ownRes = await databases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
+          Query.equal("author_id", currentUserId), Query.equal("is_shadowbanned", true), Query.limit(50),
+        ]);
+        docs = [...docs, ...(ownRes.documents as unknown as FeedMessage[])];
       }
-
-      // Sort client-side by createdAt (desc)
       docs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setMessages(docs);
     } catch (e) {
       console.error("MessageFeed fetch error:", e);
-      if (e instanceof Error) {
-        console.error("MessageFeed error name:", e.name, "message:", e.message);
-        if ("response" in (e as any)) {
-          console.error("MessageFeed error response:", JSON.stringify((e as any).response));
-        }
-      }
       setMessages([]);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [currentUserId]);
 
   useEffect(() => {
     fetchMessages();
     intervalRef.current = setInterval(fetchMessages, 8_000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchMessages]);
 
   const handleReply = (id: string) => {
     setReplyingTo(replyingTo === id ? null : id);
-    // Automatically show replies when replying
     if (showRepliesFor !== id) setShowRepliesFor(id);
   };
+  const handleToggleReplies = (id: string) => setShowRepliesFor(showRepliesFor === id ? null : id);
+  const handleReplySuccess = () => { setReplyingTo(null); fetchMessages(); };
 
-  const handleToggleReplies = (id: string) => {
-    setShowRepliesFor(showRepliesFor === id ? null : id);
-  };
-
-  const handleReplySuccess = () => {
-    setReplyingTo(null);
-    // Keep replies visible after posting
-    fetchMessages();
-  };
-
-  // Build threaded structure
   const topLevel = messages.filter((m) => !m.parent_id);
   const commentsByParent: Record<string, FeedMessage[]> = {};
   for (const msg of messages) {
@@ -161,69 +119,153 @@ export function MessageFeed() {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(topLevel.length / MESSAGES_PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageMessages = topLevel.slice(safePage * MESSAGES_PER_PAGE, (safePage + 1) * MESSAGES_PER_PAGE);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF4500] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-sm border-2 border-spiteCrimson border-t-transparent" />
       </div>
     );
   }
 
   return (
     <section className="w-full">
-      <div className="mb-2 flex items-center gap-1.5">
-        <span className="text-sm">💬</span>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#818384]">
-          Messages
+      {/* ─── Header ────────────────────────────────────────────────────── */}
+      <div className="mb-3 flex items-center gap-2 border-b-4 border-black pb-2">
+        <span className="text-lg">💬</span>
+        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-sheetWhite">
+          Place de la Révolution
         </h2>
-        <span className="rounded-full bg-[#343536] px-1.5 py-0.5 text-[9px] text-[#818384]">
+        <span className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-hypeNeon">
           {topLevel.length}
         </span>
       </div>
-      <div className="flex flex-col gap-2">
-        {topLevel.length === 0 ? (
-          <p className="py-8 text-center text-xs text-[#818384]">
-            No messages yet. Be the first!
-          </p>
-        ) : (
-          topLevel.map((msg) => (
-            <div key={msg.$id} className="flex flex-col gap-1.5">
-              <MessageCard
-                message={msg}
-                isCurrentUser={msg.author_id === currentUserId}
-                onReply={handleReply}
-              />
-              {/* Inline reply form */}
-              {replyingTo === msg.$id && (
-                <div className="ml-6">
-                  <SubmitForm
-                    parentId={msg.$id}
-                    onSuccess={handleReplySuccess}
-                  />
-                </div>
-              )}
-              {/* "Show replies" toggle — only appears when there are comments */}
-              {(commentsByParent[msg.$id]?.length > 0 || showRepliesFor === msg.$id) && (
-                <button
-                  onClick={() => handleToggleReplies(msg.$id)}
-                  className="ml-6 cursor-pointer self-start px-2 py-1 text-[11px] font-semibold text-[#818384] transition-colors hover:text-[#D7DADC]"
-                >
-                  {showRepliesFor === msg.$id
-                    ? `▲ Hide replies`
-                    : `▼ ${commentsByParent[msg.$id]?.length || 0} ${commentsByParent[msg.$id]?.length === 1 ? "reply" : "replies"}`}
-                </button>
-              )}
-              {/* Show comments only when expanded */}
-              {showRepliesFor === msg.$id && commentsByParent[msg.$id]?.map((comment) => (
-                <MessageCard
-                  key={comment.$id}
-                  message={comment}
-                  isCurrentUser={comment.author_id === currentUserId}
-                  onReply={() => {}}
-                />
-              ))}
+
+      {/* ─── Leaderboard Table ─────────────────────────────────────────── */}
+      <div className="overflow-hidden border-4 border-canvasBlack shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        {/* Table header */}
+        <div className="flex border-b-4 border-canvasBlack bg-canvasBlack px-3 py-2 text-[10px] font-bold uppercase tracking-[0.25em] text-sheetWhite">
+          <span className="w-10">#</span>
+          <span className="flex-1">Manifesto</span>
+          <span className="w-32 text-right hidden sm:block">Author</span>
+          <span className="w-28 text-right">$CHOP</span>
+        </div>
+
+        {/* Table body with zebra stripes */}
+        <div className="divide-y-2 divide-canvasBlack">
+          {pageMessages.length === 0 ? (
+            <div className="bg-sheetWhite px-3 py-12 text-center">
+              <p className="text-sm uppercase tracking-wider text-chop-muted">
+                // No executions yet. Be the first.
+              </p>
             </div>
-          ))
+          ) : (
+            pageMessages.map((msg, idx) => {
+              const globalIdx = safePage * MESSAGES_PER_PAGE + idx + 1;
+              const isDark = idx % 2 !== 0;
+              const rowBg = isDark ? "bg-glitchGray text-sheetWhite" : "bg-sheetWhite text-canvasBlack";
+              
+              // We want text to inherit naturally from rowBg where possible
+              return (
+                <div key={msg.$id} className={rowBg}>
+                  {/* Main row */}
+                  <div className="flex items-start px-3 py-2.5">
+                    <span className="w-10 flex-shrink-0 pt-1 text-[11px] font-bold opacity-60">
+                      {String(globalIdx).padStart(3, '0')}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="break-words text-sm leading-relaxed">
+                        {msg.text}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-wider opacity-60">
+                        <span className="font-bold">{msg.author_name}</span>
+                        <span>
+                          {new Date(msg.created_at).toLocaleDateString("en-US", {
+                            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                          })}
+                        </span>
+                        {!msg.parent_id && (
+                          <button
+                            onClick={() => handleReply(msg.$id)}
+                            className="cursor-pointer font-bold text-spiteCrimson hover:opacity-100"
+                          >
+                            [ REPLY ]
+                          </button>
+                        )}
+                        {(commentsByParent[msg.$id]?.length > 0 || showRepliesFor === msg.$id) && (
+                          <button
+                            onClick={() => handleToggleReplies(msg.$id)}
+                            className="cursor-pointer font-bold hover:opacity-100"
+                          >
+                            {showRepliesFor === msg.$id
+                              ? "[ HIDE REPLIES ]"
+                              : `[ ${commentsByParent[msg.$id]?.length || 0} REPLIES ]`}
+                          </button>
+                        )}
+                        {msg.is_shadowbanned && (
+                          <span className="text-spiteCrimson">[RESTRICTED]</span>
+                        )}
+                      </div>
+                      {/* Reply form */}
+                      {replyingTo === msg.$id && (
+                        <div className="mt-3 ml-4">
+                          <SubmitForm parentId={msg.$id} onSuccess={handleReplySuccess} />
+                        </div>
+                      )}
+                      {/* Comments */}
+                      {showRepliesFor === msg.$id && commentsByParent[msg.$id]?.map((comment, ci) => {
+                        // For comments, just alternate background opacity to differentiate them
+                        const commentBg = ci % 2 === 0 ? "bg-black/10" : "bg-black/5";
+                        return (
+                        <div key={comment.$id} className={`mt-1 ml-6 border-l-[3px] border-l-spiteCrimson/50 pl-3 py-1.5 pr-2 ${commentBg}`}>
+                          <p className="text-sm">{comment.text}</p>
+                          <div className="mt-1 flex gap-2 text-[10px] uppercase tracking-wider opacity-60">
+                            <span className="font-bold">{comment.author_name}</span>
+                            <span>
+                              {new Date(comment.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                        </div>
+                      )})}
+                    </div>
+                    <div className="w-28 flex-shrink-0 text-right">
+                      {msg.amount_paid > 0 && (
+                        <span className="inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-0.5 text-xs font-bold text-hypeNeon">
+                          ◎{msg.amount_paid.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* ─── Pagination — bracket keys ────────────────────────────────── */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t-4 border-canvasBlack bg-canvasBlack px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-[0.2em]">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+              className="cursor-pointer text-sheetWhite transition-colors hover:text-hypeNeon disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              [ PREV ]
+            </button>
+            <span className="text-chop-muted">
+              PAGE {String(safePage + 1).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={safePage >= totalPages - 1}
+              className="cursor-pointer text-sheetWhite transition-colors hover:text-hypeNeon disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              [ NEXT ]
+            </button>
+          </div>
         )}
       </div>
     </section>

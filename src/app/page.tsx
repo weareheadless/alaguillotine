@@ -6,6 +6,7 @@ import { RulesBanner } from "../components/RulesBanner";
 import { SubmitForm } from "../components/SubmitForm";
 import { MessageFeed } from "../components/MessageFeed";
 import { NavBar } from "../components/NavBar";
+import { FsdBanner } from "../components/FsdBanner";
 
 export default function HomePage() {
   const [soundOn, setSoundOn] = useState(false);
@@ -33,7 +34,10 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen bg-canvasBlack">
+      {/* ─── FSD Over-The-Air Banner ─────────────────────────────────── */}
+      <FsdBanner />
+
       {/* ─── Atmospheric Video Background ──────────────────────────────── */}
       <div className="video-bg">
         <video ref={bgRef} autoPlay muted loop playsInline poster="/appwrite-icon.svg">
@@ -44,7 +48,7 @@ export default function HomePage() {
       {/* ─── Header / Nav ──────────────────────────────────────────────── */}
       <NavBar />
 
-      <main className="relative z-10 mx-auto px-6 pb-8">
+      <main className="relative z-10 mx-auto pb-8">
         {/* ─── Sticky Guillotine + Everything Else ────────────────────── */}
         <HeroCounter>
           {/* Rules — at the top */}
@@ -57,10 +61,10 @@ export default function HomePage() {
               <SubmitForm onSuccess={handleSuccess} />
             </div>
             <div className="w-full lg:w-80 xl:w-96 lg:flex-shrink-0">
-              <div className="h-full overflow-hidden rounded-lg border border-[#343536] bg-black">
+              <div className="h-full overflow-hidden border-4 border-black bg-canvasBlack shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                 <video
                   ref={sideRef}
-                  className="h-full w-full object-cover opacity-60"
+                  className="h-full w-full object-cover opacity-50"
                   autoPlay
                   muted
                   loop
@@ -73,7 +77,7 @@ export default function HomePage() {
             </div>
           </div>
           {/* Unified message feed below */}
-          <div className="mt-4">
+          <div className="mt-6">
             <MessageFeed />
           </div>
         </HeroCounter>
@@ -82,16 +86,16 @@ export default function HomePage() {
       {/* ─── Sound Toggle ─────────────────────────────────────────────── */}
       <button
         onClick={toggleSound}
-        className="fixed bottom-6 right-6 z-50 rounded-full border border-[#343536] bg-[#1A1A1B]/90 p-3 text-lg backdrop-blur transition-colors hover:border-[#FF4500]"
+        className="fixed bottom-6 right-6 z-50 border-2 border-black bg-glitchGray p-3 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:border-spiteCrimson active:translate-x-1 active:translate-y-1 active:shadow-none"
         title={soundOn ? "Mute" : "Unmute"}
       >
         {soundOn ? "🔊" : "🔇"}
       </button>
 
       {/* ─── Footer ────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-[#343536] py-4 text-center">
-        <p className="text-xs text-[#818384]">
-          FuckYouElon — A public message board. All messages are user-generated.
+      <footer className="relative z-10 border-t-4 border-black py-6 text-center">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-chop-muted">
+          FUCKYOUELON.NET // $CHOP PROTOCOL. All messages are user-generated.
         </p>
       </footer>
     </div>

@@ -4,8 +4,8 @@ import { SolanaWalletProvider } from "../components/WalletProvider";
 import { ExecutionProvider } from "../lib/execution-context";
 
 export const metadata: Metadata = {
-  title: "FuckYouElon — Public Message Board",
-  description: "A public message board. Free speech, not hate speech.",
+  title: "FuckYouElon — $CHOP PROTOCOL",
+  description: "A public message board. Execute discontent.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,11 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#030303] antialiased">
+      <body className="min-h-screen bg-canvasBlack antialiased font-mono">
         <SolanaWalletProvider>
           <ExecutionProvider>{children}</ExecutionProvider>
         </SolanaWalletProvider>

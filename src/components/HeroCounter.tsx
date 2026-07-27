@@ -169,18 +169,13 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
   }, [displayTotal, dropped, setExecuted, debugMode]);
 
   // Blade translation:
-  //   translateY(%) in CSS is relative to the ELEMENT's own height.
-  //   Blade is 26% of wrapper height, so wrapper = blade × (100/26) ≈ 3.85×.
-  //   At 0%   → translateY(0%)     → blade just below top beam
-  //   At 100% → translateY(242%)   → blade approaches head (~69% of wrapper)
-  //   Dropped → translateY(265%)   → blade slams past the head (~76%)
-  const BLADE_HEIGHT_PCT = 26;
-  const scale = 100 / BLADE_HEIGHT_PCT; // ~3.846
+  // translateY(%) in CSS is relative to the wrapper's own height (100% of container = 440px).
+  // We want the blade to travel from 0% down to ~64% of the container so its bottom hits the base.
   const travelStart = 0;
-  const travelEnd = Math.round(63 * scale);   // ~242
+  const travelEnd = 64;
   const travelRange = travelEnd - travelStart;
   const bladeOffset = dropped
-    ? Math.round(69 * scale)   // ~265
+    ? 74 // slams all the way through
     : travelStart + (progress / 100) * travelRange;
 
   // Debug: add fake messages
@@ -204,83 +199,93 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
       className="relative mx-auto mt-4 w-full px-6"
     >
       <div className="flex flex-col gap-4 md:flex-row md:gap-6">
-        {/* ─── Left: Sticky Guillotine Sidebar ──────────────────────── */}
+        {/* ─── Left: CRT Guillotine Window ─────────────────────────── */}
         <div className="flex flex-col items-center md:sticky md:top-20 md:w-auto md:flex-shrink-0 md:self-start">
-          <div className="guillotine-wrapper">
-            {/* Track */}
-            <div className="guillotine-track" />
+          {/* White sheet container — max contrast for dark guillotine parts */}
+          <div className="relative bg-sheetWhite border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 box-border">
+            {/* Grid overlay — blueprint lines on white */}
+            <div className="absolute inset-0 z-0 grid-overlay pointer-events-none opacity-30" />
 
-            {/* Frame posts */}
-            <div className="guillotine-post-left" />
-            <div className="guillotine-post-right" />
+            <div className="guillotine-wrapper relative z-10 mx-auto">
+              {/* Frame posts */}
+              <div className="guillotine-post-left" />
+              <div className="guillotine-post-right" />
 
-            {/* Top beam */}
-            <div className="guillotine-beam" />
+              {/* Top beam */}
+              <div className="guillotine-beam" />
 
-            {/* Base */}
-            <div className="guillotine-base" />
+              {/* Base */}
+              <div className="guillotine-base" />
 
-            {/* Lunette (stock with neck notch) */}
-            <div className="guillotine-lunette" />
+              {/* Lunette */}
+              <div className="guillotine-lunette" />
 
-            {/* Head in the lunette */}
-            <div className={`guillotine-head ${dropped ? "severed" : ""}`} />
+              {/* Head */}
+              <div className={`guillotine-head ${dropped ? "severed" : ""}`} />
 
-            {/* Blade assembly */}
-            <div
-              className="guillotine-blade-wrapper"
-              style={{ transform: `translateX(-50%) translateY(${bladeOffset}%)` }}
-            >
-              <div
-                ref={bladeRef}
-                className={`guillotine-blade ${dropped ? "dropped" : ""} ${bumping ? "bump" : ""} ${milestoneClass}`}
-              />
+              {/* Inner clipping container for rope and blade */}
+              <div className="absolute inset-0 overflow-hidden z-10">
+                <div
+                  className="guillotine-blade-wrapper"
+                  style={{ transform: `translateX(-50%) translateY(${bladeOffset}%)` }}
+                >
+                  {/* Rope extending UP from the blade */}
+                  <div className="absolute left-1/2 bottom-[93%] w-1.5 h-[1000px] -translate-x-1/2 bg-glitchGray border-x border-black/50" />
+                  
+                  <div
+                    ref={bladeRef}
+                    className={`guillotine-blade ${dropped ? "dropped" : ""} ${bumping ? "bump" : ""} ${milestoneClass}`}
+                  />
+                </div>
+              </div>
+
+              {/* Side progress bar */}
+              <div className="guillotine-progress">
+                <div
+                  className={`guillotine-progress-fill ${pulsing ? "progress-pulse" : ""}`}
+                  style={{ height: `${progress}%` }}
+                />
+                <div className="guillotine-progress-mark" style={{ bottom: '25%' }} />
+                <div className="guillotine-progress-mark" style={{ bottom: '50%' }} />
+                <div className="guillotine-progress-mark" style={{ bottom: '75%' }} />
+              </div>
+              <span className="absolute -left-7 top-[4%] text-[7px] font-bold text-chop-muted">
+                100%
+              </span>
+              <span className="absolute -left-7 bottom-[4%] text-[7px] font-bold text-chop-muted">
+                0%
+              </span>
             </div>
-
-            {/* Side progress bar — left side, gamified */}
-            <div className="guillotine-progress">
-              <div
-                className={`guillotine-progress-fill ${pulsing ? "progress-pulse" : ""}`}
-                style={{ height: `${progress}%` }}
-              />
-              {/* Milestone markers */}
-              <div className="guillotine-progress-mark" style={{ bottom: '25%' }} />
-              <div className="guillotine-progress-mark" style={{ bottom: '50%' }} />
-              <div className="guillotine-progress-mark" style={{ bottom: '75%' }} />
-            </div>
-            <span className="absolute -left-7 top-[4%] text-[7px] font-bold text-[#666]">
-              100%
-            </span>
-            <span className="absolute -left-7 bottom-[4%] text-[7px] font-bold text-[#666]">
-              0%
-            </span>
           </div>
 
-          {/* Status + compact stats below guillotine */}
-          <div className="mt-2 w-full text-center">
+          {/* Status + stats */}
+          <div className="mt-3 w-full text-center font-mono">
             {dropped ? (
-              <p className="animate-fade-in text-xs font-black uppercase tracking-widest text-[#FF4500]">
+              <p className="animate-fade-in text-xs font-black uppercase tracking-widest text-spiteCrimson animate-glitch-text">
                 ⚔️ The blade has fallen ⚔️
               </p>
             ) : (
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#818384]">
-                Progress toward judgment
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-chop-muted">
+                // Progress toward judgment
               </p>
             )}
-            {/* Compact inline stats */}
-            <div className="mt-1 flex items-center justify-center gap-3 text-[9px] tabular-nums text-[#666]">
-              <span className={`${flashCount ? "animate-counter-pulse text-[#FF4500]" : ""}`}>{displayTotal.toLocaleString()}</span>
-              <span className="text-[#818384]">msgs</span>
-              <span className="text-[#444]">/</span>
-              <span className="text-[#FF4500]">{EXECUTION_THRESHOLD.toLocaleString()}</span>
-              <span className="text-[#444]">·</span>
-              <span className={`text-[#FF4500] ${flashCount ? "animate-counter-pulse" : ""}`}>{progress.toFixed(1)}%</span>
+            {/* Stats */}
+            <div className="mt-1.5 flex items-center justify-center gap-2 text-[10px] tabular-nums font-bold">
+              <span className={`${flashCount ? "animate-counter-pulse text-hypeNeon" : "text-sheetWhite"}`}>
+                {displayTotal.toLocaleString()}
+              </span>
+              <span className="text-chop-muted">/</span>
+              <span className="text-spiteCrimson">{EXECUTION_THRESHOLD.toLocaleString()}</span>
+              <span className="text-chop-muted">·</span>
+              <span className={`${flashCount ? "animate-counter-pulse" : ""} ${progress >= 90 ? "text-spiteCrimson" : "text-hypeNeon"}`}>
+                {progress.toFixed(1)}%
+              </span>
             </div>
             {/* Mini progress bar */}
-            <div className="mx-auto mt-1.5 h-1 w-40 overflow-hidden rounded-full bg-[#1A1A1B]">
+            <div className="mx-auto mt-2 h-1.5 w-40 overflow-hidden border-2 border-black bg-canvasBlack">
               <div
-                className={`h-full rounded-full transition-all duration-1000 ${
-                  dropped ? "bg-[#FF4500]" : "bg-gradient-to-r from-[#FF4500] to-[#D93A00]"
+                className={`h-full transition-all duration-1000 ${
+                  dropped ? "bg-spiteCrimson" : "bg-gradient-to-r from-spiteCrimson via-hypeNeon to-spiteCrimson"
                 } ${pulsing ? "progress-bar-pulse" : ""}`}
                 style={{ width: `${progress}%` }}
               />
@@ -297,7 +302,7 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
                       <>⚡ <span className="toast-author">{Math.abs(t.amount)} new message{Math.abs(t.amount) > 1 ? "s" : ""}</span> — blade just moved!</>
                     ) : t.amount > 0 ? (
                       <>💎 <span className="toast-author">{t.authorName || "Anon"}</span>{" "}
-                        paid <span className="toast-amount">${t.amount.toFixed(2)}</span>{" "}
+                        paid <span className="toast-amount">◎{t.amount.toFixed(2)}</span>{" "}
                         — blade drops <span className="toast-amount">{(t.amount / 1000).toFixed(3)}%</span></>
                     ) : (
                       <>⚔️ <span className="toast-author">{t.authorName || "Anon"}</span>{" "}
@@ -311,34 +316,34 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
 
           {/* ─── Debug Panel ──────────────────────────────────────────── */}
           {debugMode && (
-            <div className="mt-3 w-full rounded-lg border border-[#FF4500]/30 bg-[#1A1A1B] p-3 animate-fade-in">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#FF4500]">
-                🛠 Debug Panel
+            <div className="mt-3 w-full border-2 border-spiteCrimson bg-glitchGray p-3 animate-fade-in font-mono">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-spiteCrimson">
+                [ DEBUG PANEL ]
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {[1, 10, 100, 1000, 10000, 100000].map((n) => (
                   <button
                     key={n}
                     onClick={() => addDebugMessages(n)}
-                    className="rounded border border-[#333] bg-[#1A1A1B] px-2 py-0.5 text-[10px] text-[#ccc] hover:border-[#FF4500] hover:text-[#FF4500] transition-colors"
+                    className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-sheetWhite hover:border-spiteCrimson hover:text-hypeNeon transition-colors"
                   >
                     +{n.toLocaleString()}
                   </button>
                 ))}
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-2 flex flex-wrap gap-1">
                 {[10, 25, 50, 75, 90, 95, 99].map((pct) => (
                   <button
                     key={pct}
                     onClick={() => jumpToProgress(pct)}
-                    className="rounded border border-[#333] bg-[#1A1A1B] px-2 py-0.5 text-[10px] text-[#FF4500] hover:border-[#FF4500] transition-colors"
+                    className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-spiteCrimson hover:border-hypeNeon hover:text-hypeNeon transition-colors"
                   >
                     {pct}%
                   </button>
                 ))}
                 <button
                   onClick={forceDrop}
-                  className="rounded border border-[#FF4500] bg-[#1A1A1B] px-2 py-0.5 text-[10px] font-bold text-[#FF4500] hover:bg-[#FF4500] hover:text-white transition-colors"
+                  className="border-2 border-spiteCrimson bg-spiteCrimson px-2 py-0.5 text-[10px] font-bold text-sheetWhite hover:bg-black hover:text-hypeNeon transition-colors"
                 >
                   ⚔️ DROP
                 </button>
@@ -350,9 +355,9 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
                   max={EXECUTION_THRESHOLD}
                   value={debugSlider}
                   onChange={(e) => setDebugSlider(Number(e.target.value))}
-                  className="h-1 flex-1 cursor-pointer accent-[#FF4500]"
+                  className="h-1 flex-1 cursor-pointer accent-spiteCrimson"
                 />
-                <span className="text-[9px] tabular-nums text-[#818384] w-16 text-right">
+                <span className="text-[10px] tabular-nums font-bold text-hypeNeon w-16 text-right">
                   {debugSlider.toLocaleString()}
                 </span>
               </div>
@@ -362,7 +367,6 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
 
         {/* ─── Right: Content ──────────────────────────────────────── */}
         <div className="flex w-full min-w-0 flex-1 flex-col">
-          {/* Messages, rules, submit — everything flows here */}
           {children}
         </div>
       </div>
