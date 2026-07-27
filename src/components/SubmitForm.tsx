@@ -86,6 +86,8 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     return () => window.removeEventListener("appwrite-session-ready", handler);
   }, []);
 
+  const [targetName, setTargetName] = useState("");
+
   const handleFreeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (freeSubmitting || !freeText.trim()) return;
@@ -93,6 +95,7 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     setFreeSubmitting(true); setFreeError("");
     const formData = new FormData();
     formData.set("text", freeText.trim()); formData.set("session_jwt", sessionJwt); formData.set("author_name", userName);
+    if (targetName.trim()) formData.set("target_name", targetName.trim());
     if (isComment && parentId) formData.set("parent_id", parentId);
     const result = isComment ? await submitComment(formData) : await submitFreeMessage(formData);
     if (result.success) {
@@ -129,6 +132,7 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
       if (confirmation.value.err) { setPaidError("Transaction failed."); setPaidSubmitting(false); return; }
       const formData = new FormData();
       formData.set("text", paidText.trim()); formData.set("author_name", paidName.trim() || "Anonymous Whale"); formData.set("amount_paid", amount.toFixed(2)); formData.set("tx_signature", signature);
+      if (targetName.trim()) formData.set("target_name", targetName.trim());
       const result = await submitPaidMessage(formData);
       if (result.success) {
         setPaidSuccess(true); setPaidText(""); setPaidAmount(""); setPaidName("");
@@ -214,6 +218,8 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
                 <>
                   <label className="block text-xs font-bold uppercase tracking-wider">// 1. Write Your Manifesto (Max 500 Chars)</label>
                   <textarea value={freeText} onChange={(e) => setFreeText(e.target.value)} placeholder={isComment ? "Write a reply..." : "Say something Elon will read while sitting on a toilet on his private jet..."} maxLength={500} rows={3} className="w-full resize-none border-2 border-black bg-white p-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-spiteCrimson" />
+                  <label className="block text-xs font-bold uppercase tracking-wider">// 2. Nominate Someone for the Guillotine (optional)</label>
+                  <input value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="Who should be next? e.g. Zuck, Bezos, Trump..." maxLength={50} className="w-full border-2 border-black bg-white px-3 py-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
                   {freeError && <p className="text-xs font-bold text-spiteCrimson">ERROR: {freeError}</p>}
                   <button type="submit" disabled={freeSubmitting || !freeText.trim()} className="w-full cursor-pointer border-2 border-black bg-spiteCrimson py-3 text-center font-bold uppercase tracking-wider text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-75 hover:bg-black hover:text-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40">
                     {freeSubmitting ? "// POSTING..." : isComment ? "REPLY [SEND]" : "RELEASE THE BLADE [FREE EXECUTION]"}
@@ -236,7 +242,10 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
               <label className="block text-xs font-bold uppercase tracking-wider">// 1. Write Your Manifesto (Max 500 Chars)</label>
               <textarea value={paidText} onChange={(e) => setPaidText(e.target.value)} placeholder="Say something Elon will read while sitting on a toilet on his private jet..." maxLength={500} rows={3} className="w-full resize-none border-2 border-black bg-white p-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
 
-              <label className="block text-xs font-bold uppercase tracking-wider">// 2. Amount of SOL to Burn</label>
+              <label className="block text-xs font-bold uppercase tracking-wider">// 2. Nominate Someone for the Guillotine (optional — paid votes weigh more)</label>
+              <input value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="Who should be next? e.g. Zuck, Bezos, Trump..." maxLength={50} className="w-full border-2 border-black bg-white px-3 py-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
+
+              <label className="block text-xs font-bold uppercase tracking-wider">// 3. Amount of SOL to Burn</label>
               <div className="flex gap-2">
                 <input value={paidName} onChange={(e) => setPaidName(e.target.value)} placeholder="Name (or Anonymous Whale)" maxLength={50} className="flex-1 border-2 border-black bg-white px-3 py-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-spiteCrimson" />
                 <div className="relative w-32">

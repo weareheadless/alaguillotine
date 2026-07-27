@@ -198,15 +198,15 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
       ref={mainRef}
       className="relative mx-auto mt-4 w-full px-6"
     >
-      <div className="flex flex-col gap-4 md:flex-row md:gap-6">
-        {/* ─── Left: CRT Guillotine Window ─────────────────────────── */}
-        <div className="flex flex-col items-center md:sticky md:top-20 md:w-auto md:flex-shrink-0 md:self-start">
-          {/* White sheet container — max contrast for dark guillotine parts */}
-          <div className="relative bg-sheetWhite border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 box-border">
-            {/* Grid overlay — blueprint lines on white */}
-            <div className="absolute inset-0 z-0 grid-overlay pointer-events-none opacity-30" />
+      <div className="flex flex-col gap-0 md:flex-row">
+        {/* ─── Left: Full-Height White Sidebar ──────────────────────── */}
+        <div className="relative flex flex-col items-center bg-sheetWhite border-r-4 border-black md:sticky md:top-20 md:h-[calc(100vh-5rem)] md:min-w-[280px] md:max-w-[280px] md:flex-shrink-0 md:self-stretch">
+          {/* Grid overlay */}
+          <div className="absolute inset-0 z-0 grid-overlay pointer-events-none opacity-30" />
 
-            <div className="guillotine-wrapper relative z-10 mx-auto">
+          <div className="relative z-10 flex w-full flex-col items-center px-4 py-6 overflow-y-auto">
+            {/* ─── Guillotine ────────────────────────────────────────── */}
+            <div className="guillotine-wrapper flex-shrink-0">
               {/* Frame posts */}
               <div className="guillotine-post-left" />
               <div className="guillotine-post-right" />
@@ -249,124 +249,123 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
                 <div className="guillotine-progress-mark" style={{ bottom: '50%' }} />
                 <div className="guillotine-progress-mark" style={{ bottom: '75%' }} />
               </div>
-              <span className="absolute -left-7 top-[4%] text-[7px] font-bold text-chop-muted">
+              <span className="absolute -left-7 top-[4%] text-[7px] font-bold text-canvasBlack">
                 100%
               </span>
-              <span className="absolute -left-7 bottom-[4%] text-[7px] font-bold text-chop-muted">
+              <span className="absolute -left-7 bottom-[4%] text-[7px] font-bold text-canvasBlack">
                 0%
               </span>
             </div>
-          </div>
 
-          {/* Status + stats */}
-          <div className="mt-3 w-full text-center font-mono">
-            {dropped ? (
-              <p className="animate-fade-in text-xs font-black uppercase tracking-widest text-spiteCrimson animate-glitch-text">
-                ⚔️ The blade has fallen ⚔️
-              </p>
-            ) : (
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-chop-muted">
-                // Progress toward judgment
-              </p>
-            )}
-            {/* Stats */}
-            <div className="mt-1.5 flex items-center justify-center gap-2 text-[10px] tabular-nums font-bold">
-              <span className={`${flashCount ? "animate-counter-pulse text-hypeNeon" : "text-sheetWhite"}`}>
-                {displayTotal.toLocaleString()}
-              </span>
-              <span className="text-chop-muted">/</span>
-              <span className="text-spiteCrimson">{EXECUTION_THRESHOLD.toLocaleString()}</span>
-              <span className="text-chop-muted">·</span>
-              <span className={`${flashCount ? "animate-counter-pulse" : ""} ${progress >= 90 ? "text-spiteCrimson" : "text-hypeNeon"}`}>
-                {progress.toFixed(1)}%
-              </span>
-            </div>
-            {/* Mini progress bar */}
-            <div className="mx-auto mt-2 h-1.5 w-40 overflow-hidden border-2 border-black bg-canvasBlack">
-              <div
-                className={`h-full transition-all duration-1000 ${
-                  dropped ? "bg-spiteCrimson" : "bg-gradient-to-r from-spiteCrimson via-hypeNeon to-spiteCrimson"
-                } ${pulsing ? "progress-bar-pulse" : ""}`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* ─── Live Event Toasts ──────────────────────────────────────── */}
-          {toasts.length > 0 && (
-            <div className="toast-container mt-3">
-              {toasts.map((t) => (
-                <div key={t.id} className={`toast-item ${t.amount > 0 ? "paid-toast" : ""}`}>
-                  <span>
-                    {t.amount < 0 ? (
-                      <>⚡ <span className="toast-author">{Math.abs(t.amount)} new message{Math.abs(t.amount) > 1 ? "s" : ""}</span> — blade just moved!</>
-                    ) : t.amount > 0 ? (
-                      <>💎 <span className="toast-author">{t.authorName || "Anon"}</span>{" "}
-                        paid <span className="toast-amount">◎{t.amount.toFixed(2)}</span>{" "}
-                        — blade drops <span className="toast-amount">{(t.amount / 1000).toFixed(3)}%</span></>
-                    ) : (
-                      <>⚔️ <span className="toast-author">{t.authorName || "Anon"}</span>{" "}
-                        moved the blade <span className="toast-amount">{(1 / EXECUTION_THRESHOLD * 100).toFixed(4)}%</span> closer</>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* ─── Debug Panel ──────────────────────────────────────────── */}
-          {debugMode && (
-            <div className="mt-3 w-full border-2 border-spiteCrimson bg-glitchGray p-3 animate-fade-in font-mono">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-spiteCrimson">
-                [ DEBUG PANEL ]
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {[1, 10, 100, 1000, 10000, 100000].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => addDebugMessages(n)}
-                    className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-sheetWhite hover:border-spiteCrimson hover:text-hypeNeon transition-colors"
-                  >
-                    +{n.toLocaleString()}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {[10, 25, 50, 75, 90, 95, 99].map((pct) => (
-                  <button
-                    key={pct}
-                    onClick={() => jumpToProgress(pct)}
-                    className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-spiteCrimson hover:border-hypeNeon hover:text-hypeNeon transition-colors"
-                  >
-                    {pct}%
-                  </button>
-                ))}
-                <button
-                  onClick={forceDrop}
-                  className="border-2 border-spiteCrimson bg-spiteCrimson px-2 py-0.5 text-[10px] font-bold text-sheetWhite hover:bg-black hover:text-hypeNeon transition-colors"
-                >
-                  ⚔️ DROP
-                </button>
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="range"
-                  min={0}
-                  max={EXECUTION_THRESHOLD}
-                  value={debugSlider}
-                  onChange={(e) => setDebugSlider(Number(e.target.value))}
-                  className="h-1 flex-1 cursor-pointer accent-spiteCrimson"
-                />
-                <span className="text-[10px] tabular-nums font-bold text-hypeNeon w-16 text-right">
-                  {debugSlider.toLocaleString()}
+            {/* ─── Status + Stats ────────────────────────────────────── */}
+            <div className="mt-4 w-full text-center font-mono">
+              {dropped ? (
+                <p className="animate-fade-in text-xs font-black uppercase tracking-widest text-spiteCrimson animate-glitch-text">
+                  ⚔️ The blade has fallen ⚔️
+                </p>
+              ) : (
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-chop-muted">
+                  // Progress toward judgment
+                </p>
+              )}
+              <div className="mt-1.5 flex items-center justify-center gap-2 text-[10px] tabular-nums font-bold">
+                <span className={`${flashCount ? "animate-counter-pulse text-hypeNeon" : "text-canvasBlack"}`}>
+                  {displayTotal.toLocaleString()}
+                </span>
+                <span className="text-chop-muted">/</span>
+                <span className="text-spiteCrimson">{EXECUTION_THRESHOLD.toLocaleString()}</span>
+                <span className="text-chop-muted">·</span>
+                <span className={`${flashCount ? "animate-counter-pulse" : ""} ${progress >= 90 ? "text-spiteCrimson" : "text-hypeNeon"}`}>
+                  {progress.toFixed(1)}%
                 </span>
               </div>
+              {/* Mini progress bar */}
+              <div className="mx-auto mt-2 h-1.5 w-40 overflow-hidden border-2 border-black bg-canvasBlack">
+                <div
+                  className={`h-full transition-all duration-1000 ${
+                    dropped ? "bg-spiteCrimson" : "bg-gradient-to-r from-spiteCrimson via-hypeNeon to-spiteCrimson"
+                  } ${pulsing ? "progress-bar-pulse" : ""}`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-          )}
+
+            {/* ─── Live Event Toasts ──────────────────────────────────── */}
+            {toasts.length > 0 && (
+              <div className="toast-container mt-4 w-full max-w-none">
+                {toasts.map((t) => (
+                  <div key={t.id} className={`toast-item !text-canvasBlack ${t.amount > 0 ? "paid-toast" : ""}`}>
+                    <span>
+                      {t.amount < 0 ? (
+                        <>⚡ <span className="toast-author">{Math.abs(t.amount)} new message{Math.abs(t.amount) > 1 ? "s" : ""}</span> — blade just moved!</>
+                      ) : t.amount > 0 ? (
+                        <>💎 <span className="toast-author">{t.authorName || "Anon"}</span>{" "}
+                          paid <span className="toast-amount">◎{t.amount.toFixed(2)}</span>{" "}
+                          — blade drops <span className="toast-amount">{(t.amount / 1000).toFixed(3)}%</span></>
+                      ) : (
+                        <>⚔️ <span className="toast-author">{t.authorName || "Anon"}</span>{" "}
+                          moved the blade <span className="toast-amount">{(1 / EXECUTION_THRESHOLD * 100).toFixed(4)}%</span> closer</>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ─── Debug Panel ────────────────────────────────────────── */}
+            {debugMode && (
+              <div className="mt-3 w-full border-2 border-spiteCrimson bg-glitchGray p-3 animate-fade-in font-mono">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-spiteCrimson">
+                  [ DEBUG PANEL ]
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {[1, 10, 100, 1000, 10000, 100000].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => addDebugMessages(n)}
+                      className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-sheetWhite hover:border-spiteCrimson hover:text-hypeNeon transition-colors"
+                    >
+                      +{n.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {[10, 25, 50, 75, 90, 95, 99].map((pct) => (
+                    <button
+                      key={pct}
+                      onClick={() => jumpToProgress(pct)}
+                      className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-spiteCrimson hover:border-hypeNeon hover:text-hypeNeon transition-colors"
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                  <button
+                    onClick={forceDrop}
+                    className="border-2 border-spiteCrimson bg-spiteCrimson px-2 py-0.5 text-[10px] font-bold text-sheetWhite hover:bg-black hover:text-hypeNeon transition-colors"
+                  >
+                    ⚔️ DROP
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={EXECUTION_THRESHOLD}
+                    value={debugSlider}
+                    onChange={(e) => setDebugSlider(Number(e.target.value))}
+                    className="h-1 flex-1 cursor-pointer accent-spiteCrimson"
+                  />
+                  <span className="text-[10px] tabular-nums font-bold text-hypeNeon w-16 text-right">
+                    {debugSlider.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ─── Right: Content ──────────────────────────────────────── */}
-        <div className="flex w-full min-w-0 flex-1 flex-col">
+        <div className="flex w-full min-w-0 flex-1 flex-col md:pl-6">
           {children}
         </div>
       </div>

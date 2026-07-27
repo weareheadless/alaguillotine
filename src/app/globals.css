@@ -171,7 +171,7 @@ html, body {
   background-size: 20px 20px;
 }
 
-/* ─── GUILLOTINE — $CHOP Edition ──────────────────────────────────────────── */
+/* ─── GUILLOTINE — BRUTALIST EDITION ───────────────────────────────────────── */
 /* Outer wrapper — holds the whole guillotine */
 .guillotine-wrapper {
   position: relative;
@@ -179,85 +179,248 @@ html, body {
   height: 440px;
 }
 
-/* The track / rail area */
+/* Concrete texture overlay on the entire guillotine area */
+.guillotine-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.015) 3px,
+      rgba(255, 255, 255, 0.015) 5px
+    );
+}
+
+/* The track / rail area — deep groove in concrete */
 .guillotine-track {
   position: absolute;
   left: 50%;
   top: 6%;
   bottom: 6%;
-  width: 8px;
+  width: 10px;
   transform: translateX(-50%);
-  background: #18181B;
-  border-radius: 2px;
+  background: #0a0a0b;
+  border-radius: 1px;
   z-index: 1;
+  box-shadow:
+    inset 0 0 4px rgba(0,0,0,0.8),
+    0 0 6px rgba(0,0,0,0.3);
 }
 
-/* Glow inside the track */
 .guillotine-track::after {
   content: "";
   position: absolute;
   inset: 1px;
   border-radius: 1px;
-  background: linear-gradient(to bottom, #27272A, #18181B);
+  background: linear-gradient(to bottom, #1a1a1a, #0a0a0b);
 }
 
-/* ─── Frame posts — Industrial steel ──────────────────────────────────────── */
+/* ─── Frame posts — Brutalist concrete pillars ──────────────────────────── */
 .guillotine-post-left,
 .guillotine-post-right {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 10px;
-  background: linear-gradient(to right, #27272A, #3F3F46, #27272A, #3F3F46, #27272A);
-  border-radius: 2px;
+  width: 18px;
   z-index: 2;
-  box-shadow: inset 0 0 3px rgba(0,0,0,0.5);
+  border-radius: 1px;
 }
-.guillotine-post-left  { left: 16%; }
-.guillotine-post-right { right: 16%; }
 
-/* Top beam — Industrial gray steel */
+.guillotine-post-left {
+  left: 10%;
+  background: linear-gradient(
+    to right,
+    #2a2a2a 0%,
+    #3a3a3a 20%,
+    #4a4a4a 40%,
+    #3a3a3a 60%,
+    #2a2a2a 80%,
+    #1a1a1a 100%
+  );
+  box-shadow:
+    inset -1px 0 3px rgba(0,0,0,0.6),
+    inset 1px 0 1px rgba(255,255,255,0.05),
+    2px 0 6px rgba(0,0,0,0.3);
+}
+
+.guillotine-post-right {
+  right: 10%;
+  background: linear-gradient(
+    to left,
+    #2a2a2a 0%,
+    #3a3a3a 20%,
+    #4a4a4a 40%,
+    #3a3a3a 60%,
+    #2a2a2a 80%,
+    #1a1a1a 100%
+  );
+  box-shadow:
+    inset 1px 0 3px rgba(0,0,0,0.6),
+    inset -1px 0 1px rgba(255,255,255,0.05),
+    -2px 0 6px rgba(0,0,0,0.3);
+}
+
+/* Rivet dots on posts */
+.guillotine-post-left::after,
+.guillotine-post-right::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(
+    to bottom,
+    #555 0px,
+    #777 2px,
+    #444 3px,
+    transparent 4px,
+    transparent 24px
+  );
+  opacity: 0.6;
+}
+
+/* Weathering streak on left post */
+.guillotine-post-left::before {
+  content: "";
+  position: absolute;
+  top: 30%;
+  left: 2px;
+  width: 3px;
+  height: 60%;
+  background: linear-gradient(to bottom, rgba(140,60,30,0.25), rgba(140,60,30,0.05));
+  z-index: 3;
+}
+
+/* ─── Top beam — Heavy concrete lintel ───────────────────────────────────── */
 .guillotine-beam {
   position: absolute;
   top: 0;
-  left: 12%;
-  right: 12%;
-  height: 12px;
-  background: linear-gradient(to bottom, #52525B, #3F3F46 40%, #27272A 60%, #18181B);
-  border-radius: 3px;
+  left: 7%;
+  right: 7%;
+  height: 18px;
+  background: linear-gradient(
+    to bottom,
+    #3a3a3a 0%,
+    #4a4a4a 15%,
+    #3a3a3a 40%,
+    #2a2a2a 70%,
+    #1a1a1a 100%
+  );
   z-index: 3;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.5),
+    0 4px 12px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
-/* Bottom base — Thick industrial platform */
+/* Bolt heads along the beam */
+.guillotine-beam::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 8px;
+  right: 8px;
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    #555 0px,
+    #777 2px,
+    #333 3px,
+    transparent 4px,
+    transparent 22px
+  );
+  opacity: 0.5;
+}
+
+/* Rust stain drips from beam */
+.guillotine-beam::before {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 25%;
+  right: 25%;
+  height: 8px;
+  background: linear-gradient(
+    to bottom,
+    rgba(140, 60, 30, 0.35),
+    rgba(140, 60, 30, 0.05)
+  );
+  border-radius: 0 0 50% 50%;
+}
+
+/* ─── Bottom base — Massive concrete block ───────────────────────────────── */
 .guillotine-base {
   position: absolute;
   bottom: 0;
-  left: 8%;
-  right: 8%;
-  height: 24px;
-  background: linear-gradient(to bottom, #3F3F46, #27272A 30%, #3F3F46 50%, #27272A 70%, #18181B);
-  border-radius: 3px;
+  left: 5%;
+  right: 5%;
+  height: 32px;
+  background: linear-gradient(
+    to bottom,
+    #3a3a3a 0%,
+    #4a4a4a 10%,
+    #333333 30%,
+    #2a2a2a 60%,
+    #1a1a1a 100%
+  );
   z-index: 3;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  box-shadow:
+    0 -2px 6px rgba(0,0,0,0.4),
+    0 4px 12px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-/* Notch in the base */
+/* Blood groove — the notch where the blade seats */
 .guillotine-base::before {
   content: "";
   position: absolute;
-  top: -8px;
+  top: -14px;
   left: 50%;
   transform: translateX(-50%);
-  width: 8px;
-  height: 10px;
-  background: #0B0B0C;
+  width: 10px;
+  height: 18px;
+  background: #0a0a0b;
   border-radius: 0 0 2px 2px;
   z-index: 4;
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.8),
+    0 0 8px rgba(200, 30, 30, 0.15);
 }
 
-/* ─── Blade — $CHOP Metallic ─────────────────────────────────────────────── */
-/* Wrapper — handles vertical position */
+/* Blood stain pooling around the groove */
+.guillotine-base::after {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 8px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(180, 30, 30, 0.2) 0%,
+    rgba(180, 30, 30, 0.05) 60%,
+    transparent 100%
+  );
+  z-index: 5;
+  border-radius: 50%;
+}
+
+/* ─── Blade — Heavy steel, brutally angled ───────────────────────────────── */
 .guillotine-blade-wrapper {
   position: absolute;
   left: 50%;
@@ -269,110 +432,123 @@ html, body {
   transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Blade with diagonal cutting edge */
 .guillotine-blade {
   position: absolute;
   left: 50%;
-  top: 7%;
-  width: 64%;
-  height: 26%;
+  top: 6%;
+  width: 60%;
+  height: 30%;
   transform: translateX(-50%);
   pointer-events: none;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 75%);
+  /* Sharper, more aggressive angle — steeper cut */
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 72%);
   background: linear-gradient(
-    180deg,
-    #d4d4d8 0%,
-    #a1a1aa 12%,
-    #71717a 25%,
-    #52525b 45%,
-    #71717a 65%,
-    #3f3f46 85%,
-    #27272a 100%
+    165deg,
+    #d0d0d4 0%,
+    #a0a0a8 8%,
+    #686870 20%,
+    #484850 40%,
+    #585860 60%,
+    #383840 80%,
+    #181820 100%
   );
-  border-radius: 2px 2px 0 0;
   box-shadow:
-    0 0 20px rgba(225, 29, 72, 0.25),
-    0 0 50px rgba(225, 29, 72, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 0 28px rgba(193, 29, 36, 0.15),
+    0 0 60px rgba(193, 29, 36, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 3px 3px 8px rgba(0,0,0,0.4);
   animation: blade-idle 3s ease-in-out infinite;
 }
 
 @keyframes blade-idle {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.08); }
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 4px rgba(193,29,36,0.15)); }
+  50% { filter: brightness(1.06) drop-shadow(0 0 8px rgba(193,29,36,0.25)); }
 }
 
-/* Blade edge gleam — a bright line along the angled cutting edge */
+/* Blade spine — thick back edge */
+.guillotine-blade::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(
+    to bottom,
+    #d0d0d4,
+    #808088
+  );
+  border-radius: 1px 1px 0 0;
+}
+
+/* Blade edge — the cutting bevel with blood hint */
 .guillotine-blade::after {
   content: "";
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 5px;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.5) 0%,
+    rgba(200, 50, 50, 0.15) 0%,
+    rgba(255, 255, 255, 0.4) 30%,
     rgba(255, 255, 255, 0.15) 60%,
-    rgba(255, 200, 200, 0.05) 100%
+    rgba(200, 50, 50, 0.08) 100%
   );
-  /* Match the parent's angled bottom */
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 25%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 60%);
 }
 
-/* Dropped state — fast slam */
+/* Dropped state — heavy slam, no hesitation */
 .guillotine-blade.dropped {
-  transition: transform 0.15s cubic-bezier(0.36, 0, 0.66, -0.56) !important;
+  transition: transform 0.12s cubic-bezier(0.36, 0, 0.66, -0.56) !important;
   animation: none !important;
+  filter: brightness(0.6) saturate(0.5) !important;
 }
 
-/* Bump — blade wiggles + flashes when a new message arrives */
+/* Bump — blade shudders when a new message arrives */
 .guillotine-blade.bump {
-  animation: blade-wiggle 1.5s ease-out !important;
+  animation: blade-shudder 1.5s ease-out !important;
 }
 
-@keyframes blade-wiggle {
-  0%   { filter: brightness(1) drop-shadow(0 0 8px rgba(225,29,72,0.9)); transform: translateX(-50%) rotate(0deg); }
-  8%   { filter: brightness(2) drop-shadow(0 0 40px rgba(225,29,72,1), 0 0 80px rgba(255,60,20,0.6)); transform: translateX(-53%) rotate(-2deg); }
-  16%  { filter: brightness(1.4) drop-shadow(0 0 28px rgba(225,29,72,0.8)); transform: translateX(-47%) rotate(1.5deg); }
-  24%  { filter: brightness(1.8) drop-shadow(0 0 36px rgba(225,29,72,0.9)); transform: translateX(-51%) rotate(-1.2deg); }
-  32%  { filter: brightness(1.3) drop-shadow(0 0 24px rgba(225,29,72,0.7)); transform: translateX(-49%) rotate(0.8deg); }
-  40%  { filter: brightness(1.5) drop-shadow(0 0 30px rgba(225,29,72,0.8)); transform: translateX(-51%) rotate(-0.6deg); }
-  50%  { filter: brightness(1.2) drop-shadow(0 0 20px rgba(225,29,72,0.6)); transform: translateX(-50%) rotate(0.4deg); }
-  60%  { filter: brightness(1.3) drop-shadow(0 0 24px rgba(225,29,72,0.7)); transform: translateX(-50%) rotate(-0.3deg); }
-  70%  { filter: brightness(1.1) drop-shadow(0 0 16px rgba(225,29,72,0.5)); transform: translateX(-50%) rotate(0.2deg); }
-  85%  { filter: brightness(1) drop-shadow(0 0 12px rgba(225,29,72,0.4)); transform: translateX(-50%) rotate(-0.1deg); }
-  100% { filter: brightness(1) drop-shadow(0 0 8px rgba(225,29,72,0.3)); transform: translateX(-50%) rotate(0deg); }
+@keyframes blade-shudder {
+  0%   { filter: brightness(1) drop-shadow(0 0 8px rgba(193,29,36,0.8)); transform: translateX(-50%) rotate(0deg); }
+  5%   { filter: brightness(1.6) drop-shadow(0 0 30px rgba(193,29,36,1)); transform: translateX(-51%) rotate(-1.5deg); }
+  10%  { filter: brightness(1.3) drop-shadow(0 0 20px rgba(193,29,36,0.7)); transform: translateX(-49%) rotate(1deg); }
+  18%  { filter: brightness(1.4) drop-shadow(0 0 24px rgba(193,29,36,0.8)); transform: translateX(-50.5%) rotate(-0.8deg); }
+  26%  { filter: brightness(1.2) drop-shadow(0 0 16px rgba(193,29,36,0.6)); transform: translateX(-49.5%) rotate(0.5deg); }
+  35%  { filter: brightness(1.1) drop-shadow(0 0 12px rgba(193,29,36,0.5)); transform: translateX(-50%) rotate(-0.3deg); }
+  50%  { filter: brightness(1) drop-shadow(0 0 8px rgba(193,29,36,0.4)); transform: translateX(-50%) rotate(0deg); }
+  100% { filter: brightness(1) drop-shadow(0 0 4px rgba(193,29,36,0.2)); transform: translateX(-50%) rotate(0deg); }
 }
 
-/* Progress bar — traveling highlight + glow pulse */
+/* Progress bar pulse — blood-vessel throb */
 .guillotine-progress-fill.progress-pulse {
-  animation: progress-pulse 1.5s ease-out;
+  animation: prog-throb 1.5s ease-out;
 }
 
 .guillotine-progress-fill.progress-pulse::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
+  left: -1px;
+  right: -1px;
   height: 4px;
-  background: linear-gradient(to top, transparent, rgba(34,197,94,0.8), transparent);
-  border-radius: 2px;
-  animation: progress-travel 1.5s ease-out;
+  background: linear-gradient(to top, transparent, rgba(193,29,36,0.9), transparent);
+  animation: prog-travel 1.5s ease-out;
 }
 
-@keyframes progress-travel {
+@keyframes prog-travel {
   0%   { bottom: 0%; opacity: 0; }
   15%  { opacity: 1; }
   100% { bottom: 100%; opacity: 0; }
 }
 
-@keyframes progress-pulse {
-  0%   { filter: brightness(1); box-shadow: 0 0 8px rgba(225,29,72,0.6), 0 0 20px rgba(34,197,94,0.3); }
-  15%  { filter: brightness(2.5); box-shadow: 0 0 24px rgba(225,29,72,1), 0 0 60px rgba(34,197,94,0.8), 0 0 100px rgba(225,29,72,0.4); }
-  40%  { filter: brightness(1.6); box-shadow: 0 0 16px rgba(225,29,72,0.8), 0 0 40px rgba(34,197,94,0.5); }
-  70%  { filter: brightness(1.2); box-shadow: 0 0 12px rgba(225,29,72,0.7), 0 0 30px rgba(34,197,94,0.4); }
-  100% { filter: brightness(1); box-shadow: 0 0 8px rgba(225,29,72,0.6), 0 0 20px rgba(34,197,94,0.3); }
+@keyframes prog-throb {
+  0%   { filter: brightness(1); box-shadow: 0 0 6px rgba(193,29,36,0.5), 0 0 16px rgba(193,29,36,0.2); }
+  15%  { filter: brightness(2); box-shadow: 0 0 20px rgba(193,29,36,0.9), 0 0 50px rgba(193,29,36,0.5); }
+  40%  { filter: brightness(1.5); box-shadow: 0 0 14px rgba(193,29,36,0.7), 0 0 30px rgba(193,29,36,0.3); }
+  70%  { filter: brightness(1.2); box-shadow: 0 0 10px rgba(193,29,36,0.6), 0 0 20px rgba(193,29,36,0.2); }
+  100% { filter: brightness(1); box-shadow: 0 0 6px rgba(193,29,36,0.5), 0 0 16px rgba(193,29,36,0.2); }
 }
 
 /* ─── Live Event Toasts — $CHOP Style ───────────────────────────────────── */
@@ -381,7 +557,6 @@ html, body {
   flex-direction: column;
   gap: 4px;
   width: 100%;
-  max-width: 220px;
 }
 
 .toast-item {
@@ -392,7 +567,6 @@ html, body {
   padding: 6px 8px;
   font-size: 10px;
   line-height: 1.4;
-  color: #F4F4F5;
   font-family: "JetBrains Mono", "Courier New", monospace;
   box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.5);
   overflow: hidden;
@@ -437,125 +611,188 @@ html, body {
   100% { opacity: 0; transform: translateY(-8px); }
 }
 
-/* Milestone glow levels — gets more ominous as progress increases */
-.guillotine-blade.milestone-25 { box-shadow: 0 0 28px rgba(225,29,72,0.35), 0 0 60px rgba(225,29,72,0.12), inset 0 1px 0 rgba(255,255,255,0.2); }
-.guillotine-blade.milestone-50 { box-shadow: 0 0 36px rgba(225,29,72,0.45), 0 0 72px rgba(225,29,72,0.18), inset 0 1px 0 rgba(255,255,255,0.2); }
-.guillotine-blade.milestone-75 { box-shadow: 0 0 44px rgba(225,29,72,0.55), 0 0 84px rgba(225,29,72,0.24), inset 0 1px 0 rgba(255,255,255,0.2); }
-.guillotine-blade.milestone-90 { box-shadow: 0 0 52px rgba(225,29,72,0.65), 0 0 96px rgba(225,29,72,0.30), inset 0 1px 0 rgba(255,255,255,0.2); animation: blade-idle 1.5s ease-in-out infinite; }
-.guillotine-blade.milestone-95 { box-shadow: 0 0 60px rgba(225,29,72,0.75), 0 0 108px rgba(225,29,72,0.36), inset 0 1px 0 rgba(255,255,255,0.2); animation: blade-idle 0.8s ease-in-out infinite; }
-.guillotine-blade.milestone-99 { box-shadow: 0 0 72px rgba(225,29,72,0.85), 0 0 120px rgba(225,29,72,0.42), inset 0 1px 0 rgba(255,255,255,0.2); animation: blade-idle 0.4s ease-in-out infinite; }
+/* Milestone glow — blood-pressure rises as execution nears */
+.guillotine-blade.milestone-25 { box-shadow: 0 0 20px rgba(193,29,36,0.3), 0 0 40px rgba(193,29,36,0.1), inset 0 1px 0 rgba(255,255,255,0.15); }
+.guillotine-blade.milestone-50 { box-shadow: 0 0 28px rgba(193,29,36,0.4), 0 0 56px rgba(193,29,36,0.15), inset 0 1px 0 rgba(255,255,255,0.15); }
+.guillotine-blade.milestone-75 { box-shadow: 0 0 36px rgba(193,29,36,0.5), 0 0 72px rgba(193,29,36,0.2), inset 0 1px 0 rgba(255,255,255,0.15); }
+.guillotine-blade.milestone-90 { box-shadow: 0 0 44px rgba(193,29,36,0.6), 0 0 88px rgba(193,29,36,0.25), inset 0 1px 0 rgba(255,255,255,0.15); animation: blade-idle 1.5s ease-in-out infinite; }
+.guillotine-blade.milestone-95 { box-shadow: 0 0 52px rgba(193,29,36,0.7), 0 0 104px rgba(193,29,36,0.3), inset 0 1px 0 rgba(255,255,255,0.15); animation: blade-idle 0.8s ease-in-out infinite; }
+.guillotine-blade.milestone-99 { box-shadow: 0 0 64px rgba(193,29,36,0.8), 0 0 128px rgba(193,29,36,0.35), inset 0 1px 0 rgba(255,255,255,0.15); animation: blade-idle 0.4s ease-in-out infinite; }
 
-/* ─── Lunette (stock / head restraint) — Industrial ──────────────────────── */
+/* ─── Lunette (head restraint) — Yoke with head opening ──────────────────── */
 .guillotine-lunette {
   position: absolute;
   top: 84%;
-  left: 12%;
-  right: 12%;
-  height: 10%;
-  background: linear-gradient(to bottom, #3F3F46, #27272A 25%, #18181B 50%, #27272A 75%, #18181B);
-  border-radius: 2px;
+  left: 8%;
+  right: 8%;
+  height: 14%;
+  background: linear-gradient(
+    to bottom,
+    #4a4a4a 0%,
+    #3a3a3a 20%,
+    #2a2a2a 50%,
+    #3a3a3a 80%,
+    #1a1a1a 100%
+  );
   z-index: 8;
   box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 -2px 6px rgba(0,0,0,0.4),
+    0 2px 6px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
+/* The hole — dark circular opening in the yoke where the head goes */
 .guillotine-lunette::before {
   content: "";
   position: absolute;
-  top: -22px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  width: 38px;
-  height: 28px;
-  background: #0B0B0C;
-  border-radius: 50% 50% 0 0;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 34px;
+  background: #0a0a0b;
+  border-radius: 50%;
   z-index: 9;
+  box-shadow:
+    inset 0 0 12px rgba(0,0,0,0.9),
+    0 0 4px rgba(0,0,0,0.3);
 }
 
-/* ─── Head ────────────────────────────────────────────────────────────────── */
+/* Bolt rivets on the lunette */
+.guillotine-lunette::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  right: 10px;
+  height: 3px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    90deg,
+    #555 0px,
+    #555 3px,
+    transparent 3px,
+    transparent 20px
+  );
+  opacity: 0.3;
+  z-index: 10;
+}
+
+/* ─── Head — Stuck in the hole, scared pale face ──────────────────────────── */
 .guillotine-head {
   position: absolute;
-  top: 83%;
+  top: 84%;
   left: 50%;
   transform: translateX(-50%);
-  width: 34px;
-  height: 22px;
-  background: radial-gradient(ellipse at 50% 65%, #d4a574, #c09060 40%, #b08050 70%, #a07050);
-  border-radius: 50% 50% 25% 25%;
-  z-index: 10;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
-  transition: transform 0.3s ease-out, opacity 0.4s ease-out;
+  width: 36px;
+  height: 40px;
+  /* Clear pupils (black dot) inside white sclera + terrified mouth on skin */
+  background:
+    /* Left eye — pupil (black) inside white */
+    radial-gradient(circle at 9px 15px, #1a1a1a 1.5px, #f0f0f0 2px, transparent 4px),
+    /* Right eye */
+    radial-gradient(circle at 25px 15px, #1a1a1a 1.5px, #f0f0f0 2px, transparent 4px),
+    /* Mouth — tiny terrified O */
+    radial-gradient(circle at 17px 27px, #2a1010 2px, transparent 2.5px),
+    /* Skin base */
+    #d4c5a9;
+  border-radius: 50% 50% 45% 45%;
+  z-index: 11;
+  box-shadow:
+    inset 0 -4px 8px rgba(0,0,0,0.2),
+    inset 0 4px 8px rgba(255,255,255,0.1),
+    0 1px 4px rgba(0,0,0,0.4);
+  transition: transform 0.4s ease-out, opacity 0.5s ease-out, background 0.3s;
+  animation: head-tremble 3.5s ease-in-out infinite;
 }
 
+/* When severed — stop trembling, drop away */
 .guillotine-head.severed {
   transform: translateX(-50%) translateY(40px);
   opacity: 0;
   transition: transform 0.5s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.6s ease-in;
+  animation: none;
 }
 
+/* Nervous tremble — the condemned shakes while waiting */
+@keyframes head-tremble {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  15% { transform: translateX(-50.5%) rotate(0.6deg); }
+  30% { transform: translateX(-49.5%) rotate(-0.4deg); }
+  45% { transform: translateX(-50.3%) rotate(0.3deg); }
+  60% { transform: translateX(-49.7%) rotate(-0.2deg); }
+  75% { transform: translateX(-50%) rotate(0deg); }
+}
+
+/* Hair — dark messy mop on top */
 .guillotine-head::before {
   content: "";
   position: absolute;
-  top: -1px;
-  left: 6%;
-  width: 88%;
-  height: 55%;
-  background: linear-gradient(
-    180deg,
-    #3a2518 0%,
-    #4a3525 30%,
-    #5a4030 60%,
-    #4a3525 85%,
-    #3a2518 100%
-  );
-  border-radius: 50% 50% 0 0;
+  top: -4px;
+  left: -3px;
+  right: -3px;
+  height: 32%;
+  background: #1a1a1a;
+  border-radius: 55% 55% 0 0;
+  z-index: 12;
 }
 
+/* Eyelid — skin-colored blink overlay that flashes every few seconds */
 .guillotine-head::after {
   content: "";
   position: absolute;
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
-  height: 10px;
-  background: linear-gradient(to bottom, #c09060, #a07050);
-  border-radius: 0 0 3px 3px;
+  top: 8px;
+  left: 2px;
+  right: 2px;
+  height: 14px;
+  background: #d4c5a9;
+  border-radius: 2px;
+  z-index: 13;
+  opacity: 0;
+  pointer-events: none;
+  animation: blink 4s ease-in-out infinite;
 }
 
-/* ─── Side progress bar — $CHOP gamified ──────────────────────────────────── */
+@keyframes blink {
+  0%, 88%, 100% { opacity: 0; }
+  90% { opacity: 1; }
+  93% { opacity: 1; }
+}
+
+/* ─── Side progress bar — Industrial pressure gauge ────────────────────────── */
 .guillotine-progress {
   position: absolute;
-  left: -20px;
+  left: -22px;
   top: 6%;
   bottom: 6%;
-  width: 6px;
-  background: #18181B;
-  border-radius: 2px;
+  width: 8px;
+  background: #1a1a1a;
   z-index: 5;
   overflow: visible;
+  box-shadow:
+    inset 0 0 4px rgba(0,0,0,0.6),
+    0 0 2px rgba(0,0,0,0.3);
 }
 
 .guillotine-progress-fill {
   position: absolute;
   bottom: 0;
   width: 100%;
-  background: linear-gradient(to top, #E11D48, #BE123C 50%, #22C55E 80%, #16A34A);
-  border-radius: 2px;
+  background: linear-gradient(to top, #c11d24, #8a1a1a 50%, #5a3a1a 80%, #3a2a1a);
   transition: height 1s ease-out;
   box-shadow:
-    0 0 8px rgba(225, 29, 72, 0.6),
-    0 0 20px rgba(34, 197, 94, 0.3);
+    0 0 8px rgba(193, 29, 36, 0.6),
+    0 0 20px rgba(193, 29, 36, 0.2),
+    inset 0 0 4px rgba(255,255,255,0.05);
 }
 
 .guillotine-progress-mark {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: 12px;
+  width: 14px;
   height: 1px;
-  background: #27272A;
+  background: #555;
   z-index: 6;
 }
 

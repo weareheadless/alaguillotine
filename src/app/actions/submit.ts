@@ -1,7 +1,8 @@
 "use server";
 
-import { Client, Account, Databases, Query } from "node-appwrite";
-import type { SubmitFreeResponse, SubmitPaidResponse } from "../../lib/types";
+import { Client, Account, Databases, Query, ID } from "node-appwrite";
+import type { SubmitFreeResponse, SubmitPaidResponse, SubmitNominationResponse, NominationEntry } from "../../lib/types";
+import { NOMINATION_WEIGHT_FREE, NOMINATION_WEIGHT_MULTIPLIER } from "../../lib/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,48 @@ function getCollectionId(): string {
     process.env.NEXT_PUBLIC_APPWRITE_MESSAGES_COLLECTION_ID ||
     ""
   );
+}
+
+function getNominationsCollectionId(): string {
+  return (
+    process.env.APPWRITE_NOMINATIONS_COLLECTION_ID ||
+    process.env.NEXT_PUBLIC_APPWRITE_NOMINATIONS_COLLECTION_ID ||
+    "nominations"
+  );
+}
+
+/**
+ * Create a nomination document if a target_name was provided.
+ * Returns the nomination weight.
+ */
+async function createNomination(
+  databases: Databases,
+  targetName: string,
+  voterId: string | null,
+  voterName: string,
+  messageId: string,
+  amountPaid: number,
+): Promise<number> {
+  const weight = amountPaid > 0
+    ? Math.max(NOMINATION_WEIGHT_FREE, Math.floor(amountPaid * NOMINATION_WEIGHT_MULTIPLIER))
+    : NOMINATION_WEIGHT_FREE;
+
+  await databases.createDocument(
+    getDatabaseId(),
+    getNominationsCollectionId(),
+    ID.unique(),
+    {
+      target_name: targetName.trim().slice(0, 50),
+      voter_id: voterId,
+      voter_name: voterName,
+      message_id: messageId,
+      weight,
+      amount_paid: amountPaid,
+      created_at: new Date().toISOString(),
+    }
+  );
+
+  return weight;
 }
 
 /**
@@ -88,6 +131,7 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
     const text = formData.get("text")?.toString().trim();
     const jwt = formData.get("session_jwt")?.toString();
     const customName = formData.get("author_name")?.toString().trim();
+    const targetName = formData.get("target_name")?.toString().trim();
     if (!text) return { success: false, error: "Message is required." };
     if (!jwt) {
       return { success: false, error: "You must be logged in to post a free message." };
@@ -134,8 +178,8 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
     // Check moderation (shadowban)
     const isShadowbanned = await checkModeration(text);
 
-    // Create document
-    await databases.createDocument(
+    // Create document and capture its ID
+    const msgDoc = await databases.createDocument(
       getDatabaseId(),
       getCollectionId(),
       "unique()",
@@ -148,6 +192,11 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
         created_at: new Date().toISOString(),
       }
     );
+
+    // If user nominated a target, create a nomination
+    if (targetName) {
+      await createNomination(databases, targetName, authorId, authorName, msgDoc.$id, 0);
+    }
 
     // Always return success to the client
     return { success: true };
@@ -165,6 +214,7 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
     const jwt = formData.get("session_jwt")?.toString();
     const customName = formData.get("author_name")?.toString().trim();
     const parentId = formData.get("parent_id")?.toString().trim();
+    const targetName = formData.get("target_name")?.toString().trim();
     if (!text) return { success: false, error: "Comment text is required." };
     if (!parentId) return { success: false, error: "Missing parent message ID." };
     if (!jwt) {
@@ -193,7 +243,7 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
     const adminClient = getAdminClient();
     const databases = new Databases(adminClient);
 
-    await databases.createDocument(
+    const commentDoc = await databases.createDocument(
       getDatabaseId(),
       getCollectionId(),
       "unique()",
@@ -207,6 +257,11 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
         created_at: new Date().toISOString(),
       }
     );
+
+    // If user nominated a target, create a nomination
+    if (targetName) {
+      await createNomination(databases, targetName, authorId, authorName, commentDoc.$id, 0);
+    }
 
     return { success: true };
   } catch (err) {
@@ -223,6 +278,7 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
     const authorName = formData.get("author_name")?.toString().trim() || "Anonymous";
     const amountPaid = parseFloat(formData.get("amount_paid")?.toString() || "0");
     const txSignature = formData.get("tx_signature")?.toString().trim();
+    const targetName = formData.get("target_name")?.toString().trim();
 
     if (!text) return { success: false, error: "Message is required." };
     if (!amountPaid || amountPaid <= 0) {
@@ -257,7 +313,7 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
     // Check moderation (shadowban)
     const isShadowbanned = await checkModeration(text);
 
-    await databases.createDocument(
+    const msgDoc = await databases.createDocument(
       getDatabaseId(),
       getCollectionId(),
       "unique()",
@@ -271,9 +327,70 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
       }
     );
 
+    // If user nominated a target, create a nomination with paid weight
+    if (targetName) {
+      await createNomination(databases, targetName, null, authorName, msgDoc.$id, amountPaid);
+    }
+
     return { success: true, transactionSignature: txSignature };
   } catch (err) {
     console.error("submitPaidMessage error:", err);
     return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+
+// ─── Server-side leaderboard fetch (used by Leaderboard component) ───────────
+
+export async function fetchLeaderboard(): Promise<NominationEntry[]> {
+  try {
+    const adminClient = getAdminClient();
+    const databases = new Databases(adminClient);
+
+    const nominations = await databases.listDocuments(
+      getDatabaseId(),
+      getNominationsCollectionId(),
+      [Query.limit(5000)]
+    );
+
+    const docs = nominations.documents as unknown as import("../../lib/types").NominationDocument[];
+
+    // Aggregate by target_name
+    const agg = new Map<string, { total_weight: number; total_votes: number; total_paid: number; last_nominated_at: string }>();
+
+    for (const doc of docs) {
+      const key = doc.target_name.toLowerCase();
+      const existing = agg.get(key) || { total_weight: 0, total_votes: 0, total_paid: 0, last_nominated_at: "" };
+      existing.total_weight += doc.weight;
+      existing.total_votes += 1;
+      existing.total_paid += doc.amount_paid;
+      if (doc.created_at > existing.last_nominated_at) {
+        existing.last_nominated_at = doc.created_at;
+      }
+      agg.set(key, existing);
+    }
+
+    // Convert to sorted array
+    const entries: NominationEntry[] = [];
+    for (const [lowerName, data] of agg) {
+      // Find the original-cased name from one of the docs
+      const origName = docs.find(
+        (d) => d.target_name.toLowerCase() === lowerName
+      )?.target_name || lowerName;
+      entries.push({
+        target_name: origName,
+        total_weight: data.total_weight,
+        total_votes: data.total_votes,
+        total_paid: data.total_paid,
+        last_nominated_at: data.last_nominated_at,
+      });
+    }
+
+    entries.sort((a, b) => b.total_weight - a.total_weight);
+
+    return entries;
+  } catch (err) {
+    console.error("fetchLeaderboard error:", err);
+    return [];
   }
 }

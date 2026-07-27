@@ -6,7 +6,16 @@ import { AuthButtons } from "./AuthButtons";
 
 export function NavBar() {
   const pathname = usePathname();
+  const isGuillotine = pathname === "/";
+  const isLeaderboard = pathname === "/leaderboard";
   const isWhitepaper = pathname === "/whitepaper";
+
+  const linkClass = (isActive: boolean) =>
+    `rounded-sm border-2 px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
+      isActive
+        ? "border-black bg-spiteCrimson text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        : "border-transparent text-chop-muted hover:text-sheetWhite"
+    }`;
 
   return (
     <header className="sticky top-0 z-50 border-b-4 border-black bg-canvasBlack/90 backdrop-blur-md">
@@ -23,24 +32,13 @@ export function NavBar() {
           </Link>
 
           <nav className="flex items-center gap-1">
-            <Link
-              href="/"
-              className={`rounded-sm border-2 px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
-                !isWhitepaper
-                  ? "border-black bg-spiteCrimson text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                  : "border-transparent text-chop-muted hover:text-sheetWhite"
-              }`}
-            >
+            <Link href="/" className={linkClass(isGuillotine)}>
               Guillotine
             </Link>
-            <Link
-              href="/whitepaper"
-              className={`rounded-sm border-2 px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
-                isWhitepaper
-                  ? "border-black bg-spiteCrimson text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-                  : "border-transparent text-chop-muted hover:text-sheetWhite"
-              }`}
-            >
+            <Link href="/leaderboard" className={linkClass(isLeaderboard)}>
+              Leaderboard
+            </Link>
+            <Link href="/whitepaper" className={linkClass(isWhitepaper)}>
               Whitepaper
             </Link>
           </nav>
