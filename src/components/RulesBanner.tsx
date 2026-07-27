@@ -8,12 +8,10 @@ export function RulesBanner() {
           <span className="mt-0.5 text-lg">⚠️</span>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-spiteCrimson">
-              // Community Rules
+              // Community Rules & Legal Notice
             </p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-chop-muted">
-              Swearing is fine. Doxxing, credible threats of violence, and
-              illegal content are not. Violators will be silently shadowbanned by
-              an AI moderator.
+              This site is a work of political satire and artistic symbolism. Metaphorical imagery (e.g., guillotines) represents systemic power structures, not literal threats. Swearing is fine. Doxxing, credible threats of real-world violence, and illegal content are strictly prohibited. Violators will be silently shadowbanned by an AI moderator.
             </p>
           </div>
         </div>

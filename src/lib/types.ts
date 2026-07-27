@@ -60,6 +60,13 @@ export interface NominationEntry {
   last_nominated_at: string;
 }
 
+export interface TraitorEntry {
+  author_name: string;
+  total_paid: number;
+  total_messages: number;
+  last_active_at: string;
+}
+
 export interface SubmitNominationResponse {
   success: boolean;
   error?: string;

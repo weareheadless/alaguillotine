@@ -40,6 +40,29 @@ export default function WhitepaperPage() {
         </div>
       </section>
 
+      {/* ─── LEGAL DISCLAIMER ─────────────────────────────────────────── */}
+      <section className="mx-auto max-w-5xl px-4 pt-12 pb-4 sm:px-6 lg:px-8">
+        <div className="rounded-sm border-2 border-[#FF4500]/30 bg-[#FF4500]/5 p-6 font-mono text-sm leading-relaxed text-[#D7DADC]">
+          <h2 className="mb-4 text-base font-bold text-[#FF4500] uppercase tracking-widest">
+            NOTICE OF ARTISTIC SATIRE & SYMBOLIC REPRESENTATION
+          </h2>
+          <p className="mb-4">
+            This website is an interactive digital art installation, a work of political satire, and a satirical commentary on modern tech conglomerates.
+          </p>
+          <div className="space-y-4">
+            <p>
+              <strong className="text-white">1. Public Figures as Symbols:</strong> Any reference to real individuals, names, or likenesses (including tech executives and billionaires) is used strictly as a <strong className="text-[#FF4500]">symbolic proxy for late-stage capitalism, systemic power structures, and corporate excess</strong>. These individuals are depicted not as private biological targets, but as archetypes of global economic friction (<em>ras-le-bol</em>).
+            </p>
+            <p>
+              <strong className="text-white">2. Metaphorical Imagery:</strong> The guillotine and associated mechanical animations are historical metaphors for revolutionary market corrections and the public critique of extreme wealth concentration. They are artistic expressions, not literal, physical, or real-world threats of violence. No physical harm is intended, encouraged, or implied.
+            </p>
+            <p>
+              <strong className="text-white">3. Zero Utility &amp; Speculation:</strong> The $CHOP token is a digital collectible with zero utility, no functional roadmap, and no expectation of profit derived from the managerial efforts of others. Buying this token is an explicit act of financial self-harm and internet participation.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ─── Section 1: THE DOORWAY ────────────────────────────────────── */}
       <Section id="doorway" title="1. The Doorway: 15 Years of Unpunished Vaporware">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">

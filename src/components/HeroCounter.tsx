@@ -232,6 +232,11 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
                   {/* Rope extending UP from the blade */}
                   <div className="absolute left-1/2 bottom-[93%] w-1.5 h-[1000px] -translate-x-1/2 bg-glitchGray border-x border-black/50" />
                   
+                  {/* Digital Sparks / Artifacts around the blade */}
+                  <div className="absolute top-[40%] left-[-10%] w-2 h-1 bg-spiteCrimson animate-pulse opacity-0 [animation:scanline-glitch_4s_infinite]" />
+                  <div className="absolute top-[80%] right-[-5%] w-3 h-1 bg-hypeNeon animate-pulse opacity-0 [animation:scanline-glitch_6s_infinite_1s]" />
+                  <div className="absolute top-[20%] left-[20%] w-1 h-3 bg-white opacity-0 [animation:scanline-glitch_5s_infinite_2.5s]" />
+
                   <div
                     ref={bladeRef}
                     className={`guillotine-blade ${dropped ? "dropped" : ""} ${bumping ? "bump" : ""} ${milestoneClass}`}

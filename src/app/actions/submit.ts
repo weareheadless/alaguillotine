@@ -394,3 +394,58 @@ export async function fetchLeaderboard(): Promise<NominationEntry[]> {
     return [];
   }
 }
+
+// ─── Server-side traitors fetch (used by Class Traitors component) ───────────
+
+export async function fetchTraitors(): Promise<import("../../lib/types").TraitorEntry[]> {
+  try {
+    const adminClient = getAdminClient();
+    const databases = new Databases(adminClient);
+
+    const messages = await databases.listDocuments(
+      getDatabaseId(),
+      getCollectionId(),
+      [Query.limit(5000), Query.greaterThan("amount_paid", 0)]
+    );
+
+    const docs = messages.documents as unknown as import("../../lib/types").MessageDocument[];
+
+    // Aggregate by author_name
+    const agg = new Map<string, { total_paid: number; total_messages: number; last_active_at: string }>();
+
+    for (const doc of docs) {
+      if (!doc.author_name || doc.author_name === "Anonymous") continue;
+      
+      const key = doc.author_name.toLowerCase();
+      const existing = agg.get(key) || { total_paid: 0, total_messages: 0, last_active_at: "" };
+      existing.total_paid += doc.amount_paid || 0;
+      existing.total_messages += 1;
+      if (doc.created_at > existing.last_active_at) {
+        existing.last_active_at = doc.created_at;
+      }
+      agg.set(key, existing);
+    }
+
+    // Convert to sorted array
+    const entries: import("../../lib/types").TraitorEntry[] = [];
+    for (const [lowerName, data] of agg) {
+      // Find the original-cased name
+      const origName = docs.find(
+        (d) => d.author_name?.toLowerCase() === lowerName
+      )?.author_name || lowerName;
+      entries.push({
+        author_name: origName,
+        total_paid: data.total_paid,
+        total_messages: data.total_messages,
+        last_active_at: data.last_active_at,
+      });
+    }
+
+    entries.sort((a, b) => b.total_paid - a.total_paid);
+
+    return entries;
+  } catch (err) {
+    console.error("fetchTraitors error:", err);
+    return [];
+  }
+}

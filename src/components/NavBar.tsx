@@ -9,9 +9,10 @@ export function NavBar() {
   const isGuillotine = pathname === "/";
   const isLeaderboard = pathname === "/leaderboard";
   const isWhitepaper = pathname === "/whitepaper";
+  const isTraitors = pathname === "/traitors";
 
   const linkClass = (isActive: boolean) =>
-    `rounded-sm border-2 px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
+    `rounded-sm border-2 px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${
       isActive
         ? "border-black bg-spiteCrimson text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
         : "border-transparent text-chop-muted hover:text-sheetWhite"
@@ -21,7 +22,7 @@ export function NavBar() {
     <header className="sticky top-0 z-50 border-b-4 border-black bg-canvasBlack/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 items-center justify-between px-6">
         {/* ─── Left: Brand + Nav Links ──────────────────────────────────── */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-3">
             <span className="text-xl font-black uppercase tracking-tighter text-sheetWhite animate-glitch-text">
               <span className="text-spiteCrimson">FUCKYOU</span>ELON
@@ -33,13 +34,16 @@ export function NavBar() {
 
           <nav className="flex items-center gap-1">
             <Link href="/" className={linkClass(isGuillotine)}>
-              Guillotine
-            </Link>
-            <Link href="/leaderboard" className={linkClass(isLeaderboard)}>
-              Leaderboard
+              The Town Square
             </Link>
             <Link href="/whitepaper" className={linkClass(isWhitepaper)}>
-              Whitepaper
+              The Manifesto
+            </Link>
+            <Link href="/traitors" className={linkClass(isTraitors)}>
+              Class Traitors
+            </Link>
+            <Link href="/leaderboard" className={linkClass(isLeaderboard)}>
+              Next in Line
             </Link>
           </nav>
         </div>

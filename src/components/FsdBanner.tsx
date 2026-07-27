@@ -29,22 +29,31 @@ const BANNER_TEXTS = [
 ];
 
 export function FsdBanner() {
-  const [textIndex, setTextIndex] = useState(0);
+  const [shuffledTexts, setShuffledTexts] = useState<string[]>([]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTextIndex((prev) => (prev + 1) % BANNER_TEXTS.length);
-    }, 6000);
-    return () => clearInterval(interval);
+    // Shuffle the array on mount so new items can appear immediately
+    const shuffled = [...BANNER_TEXTS].sort(() => 0.5 - Math.random());
+    setShuffledTexts(shuffled);
   }, []);
 
+  if (shuffledTexts.length === 0) return null;
+
   return (
-    <div className="w-full overflow-hidden border-b-4 border-black bg-hypeNeon">
-      <div className="animate-marquee whitespace-nowrap py-1.5 font-mono text-xs font-bold uppercase tracking-[0.25em] text-canvasBlack">
-        <span className="mr-16 animate-glitch-text inline-block">[ {BANNER_TEXTS[textIndex]} ]</span>
-        <span className="mr-16">[ {BANNER_TEXTS[(textIndex + 1) % BANNER_TEXTS.length]} ]</span>
-        <span className="mr-16 animate-glitch-text inline-block">[ {BANNER_TEXTS[(textIndex + 2) % BANNER_TEXTS.length]} ]</span>
-        <span>[ {BANNER_TEXTS[(textIndex + 3) % BANNER_TEXTS.length]} ]</span>
+    <div className="w-full flex overflow-hidden border-b-4 border-black bg-hypeNeon hover:[&>div]:[animation-play-state:paused]">
+      <div className="animate-marquee-infinite flex whitespace-nowrap py-1.5 font-mono text-xs font-bold uppercase tracking-[0.25em] text-canvasBlack">
+        {shuffledTexts.map((text, i) => (
+          <span key={i} className={`mr-16 ${i % 3 === 0 ? "animate-glitch-text inline-block" : ""}`}>
+            [ {text} ]
+          </span>
+        ))}
+      </div>
+      <div className="animate-marquee-infinite flex whitespace-nowrap py-1.5 font-mono text-xs font-bold uppercase tracking-[0.25em] text-canvasBlack" aria-hidden="true">
+        {shuffledTexts.map((text, i) => (
+          <span key={i + 'dup'} className={`mr-16 ${i % 3 === 0 ? "animate-glitch-text inline-block" : ""}`}>
+            [ {text} ]
+          </span>
+        ))}
       </div>
     </div>
   );

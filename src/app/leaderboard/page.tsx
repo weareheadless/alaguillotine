@@ -13,7 +13,7 @@ export default function LeaderboardPage() {
         {/* ─── Hero ────────────────────────────────────────────────────── */}
         <section className="py-8 text-center">
           <h1 className="text-3xl font-black uppercase tracking-tighter text-sheetWhite sm:text-4xl">
-            <span className="text-spiteCrimson">Guillotine</span> Leaderboard
+            Next in <span className="text-spiteCrimson">Line</span>
           </h1>
           <p className="mt-2 text-sm font-mono text-chop-muted">
             // Who deserves the blade next? The people have spoken — or at least, they&apos;ve typed.
