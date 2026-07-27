@@ -59,9 +59,12 @@
 /* ─── Glitch Text — Unstable 90s monitor effect ──────────────────────────── */
 @keyframes glitchText {
   0%   { transform: skewX(0deg); text-shadow: none; }
-  1%   { transform: skewX(2deg); text-shadow: 2px 0 rgba(255,0,0,0.7), -2px 0 rgba(0,255,255,0.7); }
-  2%   { transform: skewX(-1deg); text-shadow: -1px 0 rgba(255,0,0,0.7), 1px 0 rgba(0,255,255,0.7); }
+  1%   { transform: skewX(2deg) translate(1px, 0); text-shadow: 2px 0 rgba(225,29,72,0.7), -2px 0 rgba(34,197,94,0.7); }
+  2%   { transform: skewX(-1deg) translate(-1px, 0); text-shadow: -1px 0 rgba(225,29,72,0.7), 1px 0 rgba(34,197,94,0.7); }
   3%   { transform: skewX(0deg); text-shadow: none; }
+  45%  { transform: skewX(0deg); text-shadow: none; }
+  46%  { transform: skewX(4deg); text-shadow: 3px 0 rgba(225,29,72,0.9), -3px 0 rgba(34,197,94,0.9); }
+  47%  { transform: skewX(0deg); text-shadow: none; }
   100% { transform: skewX(0deg); text-shadow: none; }
 }
 
@@ -82,18 +85,20 @@
 /* ─── Marquee Scroll — Stock ticker / FSD warning ────────────────────────── */
 @keyframes marquee {
   0%   { transform: translateX(100%); }
+  98%  { transform: translateX(-98%); }
+  99%  { transform: translateX(-99%); filter: hue-rotate(90deg) }
   100% { transform: translateX(-100%); }
 }
 
 /* ─── CRT Flicker — Subtle screen instability ────────────────────────────── */
 @keyframes crtFlicker {
-  0%, 100% { opacity: 1; }
-  2%  { opacity: 0.85; }
-  4%  { opacity: 1; }
-  50% { opacity: 0.95; }
-  52% { opacity: 1; }
-  95% { opacity: 0.9; }
-  97% { opacity: 1; }
+  0%, 100% { opacity: 1; filter: contrast(1); }
+  2%  { opacity: 0.85; filter: contrast(1.1) brightness(1.05) hue-rotate(-2deg); }
+  4%  { opacity: 1; filter: contrast(1); }
+  50% { opacity: 0.95; filter: contrast(1.05) hue-rotate(1deg); }
+  52% { opacity: 1; filter: contrast(1); }
+  95% { opacity: 0.9; filter: contrast(1.1) brightness(1.02); }
+  97% { opacity: 1; filter: contrast(1); }
 }
 
 @keyframes drop-shake {
@@ -136,11 +141,32 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
+  z-index: 9999;
+  background-size: 100% 3px, 4px 100%;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
 /* ─── Scrollbar — Brutalist ──────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: #0B0B0C; }
 ::-webkit-scrollbar-thumb { background: #27272A; }
 ::-webkit-scrollbar-thumb:hover { background: #71717A; }
+
+::selection {
+  background: var(--color-spiteCrimson);
+  color: #000;
+  text-shadow: 2px 2px 0 var(--color-hypeNeon);
+}
 
 /* ─── Utility Classes ─────────────────────────────────────────────────────── */
 .brutal-border {
@@ -149,6 +175,12 @@ html, body {
 
 .brutal-shadow {
   box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+  transition: transform 0.1s steps(2), box-shadow 0.1s steps(2);
+}
+
+.brutal-shadow:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 10px 10px 0 #0B0B0C, 2px 2px 0px rgba(225, 29, 72, 0.4);
 }
 
 .brutal-shadow-sm {

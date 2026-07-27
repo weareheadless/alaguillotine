@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-canvasBlack antialiased font-mono">
+      <body className="min-h-screen bg-canvasBlack antialiased font-mono animate-crt-flicker">
         <SolanaWalletProvider>
           <ExecutionProvider>{children}</ExecutionProvider>
         </SolanaWalletProvider>
