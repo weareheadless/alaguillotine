@@ -15,8 +15,8 @@ export default function LeaderboardPage() {
           <h1 className="text-3xl font-black uppercase tracking-tighter text-sheetWhite sm:text-4xl">
             Next in <span className="text-spiteCrimson">Line</span>
           </h1>
-          <p className="mt-2 text-sm font-mono text-chop-muted">
-            // Who deserves the blade next? The people have spoken — or at least, they&apos;ve typed.
+          <p className="mt-2 max-w-2xl mx-auto text-sm font-mono leading-relaxed text-chop-muted">
+            // Who gets promoted to the basket next? The people are actively restructuring the executive board. Nominate the next corporate overlord, ketamine casualty, or venture capitalist who desperately needs to be separated from their earthly assets. The blade always resets, and we have a lot of wealth to redistribute.
           </p>
           <div className="mx-auto mt-4 h-1 w-32 bg-gradient-to-r from-spiteCrimson to-hypeNeon" />
         </section>

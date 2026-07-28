@@ -93,6 +93,7 @@ export interface EpochDocument extends Models.Document {
   final_lottery: number;
   final_dev: number;
   final_board: number;
+  final_revolution: number;
   director_fees: Record<string, number>; // wallet -> fee
   hypothesis_winner: string | null; // "H1" | "H2" | "H3" | "H4"
 }
@@ -109,6 +110,7 @@ export interface VoteAllocation {
   lottery_rate: number;    // 0-100
   dev_rate: number;        // 0-100
   board_rate: number;      // 0-100
+  revolution_rate: number; // 0-100
 }
 
 export interface EpochSummary {

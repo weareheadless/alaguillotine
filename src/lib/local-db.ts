@@ -79,6 +79,7 @@ function ensureTables(db: Database.Database) {
       final_lottery INTEGER NOT NULL DEFAULT 0,
       final_dev INTEGER NOT NULL DEFAULT 0,
       final_board INTEGER NOT NULL DEFAULT 0,
+      final_revolution INTEGER NOT NULL DEFAULT 0,
       director_fees TEXT NOT NULL DEFAULT '{}',
       hypothesis_winner TEXT,
       created_at TEXT NOT NULL DEFAULT ''
@@ -96,6 +97,7 @@ function ensureTables(db: Database.Database) {
       lottery_rate INTEGER NOT NULL DEFAULT 0,
       dev_rate INTEGER NOT NULL DEFAULT 0,
       board_rate INTEGER NOT NULL DEFAULT 0,
+      revolution_rate INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT ''
     );
 

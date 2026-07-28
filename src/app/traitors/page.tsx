@@ -16,7 +16,7 @@ export default function TraitorsPage() {
             Class <span className="text-spiteCrimson">Traitors</span>
           </h1>
           <p className="mt-2 max-w-2xl mx-auto text-sm font-mono leading-relaxed text-chop-muted">
-            // These individuals bought $CHOP and did absolutely nothing else. No nominations. No messages. Pure idle capital. They threw money at a revolution they couldn&apos;t be bothered to participate in. Congratulations — you&apos;ve become the very thing you claimed to hate: a passive shareholder class. Zero voting power. Maximum embarrassment.
+            // Welcome to the digital cuck shed. These spineless bagholders bought $CHOP and just sat on it, hoping to passively profit off the revolution like they inherited a South African emerald mine. No posts, no participation—just pure, useless idle capital. You&apos;re the exact type of parasite who pre-orders a rusting Cybertruck and thinks a billionaire on a ketamine bender is actually going to invite you to his Mars colony. You bought the rope but were too cowardly to pull the lever. Zero voting power. Enjoy the public humiliation.
           </p>
           <div className="mx-auto mt-4 h-1 w-32 bg-gradient-to-r from-hypeNeon to-spiteCrimson" />
         </section>

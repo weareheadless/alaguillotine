@@ -103,8 +103,8 @@ export default function BoardPage() {
           <h1 className="font-mono text-4xl font-black uppercase tracking-tighter text-sheetWhite">
             The <span className="text-spiteCrimson">Committee</span>
           </h1>
-          <p className="mt-2 font-mono text-sm text-chop-muted">
-            // Paying participants who earned the right to move the levers. Top 7 nominators decide how the treasury flows each epoch.
+          <p className="mt-2 max-w-2xl mx-auto font-mono text-sm leading-relaxed text-chop-muted">
+            // Look at them—our supreme leaders. These top 7 spenders bought their way into the inner circle, proving that even in a digital revolution, capital still wins. They threw the most money at the blade, so they get the ultimate power trip: directing the treasury flow every epoch. They decide who gets paid, who gets burned, and how much we allocate to &quot;the cause.&quot; They are the new oligarchs. Bow down to your new central bank.
           </p>
         </div>
 
@@ -169,18 +169,22 @@ export default function BoardPage() {
         {/* ─── How It Works ────────────────────────────────── */}
         <div className="mt-8 border-4 border-black bg-sheetWhite p-6 font-mono shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           <h2 className="mb-4 border-b-2 border-black pb-2 text-lg font-black uppercase tracking-tighter text-canvasBlack">📋 How It Works</h2>
-          <div className="grid gap-3 text-xs sm:grid-cols-3">
+            <div className="grid gap-3 text-xs sm:grid-cols-4">
             <div className="border border-black/20 p-3">
               <span className="font-black text-spiteCrimson">1. EPOCH STARTS</span>
               <p className="mt-1 text-chop-muted">A new epoch begins. Top 7 participants (most nominations) earn committee seats.</p>
             </div>
             <div className="border border-black/20 p-3">
               <span className="font-black text-hypeNeon">2. COMMITTEE VOTES</span>
-              <p className="mt-1 text-chop-muted">Committee splits treasury: Burn, Lottery, Dev Fund, Board Dividend. Must sum to 100%.</p>
+              <p className="mt-1 text-chop-muted">Committee splits treasury: Burn, Lottery, Dev Fund, Board Dividend, Revolution Fund. Must sum to 100%.</p>
             </div>
             <div className="border border-black/20 p-3">
-              <span className="font-black text-canvasBlack">3. EXECUTION</span>
-              <p className="mt-1 text-chop-muted">Votes averaged. Treasury moves. Results published. New epoch begins.</p>
+              <span className="font-black text-canvasBlack">3. REVOLUTION FUND</span>
+              <p className="mt-1 text-chop-muted">The Revolution Fund pays out to a community-chosen cause. Committee nominates and votes on recipients each epoch.</p>
+            </div>
+            <div className="border border-black/20 p-3">
+              <span className="font-black text-spiteCrimson">4. EXECUTION</span>
+              <p className="mt-1 text-chop-muted">Votes averaged. Treasury moves. Recipients funded. New epoch begins. The revolution accidentally became a functional mutual aid DAO.</p>
             </div>
           </div>
           <div className="mt-4 border-t border-black/20 pt-4">
@@ -249,30 +253,48 @@ function VoteSliders({ epochNumber, status, boardMember, sessionJwt, publicKey, 
 }) {
   const [burn, setBurn] = useState(5);
   const [lottery, setLottery] = useState(15);
-  const [dev, setDev] = useState(40);
-  const [board, setBoard] = useState(40);
+  const [dev, setDev] = useState(35);
+  const [board, setBoard] = useState(25);
+  const [revolution, setRevolution] = useState(20);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  const adjust = (which: "burn" | "lottery" | "dev" | "board", v: number) => {
-    if (which === "burn") { setBurn(v); const rem = 100 - v; const r = lottery + dev + board || 1; setLottery(Math.round(lottery / r * rem)); setDev(Math.round(dev / r * rem)); setBoard(rem - Math.round(lottery / r * rem) - Math.round(dev / r * rem)); }
-    if (which === "lottery") { setLottery(v); const rem = 100 - v; const r = burn + dev + board || 1; setBurn(Math.round(burn / r * rem)); setDev(Math.round(dev / r * rem)); setBoard(rem - Math.round(burn / r * rem) - Math.round(dev / r * rem)); }
-    if (which === "dev") { setDev(v); const rem = 100 - v; const r = burn + lottery + board || 1; setBurn(Math.round(burn / r * rem)); setLottery(Math.round(lottery / r * rem)); setBoard(rem - Math.round(burn / r * rem) - Math.round(lottery / r * rem)); }
-    if (which === "board") { setBoard(v); const rem = 100 - v; const r = burn + lottery + dev || 1; setBurn(Math.round(burn / r * rem)); setLottery(Math.round(lottery / r * rem)); setDev(rem - Math.round(burn / r * rem) - Math.round(lottery / r * rem)); }
+  const adjust = (which: "burn" | "lottery" | "dev" | "board" | "revolution", v: number) => {
+    const setWhich = { burn: setBurn, lottery: setLottery, dev: setDev, board: setBoard, revolution: setRevolution }[which];
+    setWhich(v);
+    const rem = 100 - v;
+    const others = ["burn","lottery","dev","board","revolution"].filter(k => k !== which) as Array<"burn"|"lottery"|"dev"|"board"|"revolution">;
+    const state = { burn: burn, lottery: lottery, dev: dev, board: board, revolution: revolution };
+    state[which] = v;
+    const otherSum = others.reduce((s, k) => s + state[k], 0) || 1;
+    let remaining = rem;
+    for (let i = 0; i < others.length; i++) {
+      const k = others[i];
+      if (i === others.length - 1) {
+        const setter = { burn: setBurn, lottery: setLottery, dev: setDev, board: setBoard, revolution: setRevolution }[k];
+        setter(remaining);
+      } else {
+        const val = Math.round(state[k] / otherSum * rem);
+        const setter = { burn: setBurn, lottery: setLottery, dev: setDev, board: setBoard, revolution: setRevolution }[k];
+        setter(val);
+        remaining -= val;
+        state[k] = val;
+      }
+    }
   };
 
   const handleSubmit = async () => {
     if (!publicKey) { showWalletModal(); return; }
     if (!sessionJwt) { setError("Session not ready."); return; }
     setSubmitting(true); setError("");
-    const result = await submitVote(sessionJwt, publicKey.toBase58(), burn, lottery, dev, board);
+    const result = await submitVote(sessionJwt, publicKey.toBase58(), burn, lottery, dev, board, revolution);
     if (result.success) { setDone(true); onVoted(); }
     else setError(result.error || "Vote failed.");
     setSubmitting(false);
   };
 
-  const total = burn + lottery + dev + board;
+  const total = burn + lottery + dev + board + revolution;
   const isVoting = status === "voting";
   const alreadyVoted = done || (boardMember && boardMember.voted);
 
@@ -285,6 +307,7 @@ function VoteSliders({ epochNumber, status, boardMember, sessionJwt, publicKey, 
           <span>🎲 {boardMember.vote.lottery_rate}%</span>
           <span>🛠️ {boardMember.vote.dev_rate}%</span>
           <span>👑 {boardMember.vote.board_rate}%</span>
+          <span>🚩 {boardMember.vote.revolution_rate}%</span>
         </div>
       </div>
     );
@@ -326,7 +349,8 @@ function VoteSliders({ epochNumber, status, boardMember, sessionJwt, publicKey, 
         <SliderRow label="🔥 Burn" value={burn} onChange={(v) => adjust("burn", v)} color="#e63946" hint="Destroyed forever — deflationary." />
         <SliderRow label="🎲 Lottery" value={lottery} onChange={(v) => adjust("lottery", v)} color="#39ff14" hint="Paid to one random active user." />
         <SliderRow label="🛠️ Dev Fund" value={dev} onChange={(v) => adjust("dev", v)} color="#3b82f6" hint="Pays the founder to keep the site running." />
-        <SliderRow label="👑 Board Dividend" value={board} onChange={(v) => adjust("board", v)} color="#f59e0b" hint="Paid equally to the board members." />
+        <SliderRow label="👑 Board Dividend" value={board} onChange={(v) => adjust("board", v)} color="#f59e0b" hint="Paid equally to the committee members." />
+        <SliderRow label="🚩 Revolution Fund" value={revolution} onChange={(v) => adjust("revolution", v)} color="#dc2626" hint="Treasury pays out to a community-chosen cause or protest fund." />
       </div>
 
       <div className={`mt-4 text-center text-2xl font-black ${total === 100 ? "text-hypeNeon" : "text-spiteCrimson"}`}>{total}%</div>
@@ -377,7 +401,7 @@ function EpochHistory({ epochs }: { epochs: EpochDocument[] }) {
               if (next) { const v = await fetchEpochVotes(ep.$id); setVotes(v); }
             }} className="flex w-full items-center gap-4 px-3 py-2.5 text-left text-xs hover:bg-black/5">
               <span className="w-16 font-bold text-chop-muted">Epoch #{ep.epoch_number}</span>
-              <span className="flex-1">🔥{ep.final_burn}% / 🎲{ep.final_lottery}% / 🛠️{ep.final_dev}% / 👑{ep.final_board}%</span>
+              <span className="flex-1">🔥{ep.final_burn}% / 🎲{ep.final_lottery}% / 🛠️{ep.final_dev}% / 👑{ep.final_board}% / 🚩{(ep as any).final_revolution ?? 0}%</span>
               <HypothesisBadge h={ep.hypothesis_winner} />
               <span className="text-[10px] text-chop-muted">{new Date(ep.executed_at || ep.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
             </button>
@@ -392,7 +416,7 @@ function EpochHistory({ epochs }: { epochs: EpochDocument[] }) {
                     {votes.map((v, i) => (
                       <div key={i} className="flex gap-3 text-[11px]">
                         <span className="font-mono">{v.voter_wallet.slice(0, 8)}...</span>
-                        <span>🔥{v.burn_rate}% 🎲{v.lottery_rate}% 🛠️{v.dev_rate}% 👑{v.board_rate}%</span>
+                        <span>🔥{v.burn_rate}% 🎲{v.lottery_rate}% 🛠️{v.dev_rate}% 👑{v.board_rate}% 🚩{(v as any).revolution_rate ?? 0}%</span>
                       </div>
                     ))}
                   </div>

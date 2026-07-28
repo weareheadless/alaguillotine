@@ -150,6 +150,7 @@ export async function ensureEpoch(): Promise<EpochSummary | null> {
         final_lottery: 0,
         final_dev: 0,
         final_board: 0,
+        final_revolution: 0,
         director_fees: "{}",
         hypothesis_winner: null,
         created_at: new Date().toISOString(),
@@ -211,8 +212,9 @@ export async function submitVote(
   lotteryRate: number,
   devRate: number,
   boardRate: number,
+  revolutionRate: number,
 ): Promise<SubmitVoteResponse> {
-  const sum = burnRate + lotteryRate + devRate + boardRate;
+  const sum = burnRate + lotteryRate + devRate + boardRate + revolutionRate;
   if (Math.abs(sum - 100) > 0.01) {
     return { success: false, error: "Rates must sum to 100%." };
   }
@@ -251,7 +253,7 @@ export async function submitVote(
     return { success: false, error: "Your wallet is not on the board." };
   }
 
-  const vote: VoteAllocation = { burn_rate: burnRate, lottery_rate: lotteryRate, dev_rate: devRate, board_rate: boardRate };
+  const vote: VoteAllocation = { burn_rate: burnRate, lottery_rate: lotteryRate, dev_rate: devRate, board_rate: boardRate, revolution_rate: revolutionRate };
 
   // Save the vote
   db.createDocument("", "votes", "unique()", {
@@ -263,6 +265,7 @@ export async function submitVote(
     lottery_rate: lotteryRate,
     dev_rate: devRate,
     board_rate: boardRate,
+    revolution_rate: revolutionRate,
     created_at: new Date().toISOString(),
   });
 
@@ -308,11 +311,12 @@ async function tallyEpoch(epochId: string): Promise<void> {
     lottery_rate: number;
     dev_rate: number;
     board_rate: number;
+    revolution_rate: number;
   }>;
 
   if (votes.length === 0) {
-    // No votes cast — default: 25/25/25/25
-    await executeEpochAllocation(epochId, 25, 25, 25, 25);
+    // No votes cast — default: 20/15/25/20/20
+    await executeEpochAllocation(epochId, 20, 15, 25, 20, 20);
     return;
   }
 
@@ -322,16 +326,18 @@ async function tallyEpoch(epochId: string): Promise<void> {
     lottery: votes.reduce((s, v) => s + v.lottery_rate, 0) / votes.length,
     dev: votes.reduce((s, v) => s + v.dev_rate, 0) / votes.length,
     board: votes.reduce((s, v) => s + v.board_rate, 0) / votes.length,
+    revolution: votes.reduce((s, v) => s + v.revolution_rate, 0) / votes.length,
   };
 
   // Normalize to sum 100
-  const sum = avg.burn + avg.lottery + avg.dev + avg.board;
+  const sum = avg.burn + avg.lottery + avg.dev + avg.board + avg.revolution;
   const burn = Math.round(avg.burn / sum * 100);
   const lottery = Math.round(avg.lottery / sum * 100);
   const board = Math.round(avg.board / sum * 100);
-  const dev = 100 - burn - lottery - board;
+  const revolution = Math.round(avg.revolution / sum * 100);
+  const dev = 100 - burn - lottery - board - revolution;
 
-  await executeEpochAllocation(epochId, burn, lottery, dev, board);
+  await executeEpochAllocation(epochId, burn, lottery, dev, board, revolution);
 }
 
 /** Write execution results to DB (actual treasury transfers happen in a script) */
@@ -341,6 +347,7 @@ async function executeEpochAllocation(
   lotteryRate: number,
   devRate: number,
   boardRate: number,
+  revolutionRate: number,
 ): Promise<void> {
   const db = getDb();
 
@@ -363,6 +370,7 @@ async function executeEpochAllocation(
     final_lottery: lotteryRate,
     final_dev: devRate,
     final_board: boardRate,
+    final_revolution: revolutionRate,
     hypothesis_winner: hypothesisWinner,
   });
 }

@@ -8,10 +8,16 @@ export function RulesBanner() {
           <span className="mt-0.5 text-lg">⚠️</span>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-spiteCrimson">
-              // Community Rules & Legal Notice
+              // HOW IT WORKS
             </p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-chop-muted">
-              This site is a work of political satire and artistic symbolism. Metaphorical imagery (e.g., guillotines) represents systemic power structures, not literal threats. Swearing is fine. Doxxing, credible threats of real-world violence, and illegal content are strictly prohibited. Violators will be silently shadowbanned by an AI moderator.
+              Interactive satirical class warfare. Every message inches the blade downward and votes for the next target. Even if you post for free, your message actively burns treasury capital and funds an ongoing economic experiment in wealth redistribution.
+            </p>
+            <p className="mt-1.5 text-xs font-bold uppercase tracking-wider text-spiteCrimson">
+              // RULES
+            </p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-chop-muted">
+              Swearing is fine. Doxxing, credible threats, and illegal content are not. Violators get shadowbanned. The blade is metaphorical. Always has been.
             </p>
           </div>
         </div>
