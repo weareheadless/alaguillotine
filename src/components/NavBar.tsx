@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthButtons } from "./AuthButtons";
+import { getCurrentEpoch } from "../app/actions/epoch";
 
 export function NavBar() {
   const pathname = usePathname();
@@ -10,6 +12,14 @@ export function NavBar() {
   const isLeaderboard = pathname === "/leaderboard";
   const isWhitepaper = pathname === "/whitepaper";
   const isTraitors = pathname === "/traitors";
+  const isBoard = pathname === "/board";
+  const [epochNum, setEpochNum] = useState<number | null>(null);
+
+  useEffect(() => {
+    getCurrentEpoch().then((ep) => {
+      if (ep) setEpochNum(ep.epoch_number);
+    }).catch(() => {});
+  }, []);
 
   const linkClass = (isActive: boolean) =>
     `rounded-sm border-2 px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${
@@ -45,11 +55,21 @@ export function NavBar() {
             <Link href="/leaderboard" className={linkClass(isLeaderboard)}>
               Next in Line
             </Link>
+            <Link href="/board" className={linkClass(isBoard)}>
+              The Committee
+            </Link>
           </nav>
         </div>
 
-        {/* ─── Right: Auth ──────────────────────────────────────────────── */}
-        <AuthButtons />
+        {/* ─── Right: Epoch Counter + Auth ──────────────────────────────── */}
+        <div className="flex items-center gap-4">
+          {epochNum !== null && (
+            <span className="rounded-sm border-2 border-hypeNeon bg-hypeNeon/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-hypeNeon">
+              EPOCH {epochNum}
+            </span>
+          )}
+          <AuthButtons />
+        </div>
       </div>
     </header>
   );

@@ -3,15 +3,18 @@
 import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Connection } from "@solana/web3.js";
+import { PublicKey, Transaction, Connection } from "@solana/web3.js";
+import { getAssociatedTokenAddressSync, createAssociatedTokenAccountInstruction, createTransferInstruction, getAccount, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { submitFreeMessage, submitPaidMessage, submitComment } from "../app/actions/submit";
-import { account, databases, DATABASE_ID, MESSAGES_COLLECTION_ID } from "../lib/appwrite";
+import { account } from "../lib/appwrite";
+import { checkExistingFreeMessage } from "../app/actions/feed";
 import { useExecution } from "../lib/execution-context";
 import { EXECUTION_THRESHOLD } from "../lib/constants";
-import { Query } from "appwrite";
 
 const SOLANA_RECEIVER = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET || "";
 const SOLANA_RPC = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const CHOP_MINT = process.env.NEXT_PUBLIC_CHOP_MINT || "DTPZyd2HnDmLQfCGkFJ7ajVbw77maUVT7QVLE7Ltpump";
+const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10);
 
 export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; parentId?: string }) {
   const isComment = !!parentId;
@@ -32,9 +35,39 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
   const [paidError, setPaidError] = useState("");
   const [paidSuccess, setPaidSuccess] = useState(false);
 
+  const [chopBalance, setChopBalance] = useState<number | null>(null);
+
   const { executed } = useExecution();
   const { publicKey, sendTransaction } = useWallet();
   const { setVisible: showWalletModal } = useWalletModal();
+
+  // Fetch CHOP balance when wallet connects
+  useEffect(() => {
+    if (!publicKey) {
+      setChopBalance(null);
+      return;
+    }
+    const pk = publicKey!; // non-null — guarded above
+    let cancelled = false;
+    async function fetchBalance() {
+      try {
+        const connection = new Connection(SOLANA_RPC);
+        const mint = new PublicKey(CHOP_MINT);
+        const ataAddress = getAssociatedTokenAddressSync(mint, pk, false, TOKEN_2022_PROGRAM_ID);
+        const ata = await getAccount(connection, ataAddress);
+        if (!cancelled) {
+          setChopBalance(Number(ata.amount) / Math.pow(10, CHOP_DECIMALS));
+        }
+      } catch {
+        // ATA may not exist yet — that's fine, balance is 0
+        if (!cancelled) setChopBalance(0);
+      }
+    }
+    fetchBalance();
+    // Re-fetch every 15s
+    const interval = setInterval(fetchBalance, 15_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [publicKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,8 +102,8 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     async function checkExistingPost(userId: string) {
       if (isComment) { if (!cancelled) setUserStatus("logged-in"); return; }
       try {
-        const existing = await databases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [Query.isNull("parent_id"), Query.equal("author_id", userId), Query.equal("amount_paid", 0), Query.limit(1)]);
-        if (!cancelled) setUserStatus(existing.documents.length > 0 ? "already-posted" : "logged-in");
+        const hasExisting = await checkExistingFreeMessage(userId);
+        if (!cancelled) setUserStatus(hasExisting ? "already-posted" : "logged-in");
       } catch { if (!cancelled) setUserStatus("logged-in"); }
     }
 
@@ -122,9 +155,59 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     if (!publicKey) { showWalletModal(true); return; }
     setPaidSubmitting(true); setPaidError("");
     try {
-      const connection = new Connection(SOLANA_RPC);
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const mint = new PublicKey(CHOP_MINT);
       const receiverPubkey = new PublicKey(SOLANA_RECEIVER);
-      const transaction = new Transaction().add(SystemProgram.transfer({ fromPubkey: publicKey, toPubkey: receiverPubkey, lamports: amount * LAMPORTS_PER_SOL }));
+
+      // Compute ATAs (deterministic, doesn't require an account to exist)
+      const userAta = getAssociatedTokenAddressSync(mint, publicKey, false, TOKEN_2022_PROGRAM_ID);
+      const treasuryAta = getAssociatedTokenAddressSync(mint, receiverPubkey, false, TOKEN_2022_PROGRAM_ID);
+
+      const transaction = new Transaction();
+
+      // Check if user's ATA exists; if not, add create instruction
+      try {
+        await getAccount(connection, userAta);
+      } catch {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey,   // payer (user pays creation fee)
+            userAta,
+            publicKey,   // owner
+            mint,
+            TOKEN_2022_PROGRAM_ID,
+          )
+        );
+      }
+
+      // Check if treasury's ATA exists; if not, add create instruction
+      try {
+        await getAccount(connection, treasuryAta);
+      } catch {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey,        // payer (user pays creation fee)
+            treasuryAta,
+            receiverPubkey,   // owner (treasury)
+            mint,
+            TOKEN_2022_PROGRAM_ID,
+          )
+        );
+      }
+
+      const rawAmount = BigInt(Math.round(amount * Math.pow(10, CHOP_DECIMALS)));
+
+      transaction.add(
+        createTransferInstruction(
+          userAta,       // source (user's ATA)
+          treasuryAta,   // destination (treasury's ATA)
+          publicKey,     // authority
+          rawAmount,     // amount in raw units
+          undefined,     // multiSigners
+          TOKEN_2022_PROGRAM_ID,
+        )
+      );
+
       const { blockhash } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash; transaction.feePayer = publicKey;
       const signature = await sendTransaction(transaction, connection);
@@ -136,6 +219,12 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
       const result = await submitPaidMessage(formData);
       if (result.success) {
         setPaidSuccess(true); setPaidText(""); setPaidAmount(""); setPaidName("");
+        // Refetch CHOP balance after sending
+        try {
+          const ataAddr = getAssociatedTokenAddressSync(mint, publicKey, false, TOKEN_2022_PROGRAM_ID);
+          const ata = await getAccount(connection, ataAddr);
+          setChopBalance(Number(ata.amount) / Math.pow(10, CHOP_DECIMALS));
+        } catch { /* ignore */ }
         if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("new-message", { detail: { authorName: paidName.trim() || "Anonymous Whale", amount } }));
         onSuccess?.();
       } else setPaidError(result.error || "Failed to save message.");
@@ -221,6 +310,12 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
                   <label className="block text-xs font-bold uppercase tracking-wider">// 2. Nominate Someone for the Guillotine (optional)</label>
                   <input value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="Who should be next? e.g. Zuck, Bezos, Trump..." maxLength={50} className="w-full border-2 border-black bg-white px-3 py-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
                   {freeError && <p className="text-xs font-bold text-spiteCrimson">ERROR: {freeError}</p>}
+                  <div className="flex items-center gap-2 rounded-sm border border-black/10 bg-black/5 px-3 py-1.5">
+                    <span className="text-xs">🔥</span>
+                    <span className="text-[10px] italic text-chop-muted">
+                      1 $CHOP will be burned from the Treasury for this message (funded by paid users)
+                    </span>
+                  </div>
                   <button type="submit" disabled={freeSubmitting || !freeText.trim()} className="w-full cursor-pointer border-2 border-black bg-spiteCrimson py-3 text-center font-bold uppercase tracking-wider text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-75 hover:bg-black hover:text-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40">
                     {freeSubmitting ? "// POSTING..." : isComment ? "REPLY [SEND]" : "RELEASE THE BLADE [FREE EXECUTION]"}
                   </button>
@@ -245,18 +340,28 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
               <label className="block text-xs font-bold uppercase tracking-wider">// 2. Nominate Someone for the Guillotine (optional — paid votes weigh more)</label>
               <input value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="Who should be next? e.g. Zuck, Bezos, Trump..." maxLength={50} className="w-full border-2 border-black bg-white px-3 py-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
 
-              <label className="block text-xs font-bold uppercase tracking-wider">// 3. Amount of SOL to Burn</label>
+              <label className="block text-xs font-bold uppercase tracking-wider">// 3. Amount of $CHOP to Burn</label>
               <div className="flex gap-2">
                 <input value={paidName} onChange={(e) => setPaidName(e.target.value)} placeholder="Name (or Anonymous Whale)" maxLength={50} className="flex-1 border-2 border-black bg-white px-3 py-2 text-sm text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-spiteCrimson" />
                 <div className="relative w-32">
-                  <input value={paidAmount} onChange={(e) => setPaidAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0.00" type="text" inputMode="decimal" className="w-full border-2 border-black bg-white px-3 py-2 pl-7 text-xl font-bold text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
-                  <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm font-bold text-chop-muted">◎</span>
+                  <input value={paidAmount} onChange={(e) => setPaidAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0.00" type="text" inputMode="decimal" className="w-full border-2 border-black bg-white px-3 py-2 pl-9 text-xl font-bold text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
+                  <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold tracking-tight text-chop-muted">$CHOP</span>
                 </div>
               </div>
 
+              {/* CHOP balance indicator */}
+              {publicKey && chopBalance !== null && (
+                <div className="flex items-center justify-between border border-black/20 bg-black/5 px-3 py-1.5 text-[11px]">
+                  <span className="font-bold uppercase tracking-wider text-chop-muted">Wallet Balance</span>
+                  <span className={`font-bold ${chopBalance > 0 ? "text-hypeNeon" : "text-spiteCrimson"}`}>
+                    {chopBalance.toLocaleString(undefined, { maximumFractionDigits: CHOP_DECIMALS })} $CHOP
+                  </span>
+                </div>
+              )}
+
               {paidError && <p className="text-xs font-bold text-spiteCrimson">ERROR: {paidError}</p>}
               <button type="submit" disabled={paidSubmitting || !paidText.trim() || !paidAmount} className="w-full cursor-pointer border-2 border-black bg-spiteCrimson py-3 text-center font-bold uppercase tracking-wider text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-75 hover:bg-black hover:text-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40">
-                {paidSubmitting ? "// PROCESSING..." : publicKey ? `RELEASE THE BLADE [SEND ${paidAmount || "0"} SOL]` : "CONNECT WALLET & EXECUTE"}
+                {paidSubmitting ? "// PROCESSING..." : publicKey ? `RELEASE THE BLADE [SEND ${paidAmount || "0"} $CHOP]` : "CONNECT WALLET & EXECUTE"}
               </button>
               <p className="text-[10px] italic text-chop-muted">*Warning: This transaction will definitively accomplish absolutely nothing of tangible real-world utility.</p>
             </>

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { databases, DATABASE_ID, MESSAGES_COLLECTION_ID } from "../lib/appwrite";
 import { useExecution } from "../lib/execution-context";
-import { Query } from "appwrite";
 import { getDemoMessages } from "../lib/mock-data";
+import { fetchMessageCount } from "../app/actions/feed";
 
 import { EXECUTION_THRESHOLD } from "../lib/constants";
 
@@ -45,11 +44,7 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
 
   const fetchCount = async () => {
     try {
-      const res = await databases.listDocuments(
-        DATABASE_ID,
-        MESSAGES_COLLECTION_ID,
-        [Query.equal("is_shadowbanned", false), Query.limit(1)]
-      );
+      const res = await fetchMessageCount();
       const count = res.total;
       setTotal(count);
       setTotalMessages(count);
@@ -305,7 +300,7 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
                         <>⚡ <span className="toast-author">{Math.abs(t.amount)} new message{Math.abs(t.amount) > 1 ? "s" : ""}</span> — blade just moved!</>
                       ) : t.amount > 0 ? (
                         <>💎 <span className="toast-author">{t.authorName || "Anon"}</span>{" "}
-                          paid <span className="toast-amount">◎{t.amount.toFixed(2)}</span>{" "}
+                          paid <span className="toast-amount">${t.amount.toFixed(2)} CHOP</span>{" "}
                           — blade drops <span className="toast-amount">{(t.amount / 1000).toFixed(3)}%</span></>
                       ) : (
                         <>⚔️ <span className="toast-author">{t.authorName || "Anon"}</span>{" "}

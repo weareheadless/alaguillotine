@@ -49,9 +49,9 @@ export function TraitorsLeaderboard() {
     <section className="w-full">
       {/* ─── Header ────────────────────────────────────────────────────── */}
       <div className="mb-3 flex items-center gap-2 border-b-4 border-black pb-2">
-        <span className="text-lg">💰</span>
+        <span className="text-lg">🐀</span>
         <h2 className="text-sm font-black uppercase tracking-[0.2em] text-sheetWhite">
-          Biggest Spenders
+          On-Chain Holders
         </h2>
         <span className="border-2 border-black bg-canvasBlack px-2 py-0.5 text-[10px] font-bold text-hypeNeon">
           {entries.length}
@@ -63,9 +63,8 @@ export function TraitorsLeaderboard() {
         {/* Table header */}
         <div className="flex border-b-4 border-canvasBlack bg-canvasBlack px-3 py-2 text-[10px] font-bold uppercase tracking-[0.25em] text-sheetWhite">
           <span className="w-10">#</span>
-          <span className="flex-1">Traitor Name</span>
-          <span className="w-24 text-right">Messages</span>
-          <span className="w-28 text-right text-hypeNeon">$CHOP Burned</span>
+          <span className="flex-1">Wallet</span>
+          <span className="w-36 text-right text-hypeNeon">$CHOP Held</span>
         </div>
 
         {/* Table body */}
@@ -73,7 +72,7 @@ export function TraitorsLeaderboard() {
           {pageEntries.length === 0 ? (
             <div className="bg-sheetWhite px-3 py-12 text-center">
               <p className="text-sm uppercase tracking-wider text-chop-muted">
-                // No traitors found. Everyone is poor.
+                // No holders discovered yet. Run the discovery script.
               </p>
             </div>
           ) : (
@@ -88,29 +87,25 @@ export function TraitorsLeaderboard() {
                   <div className="flex items-center px-3 py-3">
                     {/* Rank */}
                     <span className={`w-10 flex-shrink-0 text-sm font-black ${
-                      isTop3 ? "text-spiteCrimson animate-pulse" : "opacity-60"
+                      isTop3 ? "text-spiteCrimson" : "opacity-60"
                     }`}>
-                      {globalIdx === 1 ? "🥇" : globalIdx === 2 ? "🥈" : globalIdx === 3 ? "🥉" : String(globalIdx).padStart(2, "0")}
+                      {globalIdx === 1 ? "🐀" : globalIdx === 2 ? "🐁" : globalIdx === 3 ? "🐭" : String(globalIdx).padStart(2, "0")}
                     </span>
 
-                    {/* Target name */}
+                    {/* Wallet */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold uppercase tracking-wider ${
-                        isTop3 ? "text-spiteCrimson" : ""
-                      } truncate`}>
-                        {entry.author_name}
+                      <p className="text-sm font-bold font-mono tracking-wider truncate">
+                        {entry.author_name.slice(0, 8)}...{entry.author_name.slice(-6)}
+                      </p>
+                      <p className="text-[10px] text-chop-muted mt-0.5">
+                        Bought in. Did nothing. Peak class betrayal.
                       </p>
                     </div>
 
-                    {/* Votes */}
-                    <div className="w-24 flex-shrink-0 text-right">
-                      <span className="text-xs font-mono font-bold">{entry.total_messages.toLocaleString()}</span>
-                    </div>
-
-                    {/* Paid */}
-                    <div className="w-28 flex-shrink-0 text-right">
+                    {/* CHOP Balance */}
+                    <div className="w-36 flex-shrink-0 text-right">
                       <span className="text-xs font-mono font-bold text-hypeNeon">
-                        ${entry.total_paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {entry.total_paid.toLocaleString(undefined, { maximumFractionDigits: 0 })} CHOP
                       </span>
                     </div>
                   </div>

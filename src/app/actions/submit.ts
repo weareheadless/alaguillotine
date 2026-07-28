@@ -1,8 +1,13 @@
 "use server";
 
-import { Client, Account, Databases, Query, ID } from "node-appwrite";
+import { Client, Account } from "node-appwrite";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { getOrCreateAssociatedTokenAccount, transfer, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import bs58 from "bs58";
 import type { SubmitFreeResponse, SubmitPaidResponse, SubmitNominationResponse, NominationEntry } from "../../lib/types";
 import { NOMINATION_WEIGHT_FREE, NOMINATION_WEIGHT_MULTIPLIER } from "../../lib/types";
+import { ensureEpoch, checkEpochTransition } from "./epoch";
+import { LocalDatabases, Query } from "../../lib/local-db";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -14,42 +19,8 @@ function getJwtClient(jwt: string) {
     .setJWT(jwt);
 }
 
-/** Admin client with API key — for database writes */
-function getAdminClient() {
-  const client = new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-
-  const apiKey = process.env.APPWRITE_API_KEY;
-  if (apiKey) {
-    client.setKey(apiKey);
-  }
-
-  return client;
-}
-
-function getDatabaseId(): string {
-  return (
-    process.env.APPWRITE_DATABASE_ID ||
-    process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ||
-    ""
-  );
-}
-
-function getCollectionId(): string {
-  return (
-    process.env.APPWRITE_MESSAGES_COLLECTION_ID ||
-    process.env.NEXT_PUBLIC_APPWRITE_MESSAGES_COLLECTION_ID ||
-    ""
-  );
-}
-
-function getNominationsCollectionId(): string {
-  return (
-    process.env.APPWRITE_NOMINATIONS_COLLECTION_ID ||
-    process.env.NEXT_PUBLIC_APPWRITE_NOMINATIONS_COLLECTION_ID ||
-    "nominations"
-  );
+function getDb() {
+  return new LocalDatabases();
 }
 
 /**
@@ -57,7 +28,7 @@ function getNominationsCollectionId(): string {
  * Returns the nomination weight.
  */
 async function createNomination(
-  databases: Databases,
+  db: LocalDatabases,
   targetName: string,
   voterId: string | null,
   voterName: string,
@@ -68,10 +39,10 @@ async function createNomination(
     ? Math.max(NOMINATION_WEIGHT_FREE, Math.floor(amountPaid * NOMINATION_WEIGHT_MULTIPLIER))
     : NOMINATION_WEIGHT_FREE;
 
-  await databases.createDocument(
-    getDatabaseId(),
-    getNominationsCollectionId(),
-    ID.unique(),
+  db.createDocument(
+    "",
+    "nominations",
+    "unique()",
     {
       target_name: targetName.trim().slice(0, 50),
       voter_id: voterId,
@@ -124,6 +95,125 @@ async function checkModeration(text: string): Promise<boolean> {
   }
 }
 
+// ─── CHOP Token Helpers ─────────────────────────────────────────────────────────
+
+const CHOP_MINT = new PublicKey(process.env.NEXT_PUBLIC_CHOP_MINT || "DTPZyd2HnDmLQfCGkFJ7ajVbw77maUVT7QVLE7Ltpump");
+const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10);
+const CHOP_UNIT = Math.pow(10, CHOP_DECIMALS); // 1 CHOP = 10^6 raw units
+const BURN_ADDRESS = new PublicKey(process.env.CHOP_BURN_ADDRESS || "11111111111111111111111111111111");
+
+/** Load the treasury wallet keypair from the secret key env var (base58). */
+function getTreasuryWallet(): Keypair | null {
+  const secret = process.env.CHOP_TREASURY_SECRET_KEY;
+  if (!secret) return null;
+  try {
+    const decoded = bs58.decode(secret);
+    return Keypair.fromSecretKey(decoded);
+  } catch {
+    console.error("[CHOP] Failed to decode treasury secret key");
+    return null;
+  }
+}
+
+/**
+ * Send 1 CHOP from the treasury wallet to the burn address.
+ * Called after a free message is posted. Non-blocking — fire-and-forget.
+ */
+async function burnOneChopForFreeMessage(): Promise<void> {
+  const treasury = getTreasuryWallet();
+  if (!treasury) {
+    console.warn("[CHOP] No treasury wallet configured — skipping burn for free message");
+    return;
+  }
+
+  const rpc = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+  const connection = new Connection(rpc);
+
+  try {
+    // Get (or create) treasury's associated token account for CHOP
+    const treasuryAta = await getOrCreateAssociatedTokenAccount(
+      connection,
+      treasury,          // payer for rent if ATA doesn't exist
+      CHOP_MINT,
+      treasury.publicKey,
+      false,             // allowOwnerOffCurve
+      undefined,         // commitment
+      undefined,         // confirmOptions
+      TOKEN_2022_PROGRAM_ID, // CHOP is pump.fun → Token 2022
+    );
+
+    const balance = Number(treasuryAta.amount);
+    if (balance < CHOP_UNIT) {
+      console.warn(`[CHOP] Treasury balance too low: ${balance / CHOP_UNIT} CHOP — skipping burn`);
+      return;
+    }
+
+    // Transfer 1 CHOP to the burn address
+    const sig = await transfer(
+      connection,
+      treasury,
+      treasuryAta.address,
+      BURN_ADDRESS,
+      treasury.publicKey,
+      BigInt(CHOP_UNIT),
+      undefined,              // multiSigners
+      undefined,              // confirmOptions
+      TOKEN_2022_PROGRAM_ID,  // CHOP is Token 2022
+    );
+
+    console.log(`[CHOP] Burned 1 CHOP for free message — tx: ${sig}`);
+  } catch (err) {
+    console.error("[CHOP] Burn failed:", err);
+    // Swallow — don't block the user's message posting
+  }
+}
+
+/**
+ * Verify a paid transaction on-chain and confirm it transferred CHOP
+ * to the treasury wallet. Returns the transferred CHOP amount or 0.
+ */
+async function verifyChopPayment(txSignature: string): Promise<number> {
+  const rpc = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+  const receiverStr = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET;
+  if (!receiverStr) {
+    console.error("[CHOP] No receiver wallet configured");
+    return 0;
+  }
+  const receiver = new PublicKey(receiverStr);
+
+  const verifyRes = await fetch(rpc, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "getTransaction",
+      params: [txSignature, { encoding: "json", maxSupportedTransactionVersion: 0 }],
+    }),
+  });
+
+  const txData = await verifyRes.json();
+  if (txData.error) {
+    console.error("[CHOP] Transaction verification failed:", txData.error);
+    return 0;
+  }
+
+  const tx = txData.result;
+  if (!tx) return 0;
+
+  // Check post-token-balances for CHOP transfers to the treasury
+  const postBalances = tx.meta?.postTokenBalances ?? [];
+  let totalChop = 0;
+
+  for (const balance of postBalances) {
+    if (balance.mint === CHOP_MINT.toBase58() && balance.owner === receiver.toBase58()) {
+      totalChop += Number(balance.uiTokenAmount?.uiAmount ?? 0);
+    }
+  }
+
+  return totalChop;
+}
+
 // ─── Submit Free Message (Appwrite session required, one per user) ──────────────
 
 export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeResponse> {
@@ -155,11 +245,10 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
       "Anonymous";
 
     // Check one-message-per-user limit (only for top-level messages)
-    const adminClient = getAdminClient();
-    const databases = new Databases(adminClient);
-    const existing = await databases.listDocuments(
-      getDatabaseId(),
-      getCollectionId(),
+    const db = getDb();
+    const existing = db.listDocuments(
+      "",
+      "messages",
       [
         Query.isNull("parent_id"),
         Query.equal("author_id", authorId),
@@ -179,9 +268,9 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
     const isShadowbanned = await checkModeration(text);
 
     // Create document and capture its ID
-    const msgDoc = await databases.createDocument(
-      getDatabaseId(),
-      getCollectionId(),
+    const msgDoc = db.createDocument(
+      "",
+      "messages",
       "unique()",
       {
         text,
@@ -195,8 +284,15 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
 
     // If user nominated a target, create a nomination
     if (targetName) {
-      await createNomination(databases, targetName, authorId, authorName, msgDoc.$id, 0);
+      await createNomination(db, targetName, authorId, authorName, (msgDoc as any).id, 0);
     }
+
+    // Burn 1 CHOP from treasury for this free message (non-blocking)
+    burnOneChopForFreeMessage();
+
+    // Ensure epoch exists + check if threshold crossed (non-blocking)
+    ensureEpoch();
+    checkEpochTransition();
 
     // Always return success to the client
     return { success: true };
@@ -240,12 +336,11 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
     // Check moderation (shadowban)
     const isShadowbanned = await checkModeration(text);
 
-    const adminClient = getAdminClient();
-    const databases = new Databases(adminClient);
+    const db = getDb();
 
-    const commentDoc = await databases.createDocument(
-      getDatabaseId(),
-      getCollectionId(),
+    const commentDoc = db.createDocument(
+      "",
+      "messages",
       "unique()",
       {
         text,
@@ -260,8 +355,15 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
 
     // If user nominated a target, create a nomination
     if (targetName) {
-      await createNomination(databases, targetName, authorId, authorName, commentDoc.$id, 0);
+      await createNomination(db, targetName, authorId, authorName, (commentDoc as any).id, 0);
     }
+
+    // Burn 1 CHOP from treasury for this free comment (non-blocking)
+    burnOneChopForFreeMessage();
+
+    // Ensure epoch exists + check if threshold crossed (non-blocking)
+    ensureEpoch();
+    checkEpochTransition();
 
     return { success: true };
   } catch (err) {
@@ -288,40 +390,29 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
       return { success: false, error: "Transaction signature is required." };
     }
 
-    // Verify the transaction on-chain
-    const rpcUrl =
-      process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-    const verifyRes = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "getTransaction",
-        params: [txSignature, { encoding: "json", maxSupportedTransactionVersion: 0 }],
-      }),
-    });
-
-    const txData = await verifyRes.json();
-    if (txData.error) {
-      return { success: false, error: "Could not verify transaction on-chain." };
+    // Verify the CHOP transfer on-chain
+    const verifiedChop = await verifyChopPayment(txSignature);
+    if (verifiedChop <= 0) {
+      return { success: false, error: "Could not verify CHOP payment on-chain. Make sure you sent $CHOP to the treasury address." };
     }
 
-    const adminClient = getAdminClient();
-    const databases = new Databases(adminClient);
+    // Use the actual on-chain amount so the user can't lie
+    const actualAmount = verifiedChop;
+
+    const db = getDb();
 
     // Check moderation (shadowban)
     const isShadowbanned = await checkModeration(text);
 
-    const msgDoc = await databases.createDocument(
-      getDatabaseId(),
-      getCollectionId(),
+    const msgDoc = db.createDocument(
+      "",
+      "messages",
       "unique()",
       {
         text,
         author_id: null,
         author_name: authorName,
-        amount_paid: amountPaid,
+        amount_paid: actualAmount,
         is_shadowbanned: isShadowbanned,
         created_at: new Date().toISOString(),
       }
@@ -329,8 +420,12 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
 
     // If user nominated a target, create a nomination with paid weight
     if (targetName) {
-      await createNomination(databases, targetName, null, authorName, msgDoc.$id, amountPaid);
+      await createNomination(db, targetName, null, authorName, (msgDoc as any).id, actualAmount);
     }
+
+    // Ensure epoch exists + check if threshold crossed (non-blocking)
+    ensureEpoch();
+    checkEpochTransition();
 
     return { success: true, transactionSignature: txSignature };
   } catch (err) {
@@ -344,12 +439,11 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
 
 export async function fetchLeaderboard(): Promise<NominationEntry[]> {
   try {
-    const adminClient = getAdminClient();
-    const databases = new Databases(adminClient);
+    const db = getDb();
 
-    const nominations = await databases.listDocuments(
-      getDatabaseId(),
-      getNominationsCollectionId(),
+    const nominations = db.listDocuments(
+      "",
+      "nominations",
       [Query.limit(5000)]
     );
 
@@ -399,47 +493,35 @@ export async function fetchLeaderboard(): Promise<NominationEntry[]> {
 
 export async function fetchTraitors(): Promise<import("../../lib/types").TraitorEntry[]> {
   try {
-    const adminClient = getAdminClient();
-    const databases = new Databases(adminClient);
+    const db = getDb();
 
-    const messages = await databases.listDocuments(
-      getDatabaseId(),
-      getCollectionId(),
-      [Query.limit(5000), Query.greaterThan("amount_paid", 0)]
+    // Pull holders from the epoch's board_members (populated by discover-board.cjs)
+    // These are on-chain $CHOP token holders — the Class Traitors
+    const epochs = db.listDocuments(
+      "",
+      "epochs",
+      [Query.orderDesc("started_at"), Query.limit(1)]
     );
 
-    const docs = messages.documents as unknown as import("../../lib/types").MessageDocument[];
+    if (epochs.documents.length === 0) return [];
 
-    // Aggregate by author_name
-    const agg = new Map<string, { total_paid: number; total_messages: number; last_active_at: string }>();
+    const epoch = epochs.documents[0];
+    const raw = (epoch as any).board_members;
+    if (!raw || raw === "[]") return [];
 
-    for (const doc of docs) {
-      if (!doc.author_name || doc.author_name === "Anonymous") continue;
-      
-      const key = doc.author_name.toLowerCase();
-      const existing = agg.get(key) || { total_paid: 0, total_messages: 0, last_active_at: "" };
-      existing.total_paid += doc.amount_paid || 0;
-      existing.total_messages += 1;
-      if (doc.created_at > existing.last_active_at) {
-        existing.last_active_at = doc.created_at;
-      }
-      agg.set(key, existing);
+    let boardMembers: { wallet: string; balance: number; voted: boolean }[];
+    try {
+      boardMembers = typeof raw === "string" ? JSON.parse(raw) : raw;
+    } catch {
+      return [];
     }
 
-    // Convert to sorted array
-    const entries: import("../../lib/types").TraitorEntry[] = [];
-    for (const [lowerName, data] of agg) {
-      // Find the original-cased name
-      const origName = docs.find(
-        (d) => d.author_name?.toLowerCase() === lowerName
-      )?.author_name || lowerName;
-      entries.push({
-        author_name: origName,
-        total_paid: data.total_paid,
-        total_messages: data.total_messages,
-        last_active_at: data.last_active_at,
-      });
-    }
+    const entries: import("../../lib/types").TraitorEntry[] = boardMembers.map((m) => ({
+      author_name: m.wallet,
+      total_paid: m.balance,
+      total_messages: 0,
+      last_active_at: "",
+    }));
 
     entries.sort((a, b) => b.total_paid - a.total_paid);
 

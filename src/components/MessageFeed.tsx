@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { databases, account, DATABASE_ID, MESSAGES_COLLECTION_ID } from "../lib/appwrite";
-import { Query } from "appwrite";
+import { account } from "../lib/appwrite";
 import type { FeedMessage } from "../lib/types";
 import { getDemoMessages } from "../lib/mock-data";
 import { SubmitForm } from "./SubmitForm";
+import { fetchVisibleMessages, fetchOwnMessages } from "../app/actions/feed";
 
 function MessageCard({ message, isCurrentUser, onReply }: { message: FeedMessage; isCurrentUser: boolean; onReply: (id: string) => void }) {
   const isPaid = message.amount_paid > 0;
@@ -28,7 +28,7 @@ function MessageCard({ message, isCurrentUser, onReply }: { message: FeedMessage
         </div>
         {isPaid && (
           <span className="flex-shrink-0 border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-0.5 text-xs font-bold text-hypeNeon">
-            ◎{message.amount_paid.toFixed(2)}
+            ${message.amount_paid.toFixed(2)} CHOP
           </span>
         )}
       </div>
@@ -79,15 +79,11 @@ export function MessageFeed() {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const visibleRes = await databases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
-        Query.equal("is_shadowbanned", false), Query.limit(100),
-      ]);
-      let docs = visibleRes.documents as unknown as FeedMessage[];
+      const visibleDocs = await fetchVisibleMessages();
+      let docs = visibleDocs;
       if (currentUserId) {
-        const ownRes = await databases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
-          Query.equal("author_id", currentUserId), Query.equal("is_shadowbanned", true), Query.limit(50),
-        ]);
-        docs = [...docs, ...(ownRes.documents as unknown as FeedMessage[])];
+        const ownDocs = await fetchOwnMessages(currentUserId);
+        docs = [...docs, ...ownDocs];
       }
       docs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setMessages(docs);
@@ -234,7 +230,7 @@ export function MessageFeed() {
                     <div className="w-28 flex-shrink-0 text-right">
                       {msg.amount_paid > 0 && (
                         <span className="inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-0.5 text-xs font-bold text-hypeNeon">
-                          ◎{msg.amount_paid.toFixed(2)}
+                          ${msg.amount_paid.toFixed(2)} CHOP
                         </span>
                       )}
                     </div>
