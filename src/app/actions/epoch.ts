@@ -1,29 +1,15 @@
 "use server";
 
-import { Account } from "node-appwrite";
-import { Client } from "node-appwrite";
 import { Connection, PublicKey } from "@solana/web3.js";
-import type {
-  EpochDocument,
-  EpochSummary,
-  BoardMember,
-  VoteAllocation,
-  SubmitVoteResponse,
-} from "../../lib/types";
-import { getEpochThreshold, BOARD_SIZE, VOTING_PERIOD_MS } from "../../lib/types";
+import type { EpochDocument, EpochSummary } from "../../lib/types";
+import { getEpochThreshold } from "../../lib/types";
 import { LocalDatabases, Query } from "../../lib/local-db";
+import { getDb as getRawDb } from "../../lib/local-db";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 function getDb() {
   return new LocalDatabases();
-}
-
-function getJwtClient(jwt: string) {
-  return new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-    .setJWT(jwt);
 }
 
 // ─── Epoch Management ──────────────────────────────────────────────────────────
@@ -36,7 +22,7 @@ export async function getTreasuryBalance(): Promise<number> {
   try {
     const rpc = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
     const connection = new Connection(rpc);
-    const mint = new PublicKey(process.env.NEXT_PUBLIC_CHOP_MINT || "DTPZyd2HnDmLQfCGkFJ7ajVbw77maUVT7QVLE7Ltpump");
+    const mint = new PublicKey(process.env.NEXT_PUBLIC_CHOP_MINT || "6gup5Cper6pmfNfsGps3MizgpsG3q6uvzobGdUFapump");
     const treasury = new PublicKey(receiverStr);
 
     // Use getTokenAccountsByOwner — works for both regular SPL and Token 2022
@@ -122,14 +108,9 @@ export async function ensureEpoch(): Promise<EpochSummary | null> {
 
     const threshold = getEpochThreshold(nextEpochNum);
 
-    // Count messages since last epoch start
     const startMsgCount = lastExecuted.documents.length > 0
       ? (lastExecuted.documents[0] as unknown as EpochDocument).end_msg_count
       : 0;
-
-    // Board members — fetch from the latest snapshot (or empty if none yet)
-    // In production, the discovery script populates board members into the epoch doc
-    const boardMembers: BoardMember[] = []; // Will be populated by discovery script
 
     const epochDoc = db.createDocument(
       "",
@@ -140,19 +121,9 @@ export async function ensureEpoch(): Promise<EpochSummary | null> {
         status: "active",
         start_msg_count: startMsgCount,
         end_msg_count: startMsgCount + threshold,
-        board_members: JSON.stringify(boardMembers),
         treasury_amount: 0,
         unique_senders: 0,
         started_at: new Date().toISOString(),
-        voting_started_at: null,
-        executed_at: null,
-        final_burn: 0,
-        final_lottery: 0,
-        final_dev: 0,
-        final_board: 0,
-        final_revolution: 0,
-        director_fees: "{}",
-        hypothesis_winner: null,
         created_at: new Date().toISOString(),
       }
     );
@@ -185,11 +156,9 @@ export async function checkEpochTransition(): Promise<boolean> {
     ]);
 
     if (msgCount.total >= epoch.end_msg_count) {
-      // Transition to voting
+      // Transition to voting — Oracle cron picks up from here
       db.updateDocument("", "epochs", (epoch as any).id, {
         status: "voting",
-        voting_started_at: new Date().toISOString(),
-        unique_senders: await countUniqueSenders(epoch),
       });
 
       return true;
@@ -202,278 +171,96 @@ export async function checkEpochTransition(): Promise<boolean> {
   }
 }
 
-// ─── Voting ────────────────────────────────────────────────────────────────────
+// ─── Finalize ───────────────────────────────────────────────────────────────────
 
-/** Cast a vote as a board member (requires wallet auth via JWT) */
-export async function submitVote(
-  jwt: string,
-  wallet: string,
-  burnRate: number,
-  lotteryRate: number,
-  devRate: number,
-  boardRate: number,
-  revolutionRate: number,
-): Promise<SubmitVoteResponse> {
-  const sum = burnRate + lotteryRate + devRate + boardRate + revolutionRate;
-  if (Math.abs(sum - 100) > 0.01) {
-    return { success: false, error: "Rates must sum to 100%." };
-  }
+export async function finalizeEpoch(epochNumber: number): Promise<void> {
+  const db = getRawDb();
 
-  const jwtClient = getJwtClient(jwt);
-  const account = new Account(jwtClient);
-  let user;
-  try {
-    user = await account.get();
-  } catch {
-    return { success: false, error: "Session expired." };
-  }
+  const counts = db
+    .prepare(
+      `SELECT proposal_id, COUNT(*) as cnt FROM governance_votes
+       WHERE epoch_number = ? GROUP BY proposal_id ORDER BY cnt DESC`
+    )
+    .all(epochNumber) as Array<{ proposal_id: string; cnt: number }>;
 
-  const db = getDb();
-
-  // Find current voting epoch
-  const voting = db.listDocuments("", "epochs", [
-    Query.equal("status", "voting"),
-    Query.limit(1),
-  ]);
-
-  if (voting.documents.length === 0) {
-    return { success: false, error: "No active voting epoch." };
-  }
-
-  const epoch = voting.documents[0] as unknown as EpochDocument;
-  const members: BoardMember[] = typeof epoch.board_members === "string"
-    ? JSON.parse(epoch.board_members)
-    : epoch.board_members;
-
-  // Verify this wallet is on the board
-  const memberIdx = members.findIndex(
-    (m) => m.wallet.toLowerCase() === wallet.toLowerCase(),
-  );
-  if (memberIdx === -1) {
-    return { success: false, error: "Your wallet is not on the board." };
-  }
-
-  const vote: VoteAllocation = { burn_rate: burnRate, lottery_rate: lotteryRate, dev_rate: devRate, board_rate: boardRate, revolution_rate: revolutionRate };
-
-  // Save the vote
-  db.createDocument("", "votes", "unique()", {
-    epoch_id: (epoch as any).id,
-    epoch_number: epoch.epoch_number,
-    voter_wallet: wallet,
-    voter_user_id: user.$id,
-    burn_rate: burnRate,
-    lottery_rate: lotteryRate,
-    dev_rate: devRate,
-    board_rate: boardRate,
-    revolution_rate: revolutionRate,
-    created_at: new Date().toISOString(),
-  });
-
-  // Mark the board member as voted
-  members[memberIdx].voted = true;
-  members[memberIdx].vote = vote;
-  db.updateDocument("", "epochs", (epoch as any).id, {
-    board_members: JSON.stringify(members),
-  });
-
-  // Check if all board members voted → auto-tally
-  const allVoted = members.every((m) => m.voted);
-  if (allVoted) {
-    await tallyEpoch((epoch as any).id);
-  }
-
-  // Check if voting period expired → auto-tally
-  const votingStart = new Date(epoch.voting_started_at || epoch.started_at).getTime();
-  if (Date.now() - votingStart > VOTING_PERIOD_MS) {
-    await tallyEpoch((epoch as any).id);
-  }
-
-  return { success: true };
-}
-
-/** Tallies votes and executes the result */
-async function tallyEpoch(epochId: string): Promise<void> {
-  const db = getDb();
-
-  const epochDoc = db.getDocument("", "epochs", epochId);
-  const epoch = epochDoc as unknown as EpochDocument;
-
-  if (epoch.status !== "voting") return;
-
-  // Fetch all votes for this epoch
-  const votesRes = db.listDocuments("", "votes", [
-    Query.equal("epoch_id", epochId),
-    Query.limit(50),
-  ]);
-
-  const votes = votesRes.documents as unknown as Array<{
-    burn_rate: number;
-    lottery_rate: number;
-    dev_rate: number;
-    board_rate: number;
-    revolution_rate: number;
-  }>;
-
-  if (votes.length === 0) {
-    // No votes cast — default: 20/15/25/20/20
-    await executeEpochAllocation(epochId, 20, 15, 25, 20, 20);
+  if (counts.length === 0) {
+    // No votes — default allocation
+    applyDefault(epochNumber);
     return;
   }
 
-  // Average the votes
-  const avg = {
-    burn: votes.reduce((s, v) => s + v.burn_rate, 0) / votes.length,
-    lottery: votes.reduce((s, v) => s + v.lottery_rate, 0) / votes.length,
-    dev: votes.reduce((s, v) => s + v.dev_rate, 0) / votes.length,
-    board: votes.reduce((s, v) => s + v.board_rate, 0) / votes.length,
-    revolution: votes.reduce((s, v) => s + v.revolution_rate, 0) / votes.length,
-  };
+  const winnerId = counts[0].proposal_id;
+  const winner = db
+    .prepare("SELECT * FROM oracle_proposals WHERE id = ?")
+    .get(winnerId) as any;
 
-  // Normalize to sum 100
-  const sum = avg.burn + avg.lottery + avg.dev + avg.board + avg.revolution;
-  const burn = Math.round(avg.burn / sum * 100);
-  const lottery = Math.round(avg.lottery / sum * 100);
-  const board = Math.round(avg.board / sum * 100);
-  const revolution = Math.round(avg.revolution / sum * 100);
-  const dev = 100 - burn - lottery - board - revolution;
+  if (winner?.is_none_option) {
+    // NONE OF THESE won — count how many times NONE has won for this epoch
+    const noneWins = db
+      .prepare(
+        `SELECT COUNT(*) as cnt FROM oracle_proposals
+         WHERE epoch_number = ? AND is_none_option = 1 AND status = 'won'`
+      )
+      .get(epochNumber) as { cnt: number };
 
-  await executeEpochAllocation(epochId, burn, lottery, dev, board, revolution);
-}
+    db.prepare(
+      "UPDATE oracle_proposals SET status='won', resolved_at=? WHERE id=?"
+    ).run(new Date().toISOString(), winnerId);
 
-/** Write execution results to DB (actual treasury transfers happen in a script) */
-async function executeEpochAllocation(
-  epochId: string,
-  burnRate: number,
-  lotteryRate: number,
-  devRate: number,
-  boardRate: number,
-  revolutionRate: number,
-): Promise<void> {
-  const db = getDb();
-
-  // Determine which hypothesis is winning
-  let hypothesisWinner: string;
-  if (burnRate > 50) {
-    hypothesisWinner = "H1"; // Plutocracy
-  } else if (lotteryRate + devRate >= 30 && lotteryRate >= 10 && devRate >= 10) {
-    hypothesisWinner = "H2"; // Class Traitor
-  } else if (boardRate > 50) {
-    hypothesisWinner = "H4"; // Kleptocracy
-  } else {
-    hypothesisWinner = "H3"; // Deadlock
+    if (noneWins.cnt + 1 >= 3) {
+      // Oracle fired — default allocation
+      applyDefault(epochNumber);
+    } else {
+      // Expire old proposals so Oracle regenerates
+      db.prepare(
+        "UPDATE oracle_proposals SET status='expired' WHERE epoch_number=? AND status='active'"
+      ).run(epochNumber);
+    }
+    return;
   }
 
-  db.updateDocument("", "epochs", epochId, {
-    status: "executed",
-    executed_at: new Date().toISOString(),
-    final_burn: burnRate,
-    final_lottery: lotteryRate,
-    final_dev: devRate,
-    final_board: boardRate,
-    final_revolution: revolutionRate,
-    hypothesis_winner: hypothesisWinner,
-  });
+  // A real plan won
+  db.prepare(
+    "UPDATE oracle_proposals SET status='won', resolved_at=? WHERE id=?"
+  ).run(new Date().toISOString(), winnerId);
+  db.prepare(
+    "UPDATE oracle_proposals SET status='lost' WHERE epoch_number=? AND id!=? AND status='active'"
+  ).run(epochNumber, winnerId);
+
+  // Mark epoch as executed
+  const epoch = db
+    .prepare("SELECT id FROM epochs WHERE epoch_number = ? AND status = 'voting'")
+    .get(epochNumber) as { id: string } | undefined;
+  if (epoch) {
+    db.prepare("UPDATE epochs SET status='executed' WHERE id=?").run(epoch.id);
+  }
 }
 
-// ─── Queries ───────────────────────────────────────────────────────────────────
+async function applyDefault(epochNumber: number): Promise<void> {
+  const db = getRawDb();
 
-async function countUniqueSenders(epoch: EpochDocument): Promise<number> {
-  const db = getDb();
+  // Expire remaining active proposals
+  db.prepare(
+    "UPDATE oracle_proposals SET status='expired' WHERE epoch_number=? AND status='active'"
+  ).run(epochNumber);
 
-  // Count unique author_ids in the epoch's message range
-  const res = db.listDocuments("", "messages", [
-    Query.equal("is_shadowbanned", false),
-    Query.greaterThanEqual("created_at", epoch.started_at),
-    Query.limit(5000),
-  ]);
-
-  const uniqueIds = new Set(
-    res.documents.map((d: any) => d.author_id).filter(Boolean),
-  );
-
-  return uniqueIds.size;
+  // Mark epoch executed
+  const epoch = db
+    .prepare("SELECT id FROM epochs WHERE epoch_number = ? AND status = 'voting'")
+    .get(epochNumber) as { id: string } | undefined;
+  if (epoch) {
+    db.prepare("UPDATE epochs SET status='executed' WHERE id=?").run(epoch.id);
+  }
 }
+
+// ─── Summary ────────────────────────────────────────────────────────────────────
 
 function docToSummary(doc: EpochDocument): EpochSummary {
-  const members: BoardMember[] = typeof doc.board_members === "string"
-    ? JSON.parse(doc.board_members)
-    : doc.board_members;
-
   return {
     epoch_number: doc.epoch_number,
     status: doc.status,
     started_at: doc.started_at,
     total_messages: doc.end_msg_count - doc.start_msg_count,
     treasury_amount: doc.treasury_amount,
-    board_members: members,
   };
-}
-
-/** Fetch all executed epochs for the history page */
-export async function fetchEpochHistory(): Promise<EpochDocument[]> {
-  const db = getDb();
-
-  try {
-    const res = db.listDocuments("", "epochs", [
-      Query.equal("status", "executed"),
-      Query.orderDesc("created_at"),
-      Query.limit(100),
-    ]);
-    return res.documents as unknown as EpochDocument[];
-  } catch {
-    return [];
-  }
-}
-
-/** Fetch votes for a given epoch (public) */
-export async function fetchEpochVotes(epochId: string): Promise<Array<{
-  voter_wallet: string;
-  burn_rate: number;
-  lottery_rate: number;
-  dev_rate: number;
-  board_rate: number;
-}>> {
-  const db = getDb();
-
-  try {
-    const res = db.listDocuments("", "votes", [
-      Query.equal("epoch_id", epochId),
-      Query.limit(20),
-    ]);
-    return res.documents.map((d: any) => ({
-      voter_wallet: d.voter_wallet,
-      burn_rate: d.burn_rate,
-      lottery_rate: d.lottery_rate,
-      dev_rate: d.dev_rate,
-      board_rate: d.board_rate,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-/** Check if a given wallet is on the current board */
-export async function isBoardMember(wallet: string): Promise<BoardMember | null> {
-  const db = getDb();
-
-  try {
-    const res = db.listDocuments("", "votes", [
-      Query.or([
-        Query.equal("status", "active"),
-        Query.equal("status", "voting"),
-      ]),
-      Query.limit(1),
-    ]);
-
-    if (res.documents.length === 0) return null;
-
-    const epoch = res.documents[0] as unknown as EpochDocument;
-    const members: BoardMember[] = typeof epoch.board_members === "string"
-      ? JSON.parse(epoch.board_members)
-      : epoch.board_members;
-
-    return members.find((m) => m.wallet.toLowerCase() === wallet.toLowerCase()) || null;
-  } catch {
-    return null;
-  }
 }

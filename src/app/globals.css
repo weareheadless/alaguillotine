@@ -40,7 +40,13 @@
   --animate-screen-shake: screenShake 0.3s ease-out;
   --animate-marquee: marquee 20s linear infinite;
   --animate-marquee-infinite: marquee-infinite 350s linear infinite;
+  --animate-marquee-hack: marquee-hack 12s linear forwards;
   --animate-crt-flicker: crtFlicker 5s ease-in-out infinite;
+}
+
+@keyframes marquee-hack {
+  0%   { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
 }
 
 @keyframes shake {

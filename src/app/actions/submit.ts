@@ -1,26 +1,46 @@
 "use server";
 
-import { Client, Account } from "node-appwrite";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { getOrCreateAssociatedTokenAccount, transfer, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import bs58 from "bs58";
 import type { SubmitFreeResponse, SubmitPaidResponse, SubmitNominationResponse, NominationEntry } from "../../lib/types";
 import { NOMINATION_WEIGHT_FREE, NOMINATION_WEIGHT_MULTIPLIER } from "../../lib/types";
 import { ensureEpoch, checkEpochTransition } from "./epoch";
-import { LocalDatabases, Query } from "../../lib/local-db";
+import { LocalDatabases, Query, getDb as getRawDb } from "../../lib/local-db";
+import { getSessionUserId } from "../../lib/session";
+import { getUserById } from "../../lib/users";
+import { verifySolution } from "../../lib/pow";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Client authenticated via JWT — for verifying the user */
-function getJwtClient(jwt: string) {
-  return new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-    .setJWT(jwt);
-}
-
 function getDb() {
   return new LocalDatabases();
+}
+
+/**
+ * Verify a PoW solution against the server-issued challenge.
+ * Looks up the challenge in the DB, checks expiry, uses the stored difficulty,
+ * and deletes the challenge after verification (one-time use).
+ */
+async function verifyPow(formData: FormData): Promise<boolean> {
+  const challenge = formData.get("pow_challenge")?.toString();
+  const nonce = formData.get("pow_nonce")?.toString();
+  if (!challenge || !nonce) return false;
+
+  const rawDb = getRawDb();
+  const stored = rawDb.prepare(
+    "SELECT difficulty, expires_at FROM pow_challenges WHERE challenge = ? AND expires_at > datetime('now')"
+  ).get(challenge) as { difficulty: number; expires_at: string } | undefined;
+
+  if (!stored) return false;
+
+  const valid = await verifySolution(challenge, nonce, stored.difficulty);
+
+  // One-time use — delete the challenge regardless of success/failure
+  // (on failure, they'll need a fresh challenge; on success, consumed)
+  rawDb.prepare("DELETE FROM pow_challenges WHERE challenge = ?").run(challenge);
+
+  return valid;
 }
 
 /**
@@ -97,7 +117,7 @@ async function checkModeration(text: string): Promise<boolean> {
 
 // ─── CHOP Token Helpers ─────────────────────────────────────────────────────────
 
-const CHOP_MINT = new PublicKey(process.env.NEXT_PUBLIC_CHOP_MINT || "DTPZyd2HnDmLQfCGkFJ7ajVbw77maUVT7QVLE7Ltpump");
+const CHOP_MINT = new PublicKey(process.env.NEXT_PUBLIC_CHOP_MINT || "6gup5Cper6pmfNfsGps3MizgpsG3q6uvzobGdUFapump");
 const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10);
 const CHOP_UNIT = Math.pow(10, CHOP_DECIMALS); // 1 CHOP = 10^6 raw units
 const BURN_ADDRESS = new PublicKey(process.env.CHOP_BURN_ADDRESS || "11111111111111111111111111111111");
@@ -169,80 +189,143 @@ async function burnOneChopForFreeMessage(): Promise<void> {
 }
 
 /**
- * Verify a paid transaction on-chain and confirm it transferred CHOP
- * to the treasury wallet. Returns the transferred CHOP amount or 0.
+ * Verify a CHOP payment transaction on-chain.
+ *
+ * Tries two approaches:
+ * 1. Parsed instructions (jsonParsed) — cleanest, but RPC may not parse Token-2022
+ * 2. preTokenBalances / postTokenBalances net change — always works, runtime-enforced
+ *
+ * Returns the transferred amount in CHOP. Throws on any failure.
  */
-async function verifyChopPayment(txSignature: string): Promise<number> {
-  const rpc = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+async function verifyChopPayment(
+  txSignature: string,
+): Promise<{ amount: number; sender: string }> {
+  const CHOP_MINT_STR = CHOP_MINT.toBase58();
   const receiverStr = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET;
-  if (!receiverStr) {
-    console.error("[CHOP] No receiver wallet configured");
-    return 0;
-  }
-  const receiver = new PublicKey(receiverStr);
+  if (!receiverStr) throw new Error("Treasury wallet not configured.");
 
-  const verifyRes = await fetch(rpc, {
+  const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+
+  console.log("[CHOP verify] Fetching tx:", txSignature.slice(0, 12) + "...");
+
+  const res = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "getTransaction",
-      params: [txSignature, { encoding: "json", maxSupportedTransactionVersion: 0 }],
+      jsonrpc: "2.0", id: 1, method: "getTransaction",
+      params: [txSignature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0, commitment: "confirmed" }],
     }),
   });
 
-  const txData = await verifyRes.json();
-  if (txData.error) {
-    console.error("[CHOP] Transaction verification failed:", txData.error);
-    return 0;
+  if (!res.ok) throw new Error(`RPC HTTP ${res.status}`);
+  const body = await res.json();
+  if (body.error) throw new Error(`RPC: ${body.error.message || JSON.stringify(body.error)}`);
+  const tx = body.result;
+  if (!tx) throw new Error("Tx not found on-chain yet.");
+  if (tx.meta?.err) throw new Error(`Tx failed: ${JSON.stringify(tx.meta.err)}`);
+
+  // Check parsed instructions for Token-2022 transfer → treasury
+  const ixs = tx.transaction?.message?.instructions ?? [];
+  for (const ix of ixs) {
+    const info = ix.parsed?.info;
+    if (!info) continue;
+    const type = ix.parsed?.type;
+    if (type !== "transfer" && type !== "transferChecked") continue;
+    if (info.mint !== CHOP_MINT_STR) continue;
+    if (info.destination !== receiverStr) continue;
+
+    const amount = info.tokenAmount?.uiAmount ?? Number(info.amount ?? 0) / 1_000_000;
+    const sender = info.authority || info.source || "";
+    console.log("[CHOP verify] ✅", amount, "CHOP from", sender.slice(0, 10) + "...");
+    return { amount, sender };
   }
 
-  const tx = txData.result;
-  if (!tx) return 0;
-
-  // Check post-token-balances for CHOP transfers to the treasury
-  const postBalances = tx.meta?.postTokenBalances ?? [];
-  let totalChop = 0;
-
-  for (const balance of postBalances) {
-    if (balance.mint === CHOP_MINT.toBase58() && balance.owner === receiver.toBase58()) {
-      totalChop += Number(balance.uiTokenAmount?.uiAmount ?? 0);
+  // Fallback: balance diff
+  const preBals: any[] = tx.meta?.preTokenBalances ?? [];
+  const postBals: any[] = tx.meta?.postTokenBalances ?? [];
+  const preMap = new Map<number, number>();
+  for (const b of preBals) {
+    if (b.mint === CHOP_MINT_STR && b.owner === receiverStr) {
+      preMap.set(b.accountIndex, Number(b.uiTokenAmount?.uiAmount ?? 0));
     }
   }
+  let net = 0;
+  for (const b of postBals) {
+    if (b.mint === CHOP_MINT_STR && b.owner === receiverStr) {
+      net += Number(b.uiTokenAmount?.uiAmount ?? 0) - (preMap.get(b.accountIndex) ?? 0);
+    }
+  }
+  if (net > 0) {
+    console.log("[CHOP verify] ✅ Balance diff:", net, "CHOP");
+    return { amount: net, sender: "" };
+  }
 
-  return totalChop;
+  throw new Error(`No CHOP transfer to treasury. Mint: ${CHOP_MINT_STR.slice(0, 8)}...`);
+}
+
+// ─── Wallet profiles — single source of truth for all leaderboards ──────────────
+
+interface WalletProfile {
+  wallet: string;
+  displayName: string;
+  totalPaid: number;
+  messageCount: number;
+  lastActive: string;
+}
+
+function getPaidWalletProfiles(): Map<string, WalletProfile> {
+  const rawDb = getRawDb();
+  const rows = rawDb.prepare(`
+    SELECT LOWER(author_id) as wallet, author_name,
+           SUM(amount_paid) as total_paid, COUNT(*) as msg_count,
+           MAX(created_at) as last_active
+    FROM messages WHERE amount_paid > 0 AND author_id IS NOT NULL AND author_id != ''
+    GROUP BY LOWER(author_id)
+  `).all() as { wallet: string; author_name: string; total_paid: number; msg_count: number; last_active: string }[];
+
+  const map = new Map<string, WalletProfile>();
+  for (const r of rows) {
+    map.set(r.wallet, { wallet: r.wallet, displayName: r.author_name, totalPaid: r.total_paid, messageCount: r.msg_count, lastActive: r.last_active });
+  }
+  return map;
 }
 
 // ─── Submit Free Message (Appwrite session required, one per user) ──────────────
 
 export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeResponse> {
   try {
+    // Honeypot check — bots fill this hidden field
+    const honeypot = formData.get("website");
+    if (honeypot && honeypot.toString().trim().length > 0) {
+      return { success: true }; // Silently succeed for bots
+    }
+
     const text = formData.get("text")?.toString().trim();
-    const jwt = formData.get("session_jwt")?.toString();
     const customName = formData.get("author_name")?.toString().trim();
     const targetName = formData.get("target_name")?.toString().trim();
     if (!text) return { success: false, error: "Message is required." };
-    if (!jwt) {
+
+    // Get session user
+    const userId = await getSessionUserId();
+    if (!userId) {
       return { success: false, error: "You must be logged in to post a free message." };
     }
 
-    // Verify JWT and get user
-    const jwtClient = getJwtClient(jwt);
-    const userAccount = new Account(jwtClient);
-    let user;
-    try {
-      user = await userAccount.get();
-    } catch {
+    const user = getUserById(userId);
+    if (!user) {
       return { success: false, error: "Session expired. Please log in again." };
     }
 
-    const authorId = user.$id;
-    // Use the custom display name if provided, otherwise fall back to account name
-    const authorName = customName ||
-      (user.name as string) ||
-      (user.email as string) ||
-      "Anonymous";
+    const authorId = user.id;
+    const authorName = customName || user.display_name || user.username || "Anonymous";
+
+    // PoW verification — skip for wallet-linked users
+    if (!user.wallet_address) {
+      const powValid = await verifyPow(formData);
+      if (!powValid) {
+        return { success: false, error: "Proof of work invalid or expired. Refresh and try again." };
+      }
+    }
 
     // Check one-message-per-user limit (only for top-level messages)
     const db = getDb();
@@ -306,32 +389,40 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
 
 export async function submitComment(formData: FormData): Promise<SubmitFreeResponse> {
   try {
+    // Honeypot check — bots fill this hidden field
+    const honeypot = formData.get("website");
+    if (honeypot && honeypot.toString().trim().length > 0) {
+      return { success: true }; // Silently succeed for bots
+    }
+
     const text = formData.get("text")?.toString().trim();
-    const jwt = formData.get("session_jwt")?.toString();
     const customName = formData.get("author_name")?.toString().trim();
     const parentId = formData.get("parent_id")?.toString().trim();
     const targetName = formData.get("target_name")?.toString().trim();
     if (!text) return { success: false, error: "Comment text is required." };
     if (!parentId) return { success: false, error: "Missing parent message ID." };
-    if (!jwt) {
+
+    // Get session user
+    const userId = await getSessionUserId();
+    if (!userId) {
       return { success: false, error: "You must be logged in to comment." };
     }
 
-    // Verify JWT and get user
-    const jwtClient = getJwtClient(jwt);
-    const userAccount = new Account(jwtClient);
-    let user;
-    try {
-      user = await userAccount.get();
-    } catch {
+    const user = getUserById(userId);
+    if (!user) {
       return { success: false, error: "Session expired. Please log in again." };
     }
 
-    const authorId = user.$id;
-    const authorName = customName ||
-      (user.name as string) ||
-      (user.email as string) ||
-      "Anonymous";
+    const authorId = user.id;
+    const authorName = customName || user.display_name || user.username || "Anonymous";
+
+    // PoW verification — skip for wallet-linked users
+    if (!user.wallet_address) {
+      const powValid = await verifyPow(formData);
+      if (!powValid) {
+        return { success: false, error: "Proof of work invalid or expired. Refresh and try again." };
+      }
+    }
 
     // Check moderation (shadowban)
     const isShadowbanned = await checkModeration(text);
@@ -376,10 +467,17 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
 
 export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidResponse> {
   try {
+    // Honeypot check — bots fill this hidden field
+    const honeypot = formData.get("website");
+    if (honeypot && honeypot.toString().trim().length > 0) {
+      return { success: true }; // Silently succeed for bots
+    }
+
     const text = formData.get("text")?.toString().trim();
     const authorName = formData.get("author_name")?.toString().trim() || "Anonymous";
     const amountPaid = parseFloat(formData.get("amount_paid")?.toString() || "0");
     const txSignature = formData.get("tx_signature")?.toString().trim();
+    const walletAddress = formData.get("wallet_address")?.toString().trim() || null;
     const targetName = formData.get("target_name")?.toString().trim();
 
     if (!text) return { success: false, error: "Message is required." };
@@ -390,19 +488,19 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
       return { success: false, error: "Transaction signature is required." };
     }
 
-    // Verify the CHOP transfer on-chain
-    const verifiedChop = await verifyChopPayment(txSignature);
-    if (verifiedChop <= 0) {
-      return { success: false, error: "Could not verify CHOP payment on-chain. Make sure you sent $CHOP to the treasury address." };
-    }
-
-    // Use the actual on-chain amount so the user can't lie
-    const actualAmount = verifiedChop;
+    // Verify the CHOP transfer on-chain — get sender + amount from chain
+    console.log("[CHOP submit] Verifying tx:", txSignature.slice(0, 12) + "...");
+    const verified = await verifyChopPayment(txSignature);
+    const actualAmount = Math.min(amountPaid, verified.amount);
+    const authorId = verified.sender || walletAddress || "";
+    console.log("[CHOP submit] ✅ Verified:", actualAmount, "CHOP, sender:", authorId.slice(0, 10) + "...");
 
     const db = getDb();
 
-    // Check moderation (shadowban)
-    const isShadowbanned = await checkModeration(text);
+    // Paid messages: skip moderation — paying users don't get silently censored
+    // Free messages still go through moderation
+    const isShadowbanned = false;
+    console.log("[CHOP submit] Creating message in DB...");
 
     const msgDoc = db.createDocument(
       "",
@@ -410,13 +508,14 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
       "unique()",
       {
         text,
-        author_id: null,
+        author_id: authorId,
         author_name: authorName,
         amount_paid: actualAmount,
         is_shadowbanned: isShadowbanned,
         created_at: new Date().toISOString(),
       }
     );
+    console.log("[CHOP submit] ✅ Message saved, id:", (msgDoc as any).id);
 
     // If user nominated a target, create a nomination with paid weight
     if (targetName) {
@@ -494,40 +593,43 @@ export async function fetchLeaderboard(): Promise<NominationEntry[]> {
 export async function fetchTraitors(): Promise<import("../../lib/types").TraitorEntry[]> {
   try {
     const db = getDb();
+    const rawDb = getRawDb();
+    const treasuryWallet = (process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET || "").toLowerCase();
 
-    // Pull holders from the epoch's board_members (populated by discover-board.cjs)
-    // These are on-chain $CHOP token holders — the Class Traitors
-    const epochs = db.listDocuments(
-      "",
-      "epochs",
-      [Query.orderDesc("started_at"), Query.limit(1)]
-    );
+    const paidProfiles = getPaidWalletProfiles();
 
+    const epochs = db.listDocuments("", "epochs", [Query.orderDesc("started_at"), Query.limit(1)]);
     if (epochs.documents.length === 0) return [];
-
-    const epoch = epochs.documents[0];
-    const raw = (epoch as any).board_members;
+    const raw = (epochs.documents[0] as any).board_members;
     if (!raw || raw === "[]") return [];
 
     let boardMembers: { wallet: string; balance: number; voted: boolean }[];
-    try {
-      boardMembers = typeof raw === "string" ? JSON.parse(raw) : raw;
-    } catch {
-      return [];
+    try { boardMembers = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return []; }
+
+    const entries: import("../../lib/types").TraitorEntry[] = [];
+    for (const m of boardMembers) {
+      const w = m.wallet.toLowerCase();
+      if (paidProfiles.has(w)) continue;
+      if (w === treasuryWallet) continue;
+
+      const msgRow = rawDb.prepare(
+        "SELECT COUNT(*) as cnt, MAX(created_at) as last_at FROM messages WHERE LOWER(author_id) = ? AND amount_paid = 0"
+      ).get(w) as { cnt: number; last_at: string | null } | undefined;
+
+      entries.push({ author_name: m.wallet, total_paid: m.balance, total_messages: msgRow?.cnt || 0, last_active_at: msgRow?.last_at || "" });
     }
-
-    const entries: import("../../lib/types").TraitorEntry[] = boardMembers.map((m) => ({
-      author_name: m.wallet,
-      total_paid: m.balance,
-      total_messages: 0,
-      last_active_at: "",
-    }));
-
     entries.sort((a, b) => b.total_paid - a.total_paid);
-
     return entries;
-  } catch (err) {
-    console.error("fetchTraitors error:", err);
-    return [];
-  }
+  } catch (err) { console.error("fetchTraitors error:", err); return []; }
+}
+
+// ─── Server-side benefactors fetch (users who PAID to fund the revolution) ───
+
+export async function fetchBenefactors(): Promise<import("../../lib/types").BenefactorEntry[]> {
+  try {
+    const profiles = getPaidWalletProfiles();
+    return Array.from(profiles.values())
+      .sort((a, b) => b.totalPaid - a.totalPaid)
+      .map(p => ({ author_name: p.wallet, total_paid: p.totalPaid, message_count: p.messageCount, last_paid_at: p.lastActive }));
+  } catch (err) { console.error("fetchBenefactors error:", err); return []; }
 }

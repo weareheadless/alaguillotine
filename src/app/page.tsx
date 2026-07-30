@@ -30,7 +30,8 @@ export default function HomePage() {
   const [soundOn, setSoundOn] = useState(false);
   const [subliminal, setSubliminal] = useState<string | null>(null);
   const bgRef = useRef<HTMLVideoElement>(null);
-  const sideRef = useRef<HTMLVideoElement>(null);
+  const sideRefMobile = useRef<HTMLVideoElement>(null);
+  const sideRefDesktop = useRef<HTMLVideoElement>(null);
 
   const handleSuccess = useCallback(() => {}, []);
 
@@ -38,8 +39,9 @@ export default function HomePage() {
   useEffect(() => {
     const enable = () => {
       setSoundOn(true);
-      // Only unmute the side video so the background doesn't create an echo/overlap
-      const v = sideRef.current;
+      // Only unmute the currently visible side video
+      const isMobile = window.innerWidth < 768;
+      const v = isMobile ? sideRefMobile.current : sideRefDesktop.current;
       if (v) {
         v.muted = false;
         v.play().catch(() => {});
@@ -51,21 +53,39 @@ export default function HomePage() {
   }, []);
 
   const toggleSound = () => {
-    const v = sideRef.current;
-    if (v) {
-      v.muted = soundOn; // soundOn is current state, so we are flipping it
-    }
-    setSoundOn(!soundOn);
+    setSoundOn((prev) => !prev);
   };
+
+  // Sync sound explicitly when soundOn state changes
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    const active = isMobile ? sideRefMobile.current : sideRefDesktop.current;
+    const hidden = isMobile ? sideRefDesktop.current : sideRefMobile.current;
+
+    if (hidden) hidden.muted = true;
+    if (active) active.muted = !soundOn;
+  }, [soundOn]);
 
   // Video Glitch / Weird Loop Effect
   useEffect(() => {
-    const video = sideRef.current;
-    if (!video) return;
-
     let timeoutId: NodeJS.Timeout;
 
     const doGlitch = () => {
+      const isMobile = window.innerWidth < 768;
+      const video = isMobile ? sideRefMobile.current : sideRefDesktop.current;
+      const hidden = isMobile ? sideRefDesktop.current : sideRefMobile.current;
+
+      // Ensure hidden video is paused so it doesn't drain resources or overlap
+      if (hidden) {
+        hidden.muted = true;
+        hidden.pause();
+      }
+
+      if (!video) return;
+
+      // Ensure active video is playing
+      video.play().catch(() => {});
+
       if (video.duration && video.currentTime > 1) {
         const glitchType = Math.random();
         
@@ -113,6 +133,10 @@ export default function HomePage() {
 
     // Also add CSS glitch classes occasionally
     const glitchInterval = setInterval(() => {
+      const isMobile = window.innerWidth < 768;
+      const video = isMobile ? sideRefMobile.current : sideRefDesktop.current;
+      if (!video) return;
+
       if (video.classList.contains('invert')) {
         video.classList.remove('invert', 'hue-rotate-90', 'contrast-150');
       } else if (Math.random() > 0.8) {
@@ -169,11 +193,56 @@ export default function HomePage() {
       {/* ─── Header / Nav ──────────────────────────────────────────────── */}
       <NavBar />
 
-      <main className="relative z-10 mx-auto pb-8">
+      <main className="relative z-10 mx-auto pb-16 md:pb-8">
         {/* ─── Sticky Guillotine + Everything Else ────────────────────── */}
-        <HeroCounter>
+        <HeroCounter
+          mobileRightSlot={
+            <div className="h-full w-full flex flex-col gap-2">
+              <div className="flex-shrink-0 h-[120px] w-full overflow-hidden border-2 border-black bg-canvasBlack shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative group">
+                {subliminal && (
+                  <div className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center bg-sheetWhite p-2 text-center mix-blend-exclusion">
+                    <span className="text-xl md:text-4xl font-black uppercase leading-none tracking-tighter text-black">
+                      {subliminal}
+                    </span>
+                  </div>
+                )}
+                <video
+                  ref={sideRefMobile}
+                  className="h-full w-full object-cover opacity-50 transition-all duration-75 group-hover:opacity-80"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  poster="/appwrite-icon.svg"
+                >
+                  <source src="/static/musk_is_presented_with_the_reality.mp4" type="video/mp4" />
+                </video>
+                <button
+                  onClick={toggleSound}
+                  className="absolute bottom-1 right-1 z-[70] bg-black/80 px-1.5 py-0.5 text-[8px] font-bold text-sheetWhite hover:text-hypeNeon"
+                >
+                  {soundOn ? "MUTE" : "UNMUTE"}
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto border-2 border-spiteCrimson/30 bg-spiteCrimson/5 p-2 font-mono">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-spiteCrimson mb-1">
+                  // HOW IT WORKS
+                </p>
+                <p className="text-[8px] leading-tight text-chop-muted mb-2">
+                  Every message drops the blade. Free posts still burn treasury capital for wealth redistribution.
+                </p>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-spiteCrimson mb-1">
+                  // RULES
+                </p>
+                <p className="text-[8px] leading-tight text-chop-muted">
+                  Swearing is fine. Doxxing/threats = shadowban. The blade is metaphorical.
+                </p>
+              </div>
+            </div>
+          }
+        >
           {/* Rules — at the top */}
-          <div className="mt-3">
+          <div className="mt-3 hidden md:block">
             <RulesBanner />
           </div>
           {/* Submit box + Video side by side */}
@@ -181,8 +250,9 @@ export default function HomePage() {
             <div className="flex-1">
               <SubmitForm onSuccess={handleSuccess} />
             </div>
-            <div className="w-full lg:w-80 xl:w-96 lg:flex-shrink-0 relative">
-              <div className="h-full overflow-hidden border-4 border-black bg-canvasBlack shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative">
+            {/* Desktop Video (hidden on mobile since it's in the HeroCounter slot) */}
+            <div className="hidden md:block w-full lg:w-80 xl:w-96 lg:flex-shrink-0 relative">
+              <div className="h-full overflow-hidden border-4 border-black bg-canvasBlack shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative group">
                 {subliminal && (
                   <div className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center bg-sheetWhite p-4 text-center mix-blend-exclusion">
                     <span className="text-4xl font-black uppercase leading-none tracking-tighter text-black">
@@ -191,8 +261,8 @@ export default function HomePage() {
                   </div>
                 )}
                 <video
-                  ref={sideRef}
-                  className="h-full w-full object-cover opacity-50 transition-all duration-75"
+                  ref={sideRefDesktop}
+                  className="h-full w-full object-cover opacity-50 transition-all duration-75 group-hover:opacity-80"
                   autoPlay
                   muted
                   loop

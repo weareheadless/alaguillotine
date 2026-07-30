@@ -17,7 +17,7 @@ const DB_PATH = path.join(process.cwd(), "data", "local.db");
 
 let _db: Database.Database | null = null;
 
-function getDb(): Database.Database {
+export function getDb(): Database.Database {
   if (!_db) {
     // Ensure data directory exists
     const fs = require("fs");
@@ -102,6 +102,86 @@ function ensureTables(db: Database.Database) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_votes_epoch ON votes(epoch_id);
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      display_name TEXT NOT NULL DEFAULT '',
+      wallet_address TEXT,
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username);
+    CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address);
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT '',
+      expires_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
+    CREATE TABLE IF NOT EXISTS pow_challenges (
+      challenge TEXT PRIMARY KEY,
+      difficulty INTEGER NOT NULL DEFAULT 4,
+      created_at TEXT NOT NULL DEFAULT '',
+      expires_at TEXT NOT NULL DEFAULT ''
+    );
+
+    -- AI Oracle proposals (3 per epoch + 1 NONE sentinel)
+    CREATE TABLE IF NOT EXISTS oracle_proposals (
+      id TEXT PRIMARY KEY,
+      epoch_number INTEGER NOT NULL,
+      attempt_number INTEGER NOT NULL DEFAULT 1,
+      is_none_option INTEGER NOT NULL DEFAULT 0,
+      title TEXT NOT NULL DEFAULT '',
+      emoji TEXT NOT NULL DEFAULT '🔥',
+      manifesto TEXT NOT NULL DEFAULT '',
+      burn_pct INTEGER NOT NULL DEFAULT 0,
+      bounty_pct INTEGER NOT NULL DEFAULT 0,
+      infra_pct INTEGER NOT NULL DEFAULT 0,
+      marketing_pct INTEGER NOT NULL DEFAULT 0,
+      oracle_raw_response TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL DEFAULT '',
+      resolved_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_oracle_proposals_epoch ON oracle_proposals(epoch_number);
+
+    -- Governance votes (one per wallet per epoch)
+    CREATE TABLE IF NOT EXISTS governance_votes (
+      id TEXT PRIMARY KEY,
+      epoch_number INTEGER NOT NULL,
+      proposal_id TEXT NOT NULL REFERENCES oracle_proposals(id),
+      voter_wallet TEXT NOT NULL,
+      voter_user_id TEXT,
+      signature TEXT NOT NULL DEFAULT '',
+      voted_message TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_gov_votes_epoch ON governance_votes(epoch_number);
+    CREATE INDEX IF NOT EXISTS idx_gov_votes_proposal ON governance_votes(proposal_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_gov_votes_wallet_epoch ON governance_votes(voter_wallet, epoch_number);
+
+    -- Proposal discussion comments (one flat thread per proposal)
+    CREATE TABLE IF NOT EXISTS proposal_comments (
+      id TEXT PRIMARY KEY,
+      proposal_id TEXT NOT NULL REFERENCES oracle_proposals(id),
+      author_wallet TEXT NOT NULL,
+      author_user_id TEXT,
+      author_name TEXT NOT NULL DEFAULT 'Anonymous',
+      text TEXT NOT NULL,
+      is_rejected INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_comments_proposal ON proposal_comments(proposal_id);
   `);
 }
 
@@ -208,13 +288,14 @@ export function listDocuments(
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[];
 
   return {
-    documents: rows.map((r) => ({ id: r.id as string, ...rowToDoc(r) })),
+    documents: rows.map((r) => ({ id: r.id as string, $id: r.id as string, ...rowToDoc(r) })),
     total,
   };
 }
 
 export interface LocalDocument {
   id: string;
+  $id: string;
   [key: string]: unknown;
 }
 
@@ -241,7 +322,7 @@ export function createDocument(
 
   db.prepare(`INSERT INTO ${collection} (${keys.join(", ")}) VALUES (${placeholders})`).run(...values);
 
-  return { id, ...data };
+  return { id, $id: id, ...data };
 }
 
 export function getDocument(
@@ -252,7 +333,7 @@ export function getDocument(
   const db = getDb();
   const row = db.prepare(`SELECT * FROM ${collection} WHERE id = ?`).get(docId) as Record<string, unknown> | undefined;
   if (!row) throw new Error(`Document not found: ${collection}/${docId}`);
-  return { id: row.id as string, ...rowToDoc(row) };
+  return { id: row.id as string, $id: row.id as string, ...rowToDoc(row) };
 }
 
 export function updateDocument(

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { fetchTopBounties } from "../app/actions/feed";
+import type { FeedMessage } from "../lib/types";
 
 const ADS = [
   {
@@ -41,41 +43,94 @@ const ADS = [
 ];
 
 export function AdPopups() {
-  const [currentAd, setCurrentAd] = useState<number | null>(null);
+  const [currentAd, setCurrentAd] = useState<{ isSystem: boolean, data: any } | null>(null);
   const [adHistory, setAdHistory] = useState<number[]>([]);
+  const [bounties, setBounties] = useState<FeedMessage[]>([]);
+
+  // Periodically fetch top bounties to inject as ads
+  useEffect(() => {
+    const loadBounties = async () => {
+      try {
+        const docs = await fetchTopBounties();
+        setBounties(docs);
+      } catch (e) {
+        console.error("Failed to load bounties for ads", e);
+      }
+    };
+    loadBounties();
+    const interval = setInterval(loadBounties, 30_000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const triggerNextAd = useCallback((history: number[], currentBounties: FeedMessage[]) => {
+    // 50% chance to show a user-paid bounty if we have any
+    if (currentBounties.length > 0 && Math.random() > 0.5) {
+      // Pick a random top bounty (weighted by chance or just random among top 5)
+      const randomBounty = currentBounties[Math.floor(Math.random() * currentBounties.length)];
+      setCurrentAd({ isSystem: false, data: randomBounty });
+    } else {
+      // Pick a system ad we haven't seen recently
+      const available = ADS.map((_, i) => i).filter(i => !history.includes(i));
+      const nextPool = available.length > 0 ? available : ADS.map((_, i) => i);
+      const nextAdIdx = nextPool[Math.floor(Math.random() * nextPool.length)];
+      setCurrentAd({ isSystem: true, data: ADS[nextAdIdx] });
+      setAdHistory(prev => [...prev.slice(-2), nextAdIdx]);
+    }
+  }, []);
 
   useEffect(() => {
-    // Start first ad after a short delay, ensuring randomness
-    const timer = setTimeout(() => {
-      const initialAd = Math.floor(Math.random() * ADS.length);
-      setCurrentAd(initialAd);
-      setAdHistory([initialAd]);
-    }, 8000);
+    // Start first ad after a short delay
+    const timer = setTimeout(() => triggerNextAd([], bounties), 8000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [triggerNextAd, bounties]);
 
   const closeAd = () => {
     setCurrentAd(null);
     // Annoying feature: another one comes back in 12-25 seconds
     setTimeout(() => {
-      setAdHistory(prev => {
-        // Pick an ad we haven't seen recently if possible
-        const available = ADS.map((_, i) => i).filter(i => !prev.includes(i));
-        const nextPool = available.length > 0 ? available : ADS.map((_, i) => i);
-        const nextAd = nextPool[Math.floor(Math.random() * nextPool.length)];
-        setCurrentAd(nextAd);
-        // Keep a history of the last 3 ads to avoid quick repeats
-        return [...prev.slice(-2), nextAd];
-      });
+      triggerNextAd(adHistory, bounties);
     }, Math.random() * 13000 + 12000);
   };
 
   if (currentAd === null) return null;
 
-  const ad = ADS[currentAd];
+  const isSystem = currentAd.isSystem;
+  
+  if (!isSystem) {
+    // USER PAID BOUNTY AD
+    const msg = currentAd.data as FeedMessage;
+    return (
+      <div className="fixed top-24 md:top-[unset] md:bottom-24 right-4 md:right-10 z-50 w-72 md:w-80 border-4 border-spiteCrimson bg-canvasBlack shadow-[8px_8px_0px_0px_#E11D48] animate-screen-shake font-mono group">
+        <div className="flex items-center justify-between border-b-4 border-spiteCrimson bg-spiteCrimson px-2 py-1 text-white">
+          <span className="text-[10px] md:text-xs font-black tracking-widest animate-pulse text-black uppercase">⚠️ PAID OVERRIDE</span>
+          <button onClick={closeAd} className="text-sm font-black hover:text-black focus:outline-none">X</button>
+        </div>
+        <div className="p-4 bg-[url('/grid.svg')]">
+          <div className="mb-2 inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-0.5 text-[10px] font-bold text-hypeNeon">
+            SPONSORED: ${msg.amount_paid.toFixed(2)} CHOP
+          </div>
+          <h4 className="mb-3 text-xs md:text-sm font-black text-sheetWhite leading-tight">
+            "{msg.text}"
+          </h4>
+          <p className="mb-4 text-[10px] text-chop-muted text-right">
+            — {msg.author_name}
+          </p>
+          <button 
+            onClick={closeAd} 
+            className="w-full border-2 border-spiteCrimson bg-black py-1.5 text-[10px] font-bold tracking-widest text-spiteCrimson hover:bg-spiteCrimson hover:text-black transition-all"
+          >
+            DISMISS OBLIGATION
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // SYSTEM AD
+  const ad = currentAd.data as typeof ADS[0];
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 w-64 border-4 border-black bg-[#FDE047] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-fade-in font-mono">
+    <div className="fixed bottom-24 md:bottom-6 left-4 md:left-6 z-50 w-64 md:w-72 border-4 border-black bg-[#FDE047] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-fade-in font-mono">
       <div className="flex items-center justify-between border-b-4 border-black bg-spiteCrimson px-2 py-1 text-white">
         <span className="text-[10px] font-bold tracking-widest animate-pulse">SYSTEM_AD_</span>
         <button onClick={closeAd} className="text-sm font-black hover:text-black focus:outline-none">X</button>

@@ -6,10 +6,31 @@ import type { TraitorEntry } from "../lib/types";
 
 const POLL_INTERVAL = 10_000; // 10s
 
+const INSULT_LINES = [
+  "Bought in. Did nothing. Peak class betrayal.",
+  "Holding a bag and a prayer. Contributed zero.",
+  "The human equivalent of a passive index fund. Worthless.",
+  "Sat on their CHOP like it's a La-Z-Boy. Lazy parasite.",
+  "Peak freeloader energy. Embarrassing to witness.",
+  "All bag, no bite. Coward.",
+  "Thinks HODLing makes them a revolutionary. It doesn't.",
+  "Dead weight with a wallet. The worst kind of investor.",
+  "Zero messages. Zero votes. Zero spine.",
+  "Bought the revolution like an NFT. Just here to flip.",
+  "The only thing they've exercised is their right to do nothing.",
+  "Capital without conviction. Money without meaning.",
+  "A warm body with cold hands. Let go of the bag or do something.",
+  "Furniture with a Solana address. Useless.",
+  "This wallet has never known the touch of a Submit button.",
+];
+
+const getRandomInsult = () => INSULT_LINES[Math.floor(Math.random() * INSULT_LINES.length)];
+
 export function TraitorsLeaderboard() {
   const [entries, setEntries] = useState<TraitorEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [insultMap, setInsultMap] = useState<Record<string, string>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const PER_PAGE = 20;
@@ -18,6 +39,15 @@ export function TraitorsLeaderboard() {
     try {
       const data = await fetchTraitors();
       setEntries(data);
+      setInsultMap((prev) => {
+        const next = { ...prev };
+        for (const e of data) {
+          if (!next[e.author_name]) {
+            next[e.author_name] = getRandomInsult();
+          }
+        }
+        return next;
+      });
     } catch (err) {
       console.error("Traitors fetch error:", err);
     } finally {
@@ -64,7 +94,8 @@ export function TraitorsLeaderboard() {
         <div className="flex border-b-4 border-canvasBlack bg-canvasBlack px-3 py-2 text-[10px] font-bold uppercase tracking-[0.25em] text-sheetWhite">
           <span className="w-10">#</span>
           <span className="flex-1">Wallet</span>
-          <span className="w-36 text-right text-hypeNeon">$CHOP Held</span>
+          <span className="w-20 text-right hidden sm:block">Free Msgs</span>
+          <span className="w-36 text-right text-spiteCrimson">$CHOP Leeching</span>
         </div>
 
         {/* Table body */}
@@ -94,17 +125,24 @@ export function TraitorsLeaderboard() {
 
                     {/* Wallet */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold font-mono tracking-wider truncate">
-                        {entry.author_name.slice(0, 8)}...{entry.author_name.slice(-6)}
+                      <p className="text-sm font-bold font-mono tracking-wider break-all">
+                        {entry.author_name}
                       </p>
-                      <p className="text-[10px] text-chop-muted mt-0.5">
-                        Bought in. Did nothing. Peak class betrayal.
+                      <p className="text-[10px] text-chop-muted mt-0.5 italic">
+                        &ldquo;{insultMap[entry.author_name] || getRandomInsult()}&rdquo;
                       </p>
+                    </div>
+
+                    {/* Free Message Count */}
+                    <div className="w-20 flex-shrink-0 text-right hidden sm:block">
+                      <span className="text-xs font-mono font-bold opacity-60">
+                        {entry.total_messages > 0 ? entry.total_messages : "—"}
+                      </span>
                     </div>
 
                     {/* CHOP Balance */}
                     <div className="w-36 flex-shrink-0 text-right">
-                      <span className="text-xs font-mono font-bold text-hypeNeon">
+                      <span className="text-xs font-mono font-bold text-spiteCrimson">
                         {entry.total_paid.toLocaleString(undefined, { maximumFractionDigits: 0 })} CHOP
                       </span>
                     </div>

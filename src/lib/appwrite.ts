@@ -1,3 +1,9 @@
+/**
+ * @deprecated Appwrite auth is being replaced by local session-based auth.
+ * This file is kept temporarily until full migration is complete.
+ * DO NOT add new Appwrite-dependent code.
+ */
+
 import { Client, Account, Databases } from "appwrite";
 
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || "";

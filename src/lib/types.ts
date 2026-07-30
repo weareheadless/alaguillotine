@@ -1,12 +1,13 @@
-import type { Models } from "appwrite";
-
-export interface MessageDocument extends Models.Document {
+export interface MessageDocument {
+  $id: string;
+  id: string;
   text: string;
   author_id: string | null;
   author_name: string;
   amount_paid: number;
   is_shadowbanned: boolean;
   created_at: string;
+  parent_id?: string | null;
 }
 
 export interface FeedMessage {
@@ -42,7 +43,9 @@ export interface CounterData {
 
 // ─── Nominations (Guillotine Leaderboard) ─────────────────────────────────────
 
-export interface NominationDocument extends Models.Document {
+export interface NominationDocument {
+  $id: string;
+  id: string;
   target_name: string;
   voter_id: string | null;
   voter_name: string;
@@ -67,6 +70,13 @@ export interface TraitorEntry {
   last_active_at: string;
 }
 
+export interface BenefactorEntry {
+  author_name: string;
+  total_paid: number;
+  message_count: number;
+  last_paid_at: string;
+}
+
 export interface SubmitNominationResponse {
   success: boolean;
   error?: string;
@@ -77,40 +87,17 @@ export const NOMINATION_WEIGHT_MULTIPLIER = 100; // 1 CHOP = 100 weight for paid
 
 // ─── Epochs & Board (Economic Experiment) ────────────────────────────────────
 
-export interface EpochDocument extends Models.Document {
+export interface EpochDocument {
+  $id: string;
+  id: string;
   epoch_number: number;
   status: "active" | "voting" | "executed";
   start_msg_count: number;
   end_msg_count: number;
-  board_members: BoardMember[]; // JSON array
   treasury_amount: number;
   unique_senders: number;
   started_at: string;
-  voting_started_at: string | null;
-  executed_at: string | null;
-  // Results (populated after execution)
-  final_burn: number;
-  final_lottery: number;
-  final_dev: number;
-  final_board: number;
-  final_revolution: number;
-  director_fees: Record<string, number>; // wallet -> fee
-  hypothesis_winner: string | null; // "H1" | "H2" | "H3" | "H4"
-}
-
-export interface BoardMember {
-  wallet: string;
-  balance: number; // CHOP balance at epoch start
-  voted: boolean;
-  vote: VoteAllocation | null;
-}
-
-export interface VoteAllocation {
-  burn_rate: number;       // 0-100
-  lottery_rate: number;    // 0-100
-  dev_rate: number;        // 0-100
-  board_rate: number;      // 0-100
-  revolution_rate: number; // 0-100
+  created_at: string;
 }
 
 export interface EpochSummary {
@@ -119,12 +106,6 @@ export interface EpochSummary {
   started_at: string;
   total_messages: number;
   treasury_amount: number;
-  board_members: BoardMember[];
-}
-
-export interface SubmitVoteResponse {
-  success: boolean;
-  error?: string;
 }
 
 /** Dynamic epoch threshold — starts at 1,000, scales by 1.5× per epoch */
@@ -132,5 +113,14 @@ export function getEpochThreshold(epochNumber: number): number {
   return Math.floor(1000 * Math.pow(1.5, epochNumber - 1));
 }
 
-export const BOARD_SIZE = 7;
-export const VOTING_PERIOD_MS = 48 * 60 * 60 * 1000; // 48 hours to vote
+// ─── Oracle & Governance (Phase 21) ──────────────────────────────────────────
+
+export type {
+  OraclePlan,
+  OracleOutput,
+  OracleInput,
+  OracleProposalRow,
+  ProposalWithTally,
+  EpochTally,
+  ProposalComment,
+} from "./oracle-types";

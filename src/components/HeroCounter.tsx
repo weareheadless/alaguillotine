@@ -7,7 +7,7 @@ import { fetchMessageCount } from "../app/actions/feed";
 
 import { EXECUTION_THRESHOLD } from "../lib/constants";
 
-export function HeroCounter({ children }: { children?: React.ReactNode }) {
+export function HeroCounter({ children, mobileRightSlot }: { children?: React.ReactNode, mobileRightSlot?: React.ReactNode }) {
   const [total, setTotal] = useState<number | null>(null);
   const [dropped, setDropped] = useState(false);
   const [bumping, setBumping] = useState(false);
@@ -193,17 +193,20 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
       ref={mainRef}
       className="relative mx-auto mt-4 w-full px-6"
     >
-      <div className="flex flex-col gap-0 md:flex-row">
-        {/* ─── Left: Full-Height White Sidebar ──────────────────────── */}
-        <div className="relative flex flex-col items-center bg-sheetWhite border-r-4 border-black md:sticky md:top-20 md:h-[calc(100vh-5rem)] md:min-w-[280px] md:max-w-[280px] md:flex-shrink-0 md:self-stretch">
+      <div className="flex flex-col gap-0 md:flex-row border-b-4 border-black md:border-b-0">
+        {/* ─── Left: Sidebar (Horizontal on Mobile, Vertical on Desktop) ─ */}
+        <div className="relative flex flex-col md:items-center bg-sheetWhite md:border-r-4 border-black md:sticky md:top-20 md:h-[calc(100vh-5rem)] md:min-w-[280px] md:max-w-[280px] md:flex-shrink-0 md:self-stretch">
           {/* Grid overlay */}
           <div className="absolute inset-0 z-0 grid-overlay pointer-events-none opacity-30" />
 
-          <div className="relative z-10 flex w-full flex-col items-center px-4 py-6 overflow-y-auto">
-            {/* ─── Guillotine ────────────────────────────────────────── */}
-            <div className="guillotine-wrapper flex-shrink-0">
-              {/* Frame posts */}
-              <div className="guillotine-post-left" />
+          <div className="relative z-10 flex w-full flex-row md:flex-col items-stretch md:items-center justify-between md:justify-start px-2 py-2 md:px-4 md:py-6 overflow-y-auto gap-2 md:gap-0">
+            {/* ─── Mobile Left: Guillotine + Stats ──────────────────── */}
+            <div className="flex flex-col items-center justify-center w-[40%] md:w-full flex-shrink-0">
+              {/* ─── Guillotine ────────────────────────────────────────── */}
+              <div className="relative w-[110px] h-[242px] md:w-[200px] md:h-[440px] flex-shrink-0">
+                <div className="guillotine-wrapper flex-shrink-0 absolute top-0 left-0 origin-top-left scale-[0.55] md:scale-100">
+                  {/* Frame posts */}
+                <div className="guillotine-post-left" />
               <div className="guillotine-post-right" />
 
               {/* Top beam */}
@@ -256,31 +259,32 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
                 0%
               </span>
             </div>
+            </div>
 
             {/* ─── Status + Stats ────────────────────────────────────── */}
-            <div className="mt-4 w-full text-center font-mono">
+            <div className="md:mt-4 w-full md:w-full flex-1 md:flex-none text-center font-mono">
               {dropped ? (
-                <p className="animate-fade-in text-xs font-black uppercase tracking-widest text-spiteCrimson animate-glitch-text">
+                <p className="animate-fade-in text-[9px] md:text-xs font-black uppercase tracking-widest text-spiteCrimson animate-glitch-text">
                   ⚔️ The blade has fallen ⚔️
                 </p>
               ) : (
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-chop-muted">
+                <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.15em] text-chop-muted">
                   // Progress toward judgment
                 </p>
               )}
-              <div className="mt-1.5 flex items-center justify-center gap-2 text-[10px] tabular-nums font-bold">
+              <div className="mt-1.5 flex items-center justify-center gap-1 md:gap-2 text-[9px] md:text-[10px] tabular-nums font-bold">
                 <span className={`${flashCount ? "animate-counter-pulse text-hypeNeon" : "text-canvasBlack"}`}>
                   {displayTotal.toLocaleString()}
                 </span>
                 <span className="text-chop-muted">/</span>
-                <span className="text-spiteCrimson">{EXECUTION_THRESHOLD.toLocaleString()}</span>
-                <span className="text-chop-muted">·</span>
+                <span className="text-spiteCrimson hidden md:inline">{EXECUTION_THRESHOLD.toLocaleString()}</span>
+                <span className="text-chop-muted hidden md:inline">·</span>
                 <span className={`${flashCount ? "animate-counter-pulse" : ""} ${progress >= 90 ? "text-spiteCrimson" : "text-hypeNeon"}`}>
                   {progress.toFixed(1)}%
                 </span>
               </div>
               {/* Mini progress bar */}
-              <div className="mx-auto mt-2 h-1.5 w-40 overflow-hidden border-2 border-black bg-canvasBlack">
+              <div className="mx-auto mt-2 h-1.5 w-[80%] md:w-40 overflow-hidden border-2 border-black bg-canvasBlack">
                 <div
                   className={`h-full transition-all duration-1000 ${
                     dropped ? "bg-spiteCrimson" : "bg-gradient-to-r from-spiteCrimson via-hypeNeon to-spiteCrimson"
@@ -289,6 +293,14 @@ export function HeroCounter({ children }: { children?: React.ReactNode }) {
                 />
               </div>
             </div>
+            </div>
+
+            {/* ─── Mobile Right: Media Slot ───────────────────────────── */}
+            {mobileRightSlot && (
+              <div className="w-[60%] flex-shrink-0 md:hidden h-[242px]">
+                {mobileRightSlot}
+              </div>
+            )}
 
             {/* ─── Live Event Toasts ──────────────────────────────────── */}
             {toasts.length > 0 && (

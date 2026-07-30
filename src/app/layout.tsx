@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { SolanaWalletProvider } from "../components/WalletProvider";
 import { ExecutionProvider } from "../lib/execution-context";
+import { AuthProvider } from "../lib/auth-context";
 
 export const metadata: Metadata = {
   title: "FuckYouElon — $CHOP PROTOCOL",
@@ -18,6 +20,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
+        {/* Google Analytics */}
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-MW7Q627SYG" strategy="afterInteractive" />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-MW7Q627SYG');`}
+        </Script>
       </head>
       <body className="min-h-screen bg-canvasBlack antialiased font-mono flex flex-col">
         <div className="pointer-events-none fixed inset-0 z-[9998] animate-crt-flicker" aria-hidden="true" />
@@ -26,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <SolanaWalletProvider>
           <ExecutionProvider>
+            <AuthProvider>
             <div className="flex-grow">{children}</div>
             
             {/* ─── Global Footer Disclaimer ──────────────────────────────── */}
@@ -39,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </p>
                 <div className="space-y-4 rounded-sm border-2 border-spiteCrimson/20 bg-black p-6">
                   <p>
-                    <strong className="text-sheetWhite">1. Public Figures as Symbols:</strong> Any reference to real individuals, names, or likenesses (including tech executives and billionaires) is used strictly as a <strong className="text-spiteCrimson">symbolic proxy for late-stage capitalism, systemic power structures, and corporate excess</strong>. These individuals are depicted not as private biological targets, but as archetypes of global economic friction (<em>ras-le-bol</em>).
+                    <strong className="text-sheetWhite">1. Public Figures as Symbols:</strong> Any reference to real individuals, names, or likenesses (including tech executives, billionaires) is used strictly as a <strong className="text-spiteCrimson">symbolic proxy for late-stage capitalism, systemic power structures, and corporate excess</strong>. These individuals are depicted not as private biological targets, but as archetypes of global economic friction (<em>ras-le-bol</em>).
                   </p>
                   <p>
                     <strong className="text-sheetWhite">2. Metaphorical Imagery:</strong> The guillotine and associated mechanical animations are historical metaphors for revolutionary market corrections and the public critique of extreme wealth concentration. They are artistic expressions, not literal, physical, or real-world threats of violence. No physical harm is intended, encouraged, or implied.
@@ -50,6 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
             </footer>
+            </AuthProvider>
           </ExecutionProvider>
         </SolanaWalletProvider>
       </body>

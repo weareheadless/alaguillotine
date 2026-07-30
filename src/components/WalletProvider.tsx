@@ -11,6 +11,10 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 export function SolanaWalletProvider({ children }: { children: React.ReactNode }) {
   const rpcUrl =
     process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+  // ⚠ If balance shows 0 or "RPC error", the public endpoint is blocking browsers.
+  // Get a free RPC at https://dev.helius.xyz/dashboard/app and set:
+  //   NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
+  // Then rebuild.
 
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { account } from "../lib/appwrite";
 import type { FeedMessage } from "../lib/types";
+import { useAuth } from "../lib/auth-context";
 import { getDemoMessages } from "../lib/mock-data";
 import { SubmitForm } from "./SubmitForm";
 import { fetchVisibleMessages, fetchOwnMessages } from "../app/actions/feed";
@@ -11,6 +11,8 @@ function MessageCard({ message, isCurrentUser, onReply }: { message: FeedMessage
   const isPaid = message.amount_paid > 0;
   const isOwn = isCurrentUser;
   const isComment = !!message.parent_id;
+  const hasWallet = !!(message.author_id && message.author_id.length >= 32 && !message.author_id.includes(" "));
+  const shortWallet = hasWallet ? `${message.author_id!.slice(0, 4)}...${message.author_id!.slice(-4)}` : null;
 
   return (
     <div
@@ -34,6 +36,11 @@ function MessageCard({ message, isCurrentUser, onReply }: { message: FeedMessage
       </div>
       <div className="flex items-center gap-2 border-t border-glitchGray/20 px-3 py-1.5 text-[10px] uppercase tracking-wider text-chop-muted">
         <span className="font-bold">{message.author_name}</span>
+        {shortWallet && (
+          <>
+            <span className="font-normal text-[9px] text-chop-muted/60">{shortWallet}</span>
+          </>
+        )}
         <span>|</span>
         <span>
           {new Date(message.created_at).toLocaleDateString("en-US", {
@@ -65,24 +72,20 @@ function MessageCard({ message, isCurrentUser, onReply }: { message: FeedMessage
 const MESSAGES_PER_PAGE = 25;
 
 export function MessageFeed() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<FeedMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showRepliesFor, setShowRepliesFor] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    account.get().then((u) => setCurrentUserId(u.$id)).catch(() => setCurrentUserId(null));
-  }, []);
-
   const fetchMessages = useCallback(async () => {
     try {
       const visibleDocs = await fetchVisibleMessages();
       let docs = visibleDocs;
-      if (currentUserId) {
-        const ownDocs = await fetchOwnMessages(currentUserId);
+      if (user) {
+        const ownDocs = await fetchOwnMessages(user.id);
         docs = [...docs, ...ownDocs];
       }
       docs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -91,7 +94,7 @@ export function MessageFeed() {
       console.error("MessageFeed fetch error:", e);
       setMessages([]);
     } finally { setLoading(false); }
-  }, [currentUserId]);
+  }, [user]);
 
   useEffect(() => {
     fetchMessages();
@@ -162,8 +165,83 @@ export function MessageFeed() {
             pageMessages.map((msg, idx) => {
               const globalIdx = safePage * MESSAGES_PER_PAGE + idx + 1;
               const isDark = idx % 2 !== 0;
-              const rowBg = isDark ? "bg-glitchGray text-sheetWhite" : "bg-sheetWhite text-canvasBlack";
+              let rowBg = isDark ? "bg-glitchGray text-sheetWhite" : "bg-sheetWhite text-canvasBlack";
               
+              const isPaid = msg.amount_paid > 0;
+              
+              if (isPaid) {
+                return (
+                  <div key={msg.$id} className="w-full border-y-[3px] border-spiteCrimson bg-[#FDE047] px-3 py-2.5 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-2 md:gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-bold leading-relaxed text-black">
+                          {msg.text}
+                        </p>
+                      </div>
+                      <span className="flex-shrink-0 border-2 border-black bg-spiteCrimson px-2 py-0.5 text-[10px] md:text-xs font-black text-sheetWhite drop-shadow-[2px_2px_0px_rgba(0,0,0,1)] self-start">
+                        ${msg.amount_paid.toFixed(2)} CHOP
+                      </span>
+                    </div>
+                    <div className="relative z-10 flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[9px] md:text-[10px] uppercase tracking-wider text-black/70">
+                      <span className="font-bold text-spiteCrimson drop-shadow-[1px_1px_0px_rgba(255,255,255,0.5)]">{msg.author_name}</span>
+                      <span>|</span>
+                      <span>
+                        {new Date(msg.created_at).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                        })}
+                      </span>
+                      {!msg.parent_id && (
+                        <>
+                          <span>|</span>
+                          <button
+                            onClick={() => handleReply(msg.$id)}
+                            className="cursor-pointer font-bold text-black hover:text-spiteCrimson transition-colors drop-shadow-[1px_1px_0px_rgba(255,255,255,0.5)]"
+                          >
+                            [ REPLY ]
+                          </button>
+                        </>
+                      )}
+                      {(commentsByParent[msg.$id]?.length > 0 || showRepliesFor === msg.$id) && (
+                        <>
+                          <span>|</span>
+                          <button
+                            onClick={() => handleToggleReplies(msg.$id)}
+                            className="cursor-pointer font-bold text-black hover:text-spiteCrimson drop-shadow-[1px_1px_0px_rgba(255,255,255,0.5)]"
+                          >
+                            {showRepliesFor === msg.$id
+                              ? "[ HIDE REPLIES ]"
+                              : `[ ${commentsByParent[msg.$id]?.length || 0} REPLIES ]`}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Reply form for Paid Messages */}
+                    {replyingTo === msg.$id && (
+                      <div className="relative z-10 mt-3 ml-2 md:ml-4">
+                        <SubmitForm parentId={msg.$id} onSuccess={handleReplySuccess} />
+                      </div>
+                    )}
+                    
+                    {/* Comments for Paid Messages */}
+                    {showRepliesFor === msg.$id && commentsByParent[msg.$id]?.map((comment, ci) => {
+                      const commentBg = ci % 2 === 0 ? "bg-black/10" : "bg-black/5";
+                      return (
+                      <div key={comment.$id} className={`relative z-10 mt-1 ml-4 md:ml-6 border-l-[3px] border-l-black/50 pl-3 py-1.5 pr-2 ${commentBg}`}>
+                        <p className="text-sm text-black font-medium">{comment.text}</p>
+                        <div className="mt-1 flex gap-2 text-[10px] uppercase tracking-wider opacity-80 text-black">
+                          <span className="font-bold">{comment.author_name}</span>
+                          <span>
+                            {new Date(comment.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </div>
+                    )})}
+                  </div>
+                );
+              }
+
               // We want text to inherit naturally from rowBg where possible
               return (
                 <div key={msg.$id} className={rowBg}>
