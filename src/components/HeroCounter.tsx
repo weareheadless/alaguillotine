@@ -290,7 +290,7 @@ export function HeroCounter({ children, mobileRightSlot, topSlot }: { children?:
                   ⚔️ The blade has fallen ⚔️
                 </p>
               ) : (
-                <p className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.15em] text-chop-muted">
+                <p className="hidden md:block text-[9px] md:text-[11px] font-bold uppercase tracking-[0.15em] text-chop-muted">
                   // Progress toward judgment
                 </p>
               )}
@@ -301,7 +301,7 @@ export function HeroCounter({ children, mobileRightSlot, topSlot }: { children?:
                 <span className="text-chop-muted">/</span>
                 <span className="text-spiteCrimson">{EXECUTION_THRESHOLD.toLocaleString()}</span>
               </div>
-              <div className="mt-0.5 text-[10px] md:text-[11px] tabular-nums font-bold">
+              <div className="hidden md:block mt-0.5 text-[10px] md:text-[11px] tabular-nums font-bold">
                 <span className={`${flashCount ? "animate-counter-pulse" : ""} ${progress >= 90 ? "text-spiteCrimson" : "text-hypeNeon"}`}>
                   {progress < 0.001 && progress > 0
                     ? progress.toFixed(4)
@@ -318,9 +318,9 @@ export function HeroCounter({ children, mobileRightSlot, topSlot }: { children?:
                 />
               </div>
 
-              {/* ─── Treasury Metrics ─────────────────────────────────── */}
+              {/* ─── Treasury Metrics (desktop only — hidden on mobile to reach the form faster) ── */}
               {metrics && (
-                <div className="mt-3 space-y-1.5 border-t-2 border-dashed border-black pt-3">
+                <div className="hidden md:block mt-3 space-y-1.5 border-t-2 border-dashed border-black pt-3">
                   {/* Messages this epoch */}
                   <div className="flex justify-between items-center text-[9px] md:text-[10px]">
                     <span className="text-chop-muted uppercase tracking-wider">Epoch msgs</span>
