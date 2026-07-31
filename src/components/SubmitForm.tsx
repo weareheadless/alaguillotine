@@ -5,7 +5,7 @@ import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, getAccount, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { submitFreeMessage, submitPaidMessage, submitComment } from "../app/actions/submit";
+import { submitFreeMessage, submitPaidMessage, submitComment, submitGuestMessage } from "../app/actions/submit";
 import { checkExistingFreeMessage } from "../app/actions/feed";
 import { useAuth } from "../lib/auth-context";
 import { useExecution } from "../lib/execution-context";
@@ -19,14 +19,15 @@ const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10)
 
 export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; parentId?: string }) {
   const isComment = !!parentId;
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refresh } = useAuth();
   const { addMessage } = useTerminal();
   const [freeText, setFreeText] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [freeSubmitting, setFreeSubmitting] = useState(false);
   const [freeError, setFreeError] = useState("");
   const [freeSuccess, setFreeSuccess] = useState(false);
   const [burnTx, setBurnTx] = useState("");
-  const [userStatus, setUserStatus] = useState<"loading" | "logged-in" | "logged-out" | "already-posted">("loading");
+  const [userStatus, setUserStatus] = useState<"loading" | "logged-in" | "logged-out" | "guest" | "already-posted">("loading");
 
   const [paidText, setPaidText] = useState("");
   const [paidName, setPaidName] = useState("");
@@ -98,6 +99,13 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
       return;
     }
 
+    if (user.is_guest) {
+      // Returning guest — keep their name, let them post more
+      setGuestName(user.display_name || "");
+      setUserStatus("guest");
+      return;
+    }
+
     if (isComment) {
       setUserStatus("logged-in");
       return;
@@ -113,10 +121,10 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     })();
   }, [user, authLoading, isComment]);
 
-  // PoW flow — start solving on mount for non-wallet users
+  // PoW flow — start solving on mount for non-wallet users (guests are rate-limited by IP instead)
   useEffect(() => {
-    if (!user || user.wallet_address) {
-      // Wallet-linked users skip PoW
+    if (!user || user.wallet_address || user.is_guest) {
+      // Wallet-linked users and guests skip PoW
       setPowStatus("skipped");
       return;
     }
@@ -153,20 +161,31 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
   const handleFreeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (freeSubmitting || !freeText.trim()) return;
-    if (!user) { setFreeError("You must be logged in."); return; }
+
+    const isGuestPost = !user || user.is_guest;
+    const authorName = isGuestPost
+      ? guestName.trim() || "Anonymous Spite"
+      : user!.display_name || user!.username || "Anonymous";
+
     setFreeSubmitting(true); setFreeError("");
 
-    addMessage(`>_ PREPARING PEASANT TIER SUBMISSION...`, "text-hypeNeon", 10);
-    
+    addMessage(
+      isGuestPost
+        ? `>_ PREPARING PEASANT TIER SUBMISSION (NO ACCOUNT NEEDED)...`
+        : `>_ PREPARING PEASANT TIER SUBMISSION...`,
+      "text-hypeNeon",
+      10
+    );
+
     const formData = new FormData();
     formData.set("text", freeText.trim());
-    formData.set("author_name", user.display_name || user.username);
+    formData.set("author_name", authorName);
 
     // Add honeypot (hidden field — always empty for humans)
     formData.set("website", "");
 
-    // Add PoW solution if not wallet-linked
-    if (!user.wallet_address) {
+    // Add PoW solution only for registered non-wallet users (guests are rate-limited by IP)
+    if (!isGuestPost && !user!.wallet_address) {
       const solution = powSolutionRef.current;
       if (!solution) {
         addMessage(`[ERROR] POW COMPUTATION INCOMPLETE`, "text-spiteCrimson", 5);
@@ -177,7 +196,7 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
       addMessage(`>_ ATTACHING POW NONCE: ${solution.nonce.substring(0, 12)}...`, "text-hypeNeon", 20);
       formData.set("pow_challenge", solution.challenge);
       formData.set("pow_nonce", solution.nonce);
-    } else {
+    } else if (!isGuestPost && user!.wallet_address) {
       addMessage(`>_ WALLET LINK DETECTED, BYPASSING POW...`, "text-hypeNeon", 10);
     }
 
@@ -185,14 +204,22 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     if (isComment && parentId) formData.set("parent_id", parentId);
 
     addMessage(`>_ BROADCASTING TO HYPER-LEDGER...`, "text-hypeNeon", 15);
-    const result = isComment ? await submitComment(formData) : await submitFreeMessage(formData);
+    const result = isComment
+      ? await submitComment(formData)
+      : isGuestPost
+        ? await submitGuestMessage(formData)
+        : await submitFreeMessage(formData);
 
     if (result.success) {
       addMessage(`[OK] MESSAGE CONFIRMED`, "text-hypeNeon", 5);
       if (result.burnTx) addMessage(`>_ BURN TX: ${result.burnTx}`, "text-hypeNeon", 1);
-      setFreeSuccess(true); setFreeText(""); setUserStatus("already-posted");
+      setFreeSuccess(true); setFreeText("");
+      // Registered (non-guest) users get the one-per-account lock; guests can post again
+      if (!isGuestPost) setUserStatus("already-posted");
+      // First-time guest just got a session cookie — refresh so the UI recognizes them
+      if (isGuestPost && !user) refresh();
       setBurnTx(result.burnTx || "");
-      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("new-message", { detail: { authorName: user.display_name || user.username || "Anon", amount: 0 } }));
+      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("new-message", { detail: { authorName, amount: 0 } }));
       onSuccess?.();
     } else {
       addMessage(`[ERROR] TRANSACTION REJECTED: ${result.error}`, "text-spiteCrimson", 10);
@@ -340,13 +367,6 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
   }
 
   if (isComment) {
-    if (!user) {
-      return (
-        <div className="border-2 border-black bg-white p-2 text-center font-mono mt-2">
-          <p className="text-[10px] text-chop-muted">Log in to reply.</p>
-        </div>
-      );
-    }
     return (
       <form onSubmit={handleFreeSubmit} className="flex flex-col gap-2 mt-2 font-mono relative">
         {freeSuccess ? (
@@ -365,6 +385,15 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
           </div>
         ) : (
           <>
+            {!user && (
+              <input
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="Your name (optional)"
+                maxLength={30}
+                className="w-full border-2 border-black bg-white px-2 py-1 text-[10px] text-canvasBlack placeholder-chop-muted outline-none focus:ring-1 focus:ring-spiteCrimson"
+              />
+            )}
             <textarea 
               value={freeText} 
               onChange={(e) => setFreeText(e.target.value)} 
@@ -376,7 +405,7 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
             {freeError && <p className="text-[10px] font-bold text-spiteCrimson">ERROR: {freeError}</p>}
             <button 
               type="submit" 
-              disabled={freeSubmitting || !freeText.trim() || (powStatus === "computing" && !user?.wallet_address)} 
+              disabled={freeSubmitting || !freeText.trim()} 
               className="self-end cursor-pointer border-2 border-black bg-black px-4 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-sheetWhite shadow-[2px_2px_0px_0px_rgba(225,29,72,1)] transition-all hover:bg-spiteCrimson hover:text-black active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
             >
               {freeSubmitting ? "POSTING..." : "REPLY"}
@@ -412,20 +441,74 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
             </div>
           )}
 
-          {userStatus === "logged-out" && (
-            <div className="flex h-[120px] items-center justify-center border-2 border-black bg-white p-4 text-center">
-              <div>
-                <p className="text-lg">🔒</p>
-                <p className="mt-1 text-xs text-chop-muted">Log in to post a free message.</p>
-              </div>
-            </div>
+          {(userStatus === "logged-out" || userStatus === "guest") && (
+            <form onSubmit={handleFreeSubmit} className="flex flex-col gap-2">
+              {freeSuccess ? (
+                <div className="flex flex-col items-center justify-center gap-1 h-[120px] border-2 border-hypeNeon bg-hypeNeon/10 p-2 text-center">
+                  <p className="text-sm font-bold uppercase text-hypeNeon">// Message posted! ✅</p>
+                  <p className="text-[9px] text-canvasBlack/70">The blade inches closer. Spite accepted.</p>
+                  {burnTx && (
+                    <a
+                      href={`https://solscan.io/tx/${burnTx}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[9px] font-mono text-chop-muted underline hover:text-hypeNeon transition-colors"
+                    >
+                      🔥 Burn tx: {burnTx.slice(0, 8)}...{burnTx.slice(-6)}
+                    </a>
+                  )}
+                  {userStatus === "guest" && (
+                    <button
+                      type="button"
+                      onClick={() => setFreeSuccess(false)}
+                      className="mt-1 cursor-pointer border-2 border-black bg-black px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sheetWhite transition-all hover:bg-spiteCrimson"
+                    >
+                      POST ANOTHER
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Invisible honeypot — bots fill this */}
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    style={{
+                      position: "absolute",
+                      left: "-9999px",
+                      opacity: 0,
+                      height: 0,
+                      width: 0,
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <textarea value={freeText} onChange={(e) => setFreeText(e.target.value)} placeholder="Say something Elon will read on his jet..." maxLength={500} rows={2} className="flex-1 resize-none border-2 border-black bg-white p-1.5 text-xs text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-spiteCrimson" />
+                    <div className="flex flex-col gap-1.5">
+                      <input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Your name" maxLength={30} className="w-40 border-2 border-black bg-white px-2 py-1.5 text-[10px] text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
+                      <input value={targetName} onChange={(e) => setTargetName(e.target.value)} placeholder="Nominate someone" maxLength={50} className="w-40 border-2 border-black bg-white px-2 py-1.5 text-[10px] text-canvasBlack placeholder-chop-muted outline-none focus:ring-2 focus:ring-hypeNeon" />
+                      <button type="submit" disabled={freeSubmitting || !freeText.trim()} className="cursor-pointer border-2 border-black bg-spiteCrimson px-3 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all duration-75 hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40">
+                        {freeSubmitting ? "..." : "EXECUTE"}
+                      </button>
+                    </div>
+                  </div>
+                  {freeError && <p className="text-[10px] font-bold text-spiteCrimson">ERROR: {freeError}</p>}
+                  <div className="flex items-center gap-2 text-[9px] text-chop-muted">
+                    <span>🔓 Posting as <span className="font-bold text-canvasBlack">{guestName.trim() || "Anonymous Spite"}</span></span>
+                    <span>|</span>
+                    <span>NO ACCOUNT. NO WALLET. NO PRISON.</span>
+                  </div>
+                </>
+              )}
+            </form>
           )}
 
           {userStatus === "already-posted" && !isComment && (
             <div className="flex flex-col items-center justify-center gap-1 h-[120px] border-2 border-dashed border-spiteCrimson bg-spiteCrimson/5 p-4 text-center">
               <p className="text-xs uppercase text-spiteCrimson">
-                One free message per user. Switch to{" "}
-                <button onClick={() => setTab("paid")} className="font-bold underline decoration-2">PAID</button> to post again!
+                One free message per account. Want more?{" "}
+                <button onClick={() => setTab("paid")} className="font-bold underline decoration-2">PAID</button> to burn more CHOP, or log out and post anonymously.
               </p>
               {burnTx && (
                 <a

@@ -7,6 +7,7 @@ export interface AuthUser {
   username: string;
   display_name: string;
   wallet_address: string | null;
+  is_guest?: boolean;
 }
 
 interface AuthContextValue {
@@ -18,6 +19,7 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   linkWallet: (address: string, signature: string, message: string) => Promise<boolean>;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -29,6 +31,7 @@ const AuthContext = createContext<AuthContextValue>({
   logout: async () => {},
   updateDisplayName: async () => {},
   linkWallet: async () => false,
+  refresh: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -153,8 +156,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Re-fetch the current user (e.g. after a guest posts and gets a session cookie)
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (data.user) {
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      // Leave state as-is
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, loginWithWallet, logout, updateDisplayName, linkWallet }}>
+    <AuthContext.Provider value={{ user, loading, login, register, loginWithWallet, logout, updateDisplayName, linkWallet, refresh }}>
       {children}
     </AuthContext.Provider>
   );

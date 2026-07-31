@@ -6,12 +6,21 @@
  * ⚠️ Next.js 15: cookies() is async — must be awaited.
  */
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getDb } from "./local-db";
 import crypto from "crypto";
 
 export const SESSION_COOKIE = "fye_session";
 const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60; // 30 days
+
+// ─── Client IP (for guest rate limiting) ──────────────────────────────────────
+
+export async function getClientIp(): Promise<string> {
+  const h = await headers();
+  const fwd = h.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return h.get("x-real-ip") || "unknown";
+}
 
 // ─── Create ────────────────────────────────────────────────────────────────────
 

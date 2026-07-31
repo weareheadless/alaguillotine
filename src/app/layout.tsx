@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-canvasBlack antialiased font-mono flex flex-col">
         <div className="pointer-events-none fixed inset-0 z-[9998] animate-crt-flicker" aria-hidden="true" />
         <div className="bg-spiteCrimson text-sheetWhite px-4 py-1.5 text-center text-[10px] font-bold uppercase tracking-wider z-[51] relative border-b-2 border-black">
-          NOTICE OF ARTISTIC SATIRE & SYMBOLIC REPRESENTATION: This site is an interactive digital art installation. Any reference to real individuals is symbolic. No physical harm is intended, encouraged, or implied.
+          ⚠️ LEGAL DEPT: This is an interactive art installation &amp; political satire. Public figures are symbolic. The blade is metaphorical. Always has been.
         </div>
         <TerminalProvider>
           <SolanaWalletProvider>

@@ -82,6 +82,7 @@ export async function POST(request: Request) {
         username: user.username,
         display_name: user.display_name,
         wallet_address: wallet_address,
+        is_guest: false,
       },
     });
   } catch (err: unknown) {

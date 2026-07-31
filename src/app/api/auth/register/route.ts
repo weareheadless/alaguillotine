@@ -22,6 +22,7 @@ export async function POST(request: Request) {
         id: user.id,
         username: user.username,
         display_name: user.display_name,
+        is_guest: false,
       },
     });
   } catch (err: unknown) {

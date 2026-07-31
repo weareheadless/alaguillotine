@@ -15,6 +15,7 @@ export interface UserRow {
   username: string;
   display_name: string;
   wallet_address: string | null;
+  is_guest: boolean;
   created_at: string;
 }
 
@@ -30,6 +31,7 @@ function rowToUser(row: UserRowWithHash): UserRow {
     username: row.username,
     display_name: row.display_name,
     wallet_address: row.wallet_address,
+    is_guest: !!row.is_guest,
     created_at: row.created_at,
   };
 }
@@ -64,7 +66,31 @@ export function createUser(username: string, password: string): UserRow {
     throw err;
   }
 
-  return { id, username: trimmed, display_name: trimmed, wallet_address: null, created_at: now };
+  return { id, username: trimmed, display_name: trimmed, wallet_address: null, is_guest: false, created_at: now };
+}
+
+// ─── Guest users (anonymous posting — no password) ────────────────────────────
+
+/**
+ * Create a lightweight guest user for anonymous posting.
+ * Guests get a unique generated username (never shown), the chosen display name,
+ * and an unusable random password hash so they can never log in with credentials.
+ */
+export function createGuestUser(displayName: string): UserRow {
+  const safeName = displayName.trim().slice(0, 30) || "Anonymous Spite";
+  const username = `guest_${crypto.randomBytes(6).toString("hex")}`;
+  // Unusable password — guests authenticate via session cookie only
+  const unusableHash = bcrypt.hashSync(crypto.randomBytes(24).toString("base64url"), BCRYPT_ROUNDS);
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO users (id, username, password_hash, display_name, wallet_address, is_guest, created_at)
+     VALUES (?, ?, ?, ?, NULL, 1, ?)`
+  ).run(id, username, unusableHash, safeName, now);
+
+  return { id, username, display_name: safeName, wallet_address: null, is_guest: true, created_at: now };
 }
 
 // ─── Authenticate ──────────────────────────────────────────────────────────────

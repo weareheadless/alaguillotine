@@ -109,6 +109,7 @@ function ensureTables(db: Database.Database) {
       password_hash TEXT NOT NULL,
       display_name TEXT NOT NULL DEFAULT '',
       wallet_address TEXT,
+      is_guest INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT ''
     );
 
@@ -236,6 +237,26 @@ function ensureTables(db: Database.Database) {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_wr_votes_unique ON war_room_votes(voter_key, target_type, target_id);
     CREATE INDEX IF NOT EXISTS idx_wr_votes_target ON war_room_votes(target_type, target_id);
   `);
+
+  // ─── Migrations for existing databases ────────────────────────────────
+
+  // Guest posting rate limits (per IP, rolling window)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guest_posts (
+      id TEXT PRIMARY KEY,
+      ip TEXT NOT NULL DEFAULT '',
+      kind TEXT NOT NULL DEFAULT 'message',
+      message_id TEXT,
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_guest_posts_ip_time ON guest_posts(ip, created_at);
+  `);
+
+  const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (!userCols.some((c) => c.name === "is_guest")) {
+    db.exec("ALTER TABLE users ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0");
+  }
 }
 
 // ─── Query Builder ──────────────────────────────────────────────────────────────

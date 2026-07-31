@@ -338,17 +338,17 @@ export function HeroCounter({ children, mobileRightSlot }: { children?: React.Re
                   )}
                   {/* Tokens burnt (total) */}
                   <div className="flex justify-between items-center text-[9px] md:text-[10px]">
-                    <span className="text-chop-muted uppercase tracking-wider">🔥 Burnt</span>
+                    <span className="text-chop-muted uppercase tracking-wider">🔥 SPITE BURNED</span>
                     <span className="tabular-nums font-bold text-spiteCrimson">{metrics.totalBurnt.toLocaleString()} CHOP</span>
                   </div>
                   {/* CHOPS in treasury */}
                   <div className="flex justify-between items-center text-[9px] md:text-[10px]">
-                    <span className="text-chop-muted uppercase tracking-wider">🏦 Treasury</span>
+                    <span className="text-chop-muted uppercase tracking-wider">🏦 SPITE VAULT</span>
                     <span className="tabular-nums font-bold text-canvasBlack">{metrics.treasuryBalance.toLocaleString()} CHOP</span>
                   </div>
                   {/* Cost per free message */}
                   <div className="flex justify-between items-center text-[9px] md:text-[10px]">
-                    <span className="text-chop-muted uppercase tracking-wider">💰 Burn/msg</span>
+                    <span className="text-chop-muted uppercase tracking-wider">💰 SPITE/MSG</span>
                     <span className="tabular-nums font-bold text-hypeNeon">
                       {metrics.burnPerMessage > 0
                         ? metrics.burnPerMessage < 0.01

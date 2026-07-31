@@ -30,6 +30,7 @@ export async function POST(request: Request) {
         username: user.username,
         display_name: user.display_name,
         wallet_address: user.wallet_address,
+        is_guest: user.is_guest,
       },
     });
   } catch {

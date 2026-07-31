@@ -1,12 +1,13 @@
 "use server";
 
+import crypto from "crypto";
 import { Connection } from "@solana/web3.js";
 import type { SubmitFreeResponse, SubmitPaidResponse, NominationEntry } from "../../lib/types";
 import { NOMINATION_WEIGHT_FREE, NOMINATION_WEIGHT_MULTIPLIER } from "../../lib/types";
 import { ensureEpoch, checkEpochTransition, getBurnPerMessage } from "./epoch";
 import { LocalDatabases, Query, getDb as getRawDb } from "../../lib/local-db";
-import { getSessionUserId } from "../../lib/session";
-import { getUserById } from "../../lib/users";
+import { getSessionUserId, getClientIp, createSession } from "../../lib/session";
+import { getUserById, createGuestUser } from "../../lib/users";
 import { verifySolution } from "../../lib/pow";
 import { burnCHOP, CHOP_UNIT, getRpcUrl, verifyChopPayment } from "../../lib/solana";
 
@@ -40,6 +41,27 @@ async function verifyPow(formData: FormData): Promise<boolean> {
   rawDb.prepare("DELETE FROM pow_challenges WHERE challenge = ?").run(challenge);
 
   return valid;
+}
+
+// ─── Guest posting rate limits (per IP, rolling window) ────────────────────────
+
+const GUEST_MSG_LIMIT = 3; // top-level free messages per hour per IP
+const GUEST_COMMENT_LIMIT = 10; // comments per hour per IP
+const GUEST_WINDOW_HOURS = 1;
+
+function guestPostsInWindow(ip: string, kind: string, windowHours: number): number {
+  const rawDb = getRawDb();
+  const row = rawDb.prepare(
+    `SELECT COUNT(*) as n FROM guest_posts WHERE ip = ? AND kind = ? AND created_at > datetime('now', ?)`
+  ).get(ip, kind, `-${windowHours} hours`) as { n: number } | undefined;
+  return row?.n ?? 0;
+}
+
+function logGuestPost(ip: string, kind: string, messageId: string): void {
+  const rawDb = getRawDb();
+  rawDb.prepare(
+    `INSERT INTO guest_posts (id, ip, kind, message_id, created_at) VALUES (?, ?, ?, ?, ?)`
+  ).run(crypto.randomUUID(), ip, kind, messageId, new Date().toISOString());
 }
 
 /**
@@ -92,6 +114,8 @@ async function checkModeration(text: string): Promise<boolean> {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({ input: text }),
+      // Never let moderation block a post — if OpenAI is slow, skip moderation
+      signal: AbortSignal.timeout(8_000),
     });
 
     if (!res.ok) return false;
@@ -195,35 +219,45 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
       return { success: false, error: "Session expired. Please log in again." };
     }
 
+    const isGuest = !!user.is_guest;
     const authorId = user.id;
     const authorName = customName || user.display_name || user.username || "Anonymous";
 
-    // PoW verification — skip for wallet-linked users
-    if (!user.wallet_address) {
+    // PoW verification — skip for wallet-linked users and guests (guests are rate-limited by IP)
+    if (!isGuest && !user.wallet_address) {
       const powValid = await verifyPow(formData);
       if (!powValid) {
         return { success: false, error: "Proof of work invalid or expired. Refresh and try again." };
       }
     }
 
-    // Check one-message-per-user limit (only for top-level messages)
     const db = getDb();
-    const existing = db.listDocuments(
-      "",
-      "messages",
-      [
-        Query.isNull("parent_id"),
-        Query.equal("author_id", authorId),
-        Query.equal("amount_paid", 0),
-        Query.limit(1),
-      ]
-    );
 
-    if (existing.documents.length > 0) {
-      return {
-        success: false,
-        error: "You've already posted a free message. Only one per person.",
-      };
+    if (isGuest) {
+      // Guests: rate-limit by IP instead of the one-per-user rule
+      const ip = await getClientIp();
+      if (guestPostsInWindow(ip, "message", GUEST_WINDOW_HOURS) >= GUEST_MSG_LIMIT) {
+        return { success: false, error: "Slow down, citizen. 3 free messages per hour." };
+      }
+    } else {
+      // Check one-message-per-user limit (only for top-level messages)
+      const existing = db.listDocuments(
+        "",
+        "messages",
+        [
+          Query.isNull("parent_id"),
+          Query.equal("author_id", authorId),
+          Query.equal("amount_paid", 0),
+          Query.limit(1),
+        ]
+      );
+
+      if (existing.documents.length > 0) {
+        return {
+          success: false,
+          error: "You've already posted a free message. Only one per person.",
+        };
+      }
     }
 
     // Check moderation (shadowban)
@@ -244,6 +278,11 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
       }
     );
 
+    // Track guest rate limit
+    if (isGuest) {
+      logGuestPost(await getClientIp(), "message", (msgDoc as any).id);
+    }
+
     // If user nominated a target, create a nomination
     if (targetName) {
       await createNomination(db, targetName, authorId, authorName, (msgDoc as any).id, 0);
@@ -259,6 +298,81 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
     return { success: true, burnTx: burnTx || undefined };
   } catch (err) {
     console.error("submitFreeMessage error:", err);
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+// ─── Submit Guest Message (anonymous — no login, rate-limited by IP) ───────────
+
+export async function submitGuestMessage(formData: FormData): Promise<SubmitFreeResponse> {
+  try {
+    // Honeypot check — bots fill this hidden field
+    const honeypot = formData.get("website");
+    if (honeypot && honeypot.toString().trim().length > 0) {
+      return { success: true }; // Silently succeed for bots
+    }
+
+    const text = formData.get("text")?.toString().trim();
+    const customName = formData.get("author_name")?.toString().trim();
+    const targetName = formData.get("target_name")?.toString().trim();
+    if (!text) return { success: false, error: "Message is required." };
+
+    const ip = await getClientIp();
+
+    // Rate limit top-level guest messages per IP
+    if (guestPostsInWindow(ip, "message", GUEST_WINDOW_HOURS) >= GUEST_MSG_LIMIT) {
+      return { success: false, error: "Slow down, citizen. 3 free messages per hour." };
+    }
+
+    // Reuse existing session (returning guest) or create a guest identity
+    let userId = await getSessionUserId();
+    let user = userId ? getUserById(userId) : null;
+
+    if (!user) {
+      user = createGuestUser(customName || "Anonymous Spite");
+      await createSession(user.id);
+      userId = user.id;
+    }
+
+    const authorId = user.id;
+    const authorName = customName || user.display_name || user.username || "Anonymous";
+
+    // Check moderation (shadowban)
+    const isShadowbanned = await checkModeration(text);
+
+    const db = getDb();
+
+    const msgDoc = db.createDocument(
+      "",
+      "messages",
+      "unique()",
+      {
+        text,
+        author_id: authorId,
+        author_name: authorName,
+        amount_paid: 0,
+        is_shadowbanned: isShadowbanned,
+        created_at: new Date().toISOString(),
+      }
+    );
+
+    logGuestPost(ip, "message", (msgDoc as any).id);
+
+    // If user nominated a target, create a nomination
+    if (targetName) {
+      await createNomination(db, targetName, authorId, authorName, (msgDoc as any).id, 0);
+    }
+
+    // Burn oracle-defined CHOP from treasury for this free message
+    const burnTx = await burnForFreeMessage();
+
+    // Ensure epoch exists + check if threshold crossed
+    ensureEpoch();
+    checkEpochTransition();
+
+    return { success: true, burnTx: burnTx || undefined };
+  } catch (err) {
+    console.error("submitGuestMessage error:", err);
     return { success: false, error: "Something went wrong. Please try again." };
   }
 }
@@ -280,25 +394,32 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
     if (!text) return { success: false, error: "Comment text is required." };
     if (!parentId) return { success: false, error: "Missing parent message ID." };
 
-    // Get session user
-    const userId = await getSessionUserId();
-    if (!userId) {
-      return { success: false, error: "You must be logged in to comment." };
-    }
+    // Get session user — auto-create a guest identity if there's no session
+    const ip = await getClientIp();
+    let userId = await getSessionUserId();
+    let user = userId ? getUserById(userId) : null;
 
-    const user = getUserById(userId);
     if (!user) {
-      return { success: false, error: "Session expired. Please log in again." };
+      user = createGuestUser(customName || "Anonymous Spite");
+      await createSession(user.id);
     }
 
+    const isGuest = !!user.is_guest;
     const authorId = user.id;
     const authorName = customName || user.display_name || user.username || "Anonymous";
 
-    // PoW verification — skip for wallet-linked users
-    if (!user.wallet_address) {
+    // PoW verification — skip for wallet-linked users and guests (guests are rate-limited by IP)
+    if (!isGuest && !user.wallet_address) {
       const powValid = await verifyPow(formData);
       if (!powValid) {
         return { success: false, error: "Proof of work invalid or expired. Refresh and try again." };
+      }
+    }
+
+    // Guests: rate-limit comments by IP
+    if (isGuest) {
+      if (guestPostsInWindow(ip, "comment", GUEST_WINDOW_HOURS) >= GUEST_COMMENT_LIMIT) {
+        return { success: false, error: "Slow down, citizen. 10 replies per hour." };
       }
     }
 
@@ -325,6 +446,11 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
     // If user nominated a target, create a nomination
     if (targetName) {
       await createNomination(db, targetName, authorId, authorName, (commentDoc as any).id, 0);
+    }
+
+    // Track guest rate limit
+    if (isGuest) {
+      logGuestPost(ip, "comment", (commentDoc as any).id);
     }
 
     // Burn oracle-defined CHOP from treasury for this free comment
