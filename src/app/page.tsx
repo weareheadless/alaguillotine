@@ -194,6 +194,18 @@ export default function HomePage() {
       <NavBar />
 
       <main className="relative z-10 mx-auto pb-16 md:pb-8">
+        {/* ─── Meme-first hero (above the guillotine on every screen) ── */}
+        <div className="mt-4 md:mt-6 px-6 text-center">
+          <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-sheetWhite animate-glitch-text leading-tight">
+            PISSED OFF AT <span className="text-spiteCrimson">ELON</span>?<br className="sm:hidden" /> GET IN LINE.
+          </h1>
+          <p className="mt-3 text-[11px] md:text-sm font-mono text-chop-muted leading-relaxed">
+            // Post your beef for free. Every message inches the blade closer to judgment.
+          </p>
+          <p className="mt-2 inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-3 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-hypeNeon">
+            NO ACCOUNT. NO WALLET. NO PRISON.
+          </p>
+        </div>
         {/* ─── Sticky Guillotine + Everything Else ────────────────────── */}
         <HeroCounter
           mobileRightSlot={
@@ -241,18 +253,6 @@ export default function HomePage() {
             </div>
           }
         >
-          {/* ─── Meme-first hero ─────────────────────────────────────── */}
-          <div className="mt-4 md:mt-6 text-center">
-            <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-sheetWhite animate-glitch-text leading-tight">
-              PISSED OFF AT <span className="text-spiteCrimson">ELON</span>?<br className="sm:hidden" /> GET IN LINE.
-            </h1>
-            <p className="mt-3 text-[11px] md:text-sm font-mono text-chop-muted leading-relaxed">
-              // Post your beef for free. Every message inches the blade closer to judgment.
-            </p>
-            <p className="mt-2 inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-3 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-hypeNeon">
-              NO ACCOUNT. NO WALLET. NO PRISON.
-            </p>
-          </div>
           {/* Rules — at the top */}
           <div className="mt-3 hidden md:block">
             <RulesBanner />
