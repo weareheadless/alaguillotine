@@ -20,8 +20,8 @@ export function AngerFlywheel() {
       emoji: "🔥",
       label: "BURN TO POST",
       detail: "You burn $CHOP to immortalize your hate. Tokens leave circulation. Supply drops. Your bag appreciates.",
-      color: "border-[#FF4500]/40 bg-[#FF4500]/10",
-      textColor: "text-[#FF4500]",
+      color: "border-[#E11D48]/40 bg-[#E11D48]/10",
+      textColor: "text-[#E11D48]",
     },
     {
       emoji: "🐳",
@@ -64,7 +64,7 @@ export function AngerFlywheel() {
     <div className="my-8">
       {/* Title */}
       <div className="mb-6 text-center">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#FF4500]">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#E11D48]">
           The Anger-to-Money Flywheel
         </p>
         <p className="mt-1 text-xs text-[#818384]">
@@ -76,8 +76,8 @@ export function AngerFlywheel() {
       <div className="relative mx-auto max-w-2xl">
         {/* Center label */}
         <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#FF4500]/50 bg-[#1A1A1B] shadow-[0_0_20px_rgba(255,69,0,0.15)]">
-            <span className="text-xs font-black uppercase tracking-wider text-[#FF4500]">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#E11D48]/50 bg-[#1A1A1B] shadow-[0_0_20px_rgba(225,29,72,0.15)]">
+            <span className="text-xs font-black uppercase tracking-wider text-[#E11D48]">
               $CHOP
             </span>
           </div>
@@ -108,7 +108,7 @@ export function AngerFlywheel() {
               {i < steps.length - 1 && (
                 <div className="absolute -right-2 top-1/2 z-10 hidden -translate-y-1/2 sm:block">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M4 8h8M10 4l4 4-4 4" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+                    <path d="M4 8h8M10 4l4 4-4 4" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
                   </svg>
                 </div>
               )}
@@ -121,27 +121,27 @@ export function AngerFlywheel() {
           <svg width="80" height="24" viewBox="0 0 80 24" fill="none" className="opacity-50">
             <path
               d="M2 12h60c8 0 12-8 0-8"
-              stroke="#FF4500"
+              stroke="#E11D48"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray="4 3"
             />
-            <path d="M56 4l4 4-4 4" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M56 4l4 4-4 4" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF4500]">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#E11D48]">
             Anger Renewed — Repeat Forever
           </span>
           <svg width="80" height="24" viewBox="0 0 80 24" fill="none" className="rotate-180 opacity-50">
             <path
               d="M2 12h60c8 0 12-8 0-8"
-              stroke="#FF4500"
+              stroke="#E11D48"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray="4 3"
             />
-            <path d="M56 4l4 4-4 4" stroke="#FF4500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M56 4l4 4-4 4" stroke="#E11D48" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
@@ -152,7 +152,7 @@ export function AngerFlywheel() {
           <span className="font-bold text-[#D7DADC]">The Equation:</span>{" "}
           <span className="text-[#ef4444]">Anger</span> →{" "}
           <span className="text-[#f59e0b]">Buy $CHOP</span> →{" "}
-          <span className="text-[#FF4500]">Burn</span> →{" "}
+          <span className="text-[#E11D48]">Burn</span> →{" "}
           <span className="text-[#22c55e]">Supply ↓</span> →{" "}
           <span className="text-[#3b82f6]">Price ↑</span> →{" "}
           <span className="text-[#ec4899]">More attention</span> →{" "}
