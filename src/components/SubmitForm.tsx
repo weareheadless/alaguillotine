@@ -9,6 +9,7 @@ import { submitFreeMessage, submitPaidMessage, submitComment } from "../app/acti
 import { checkExistingFreeMessage } from "../app/actions/feed";
 import { useAuth } from "../lib/auth-context";
 import { useExecution } from "../lib/execution-context";
+import { useTerminal } from "../lib/terminal-context";
 import { solveChallenge } from "../lib/pow";
 import { EXECUTION_THRESHOLD } from "../lib/constants";
 
@@ -19,10 +20,12 @@ const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10)
 export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; parentId?: string }) {
   const isComment = !!parentId;
   const { user, loading: authLoading } = useAuth();
+  const { addMessage } = useTerminal();
   const [freeText, setFreeText] = useState("");
   const [freeSubmitting, setFreeSubmitting] = useState(false);
   const [freeError, setFreeError] = useState("");
   const [freeSuccess, setFreeSuccess] = useState(false);
+  const [burnTx, setBurnTx] = useState("");
   const [userStatus, setUserStatus] = useState<"loading" | "logged-in" | "logged-out" | "already-posted">("loading");
 
   const [paidText, setPaidText] = useState("");
@@ -153,6 +156,8 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     if (!user) { setFreeError("You must be logged in."); return; }
     setFreeSubmitting(true); setFreeError("");
 
+    addMessage(`>_ PREPARING PEASANT TIER SUBMISSION...`, "text-hypeNeon", 10);
+    
     const formData = new FormData();
     formData.set("text", freeText.trim());
     formData.set("author_name", user.display_name || user.username);
@@ -164,24 +169,35 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     if (!user.wallet_address) {
       const solution = powSolutionRef.current;
       if (!solution) {
+        addMessage(`[ERROR] POW COMPUTATION INCOMPLETE`, "text-spiteCrimson", 5);
         setFreeError("Proof of work not ready yet. Please wait.");
         setFreeSubmitting(false);
         return;
       }
+      addMessage(`>_ ATTACHING POW NONCE: ${solution.nonce.substring(0, 12)}...`, "text-hypeNeon", 20);
       formData.set("pow_challenge", solution.challenge);
       formData.set("pow_nonce", solution.nonce);
+    } else {
+      addMessage(`>_ WALLET LINK DETECTED, BYPASSING POW...`, "text-hypeNeon", 10);
     }
 
     if (targetName.trim()) formData.set("target_name", targetName.trim());
     if (isComment && parentId) formData.set("parent_id", parentId);
 
+    addMessage(`>_ BROADCASTING TO HYPER-LEDGER...`, "text-hypeNeon", 15);
     const result = isComment ? await submitComment(formData) : await submitFreeMessage(formData);
 
     if (result.success) {
+      addMessage(`[OK] MESSAGE CONFIRMED`, "text-hypeNeon", 5);
+      if (result.burnTx) addMessage(`>_ BURN TX: ${result.burnTx}`, "text-hypeNeon", 1);
       setFreeSuccess(true); setFreeText(""); setUserStatus("already-posted");
+      setBurnTx(result.burnTx || "");
       if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("new-message", { detail: { authorName: user.display_name || user.username || "Anon", amount: 0 } }));
       onSuccess?.();
-    } else setFreeError(result.error || "Something went wrong.");
+    } else {
+      addMessage(`[ERROR] TRANSACTION REJECTED: ${result.error}`, "text-spiteCrimson", 10);
+      setFreeError(result.error || "Something went wrong.");
+    }
     setFreeSubmitting(false);
   };
 
@@ -194,6 +210,10 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     if (!SOLANA_RECEIVER) { setPaidError("Receiver wallet not configured."); return; }
     if (!publicKey) { showWalletModal(true); return; }
     setPaidSubmitting(true); setPaidError("");
+    
+    addMessage(`>_ INITIATING OLIGARCH PROTOCOL...`, "text-spiteCrimson", 10);
+    addMessage(`>_ AMOUNT: ${amount} $CHOP`, "text-spiteCrimson", 5);
+
     try {
       const mint = new PublicKey(CHOP_MINT);
       const receiverPubkey = new PublicKey(SOLANA_RECEIVER);
@@ -203,6 +223,7 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
 
       const transaction = new Transaction();
 
+      addMessage(`>_ RESOLVING ACCOUNTS...`, "text-hypeNeon", 15);
       try {
         await getAccount(connection, userAta, undefined, TOKEN_2022_PROGRAM_ID);
       } catch {
@@ -250,13 +271,23 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
       const { blockhash } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash; transaction.feePayer = publicKey;
 
+      addMessage(`>_ REQUESTING WALLET SIGNATURE...`, "text-hypeNeon", 20);
       console.log("[CHOP tx] Sending transaction...");
       const signature = await sendTransaction(transaction, connection);
       console.log("[CHOP tx] Signature:", signature);
 
+      addMessage(`>_ BROADCASTING TX: ${signature.substring(0, 16)}...`, "text-spiteCrimson", 5);
       const confirmation = await connection.confirmTransaction(signature, "confirmed");
       console.log("[CHOP tx] Confirmed. Err:", confirmation.value.err || "none");
-      if (confirmation.value.err) { setPaidError("Transaction failed."); setPaidSubmitting(false); return; }
+      
+      if (confirmation.value.err) { 
+        addMessage(`[ERROR] TX CONFIRMATION FAILED`, "text-spiteCrimson", 10);
+        setPaidError("Transaction failed."); 
+        setPaidSubmitting(false); 
+        return; 
+      }
+      
+      addMessage(`[OK] BLOCK CONFIRMED`, "text-hypeNeon", 5);
       const formData = new FormData();
       formData.set("text", paidText.trim());
       formData.set("author_name", paidName.trim() || "Anonymous Whale");
@@ -266,8 +297,12 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
       // Add honeypot
       formData.set("website", "");
       if (targetName.trim()) formData.set("target_name", targetName.trim());
+      
+      addMessage(`>_ COMMITTING TO DATABASE...`, "text-hypeNeon", 15);
       const result = await submitPaidMessage(formData);
+      
       if (result.success) {
+        addMessage(`[OK] DATABASE SYNCED. SPITE DEPLOYED.`, "text-spiteCrimson", 15);
         setPaidSuccess(true); setPaidText(""); setPaidAmount(""); setPaidName("");
         try {
           const ataAddr = getAssociatedTokenAddressSync(mint, publicKey, false, TOKEN_2022_PROGRAM_ID);
@@ -277,8 +312,15 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
         } catch { /* ignore — background refresh, main fetch interval will retry */ }
         if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("new-message", { detail: { authorName: paidName.trim() || "Anonymous Whale", amount } }));
         onSuccess?.();
-      } else setPaidError(result.error || "Failed to save message.");
-    } catch (err: unknown) { setPaidError(err instanceof Error ? err.message : "Transaction cancelled."); }
+      } else {
+        addMessage(`[ERROR] DATABASE COMMIT FAILED: ${result.error}`, "text-spiteCrimson", 10);
+        setPaidError(result.error || "Failed to save message.");
+      }
+    } catch (err: unknown) { 
+      const msg = err instanceof Error ? err.message : "Transaction cancelled.";
+      addMessage(`[ERROR] ${msg.toUpperCase()}`, "text-spiteCrimson", 10);
+      setPaidError(msg); 
+    }
     setPaidSubmitting(false);
   };
 
@@ -308,8 +350,18 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
     return (
       <form onSubmit={handleFreeSubmit} className="flex flex-col gap-2 mt-2 font-mono relative">
         {freeSuccess ? (
-          <div className="border border-hypeNeon bg-hypeNeon/10 p-2 text-center">
+          <div className="flex flex-col items-center gap-1 border border-hypeNeon bg-hypeNeon/10 p-2 text-center">
             <p className="text-[10px] font-bold uppercase text-hypeNeon">Reply posted! ✅</p>
+            {burnTx && (
+              <a
+                href={`https://solscan.io/tx/${burnTx}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[8px] font-mono text-chop-muted underline hover:text-hypeNeon transition-colors"
+              >
+                🔥 Burn tx: {burnTx.slice(0, 8)}...{burnTx.slice(-6)}
+              </a>
+            )}
           </div>
         ) : (
           <>
@@ -370,21 +422,39 @@ export function SubmitForm({ onSuccess, parentId }: { onSuccess?: () => void; pa
           )}
 
           {userStatus === "already-posted" && !isComment && (
-            <div className="flex h-[120px] items-center justify-center border-2 border-dashed border-spiteCrimson bg-spiteCrimson/5 p-4 text-center">
-              <div>
-                <p className="text-xs uppercase text-spiteCrimson">
-                  One free message per user. Switch to{" "}
-                  <button onClick={() => setTab("paid")} className="font-bold underline decoration-2">PAID</button> to post again!
-                </p>
-              </div>
+            <div className="flex flex-col items-center justify-center gap-1 h-[120px] border-2 border-dashed border-spiteCrimson bg-spiteCrimson/5 p-4 text-center">
+              <p className="text-xs uppercase text-spiteCrimson">
+                One free message per user. Switch to{" "}
+                <button onClick={() => setTab("paid")} className="font-bold underline decoration-2">PAID</button> to post again!
+              </p>
+              {burnTx && (
+                <a
+                  href={`https://solscan.io/tx/${burnTx}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[9px] font-mono text-chop-muted underline hover:text-hypeNeon transition-colors"
+                >
+                  🔥 Burn tx: {burnTx.slice(0, 8)}...{burnTx.slice(-6)}
+                </a>
+              )}
             </div>
           )}
 
           {userStatus === "logged-in" && (
             <form onSubmit={handleFreeSubmit} className="flex flex-col gap-2">
               {freeSuccess ? (
-                <div className="flex h-[120px] items-center justify-center border-2 border-hypeNeon bg-hypeNeon/10">
+                <div className="flex flex-col items-center justify-center gap-1 h-[120px] border-2 border-hypeNeon bg-hypeNeon/10">
                   <p className="text-sm font-bold uppercase text-hypeNeon">// Message posted! ✅</p>
+                  {burnTx && (
+                    <a
+                      href={`https://solscan.io/tx/${burnTx}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[9px] font-mono text-chop-muted underline hover:text-hypeNeon transition-colors"
+                    >
+                      🔥 Burn tx: {burnTx.slice(0, 8)}...{burnTx.slice(-6)}
+                    </a>
+                  )}
                 </div>
               ) : (
                 <>

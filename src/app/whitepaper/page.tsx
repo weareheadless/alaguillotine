@@ -27,8 +27,8 @@ export default function WhitepaperPage() {
             THE <span className="text-[#FF4500]">$CHOP</span> PROTOCOL
           </h1>
           <p className="mt-4 max-w-3xl text-lg font-light italic leading-relaxed text-[#818384] sm:text-xl">
-            A Whitepaper on Full Self-Decapitation (FSD), Proof-of-Hate Consensus
-            &amp; The Asset Class of Infinite Spite
+            A Whitepaper on Liquid Democracy, AI-Augmented Governance,
+            &amp; The First Economic Experiment Powered Entirely by Collective Spite
           </p>
 
           <div className="mt-8 h-px w-24 bg-[#FF4500]/50" />
@@ -52,7 +52,7 @@ export default function WhitepaperPage() {
               <strong className="text-white">2. Metaphorical Imagery:</strong> The guillotine is a historical metaphor for revolutionary market corrections. It is an artistic expression, not a literal threat. No physical harm is intended, encouraged, or implied.
             </p>
             <p>
-              <strong className="text-white">3. Zero Utility &amp; Pure Speculation:</strong> The $CHOP token is a digital collectible with zero utility and no functional roadmap. Buying this token is an explicit act of financial self-harm and internet participation.
+              <strong className="text-white">3. A Living Economic Experiment:</strong> The $CHOP token and its associated governance mechanisms constitute a real-time economic experiment in liquid democracy and AI-augmented collective decision-making. It is half art project, half political laboratory. Any expectation of profit is a symptom of the very late-stage capitalism this project satirizes.
             </p>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 2: PROOF-OF-SPITE ──────────────────────────────────── */}
-      <Section id="pos" title="2. Proof-of-Spite (PoS) &amp; The Asset Class of Global Unrest">
+      <Section id="pos" title="2. Proof-of-Spite: The First Renewable Consensus Engine">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             $CHOP is the world&rsquo;s first asset backed by the only truly
@@ -112,20 +112,29 @@ export default function WhitepaperPage() {
 
           <p>
             You cannot short human misery. You cannot buy a call option on
-            systemic collapse. But you can buy $CHOP. We are pioneering a
-            revolutionary new consensus mechanism:{" "}
+            systemic collapse. But you can hold $CHOP and gain an equal voice in
+            a functioning liquid democracy. We are pioneering a revolutionary
+            new consensus mechanism:{" "}
             <span className="font-bold text-[#D7DADC]">Proof-of-Spite (PoS)</span>.
-            The network is secured entirely by the collective outrage of the
-            working class.
+            The network is secured not by GPUs or staked capital, but by the
+            collective outrage of ordinary people. One wallet, one vote. Your
+            holdings don&rsquo;t amplify your voice &mdash; your participation does.
           </p>
+
+          <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-5">
+            <p className="text-base font-bold text-[#FF4500]">
+              The revolutionary thesis:
+            </p>
+            <p className="mt-1 text-lg font-semibold text-[#D7DADC]">
+              Human spite is infinite. Fossil fuels run out. Lithium runs out. But as long as there is a ruling class, there will be fresh rage to power this engine.
+            </p>
+          </div>
 
           <p>
             Global unrest is going to get worse. Billionaires are going to keep
-            acting insufferable. Buying $CHOP is essentially placing a long
-            position on the inevitable collapse of late-stage capitalism. In
-            many ways, investing in a worthless token backed by global suffering
-            is a much safer long-term bet than buying SpaceX equity at the top.
-            Rockets explode; human greed is forever.
+            acting insufferable. Holding $CHOP is participating in a real-time
+            experiment: can a community united by shared contempt govern itself
+            more fairly than the systems it despises?
           </p>
         </div>
       </Section>
@@ -135,96 +144,176 @@ export default function WhitepaperPage() {
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             $CHOP provides a public execution platform for your discontent. It
-            is a digital <em>Place de la R&eacute;volution</em>. You are not
-            buying a product. You are purchasing a billboard at the end of the
-            world, funded by a hyper-deflationary engine.
+            is a digital <em>Place de la R&eacute;volution</em> &mdash; but unlike
+            1793, this one has a functioning democratic process and an AI
+            parliamentarian.
           </p>
 
           <div className="space-y-4 rounded-lg border border-[#343536] bg-[#343536]/50 p-6">
             <div className="flex items-start gap-4">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF4500]/20 text-sm font-bold text-[#FF4500]">💰</span>
               <div>
-                <p className="font-semibold text-[#D7DADC]">Paid Catharsis</p>
-                <p className="mt-1 text-sm text-[#818384]">Burn $CHOP to post a message. The blade drops. The supply shrinks.</p>
+                <p className="font-semibold text-[#D7DADC]">Capital Defectors (The Benefactors)</p>
+                <p className="mt-1 text-sm text-[#818384]">
+                  The heroes of the revolution. They burn $CHOP to post messages.
+                  Their tokens go to the Treasury, funding the entire democratic
+                  engine. Every paid post is a donation to the commons. They are
+                  the defectors from capital who chose spite over accumulation.
+                </p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF4500]/20 text-sm font-bold text-[#FF4500]">🏦</span>
               <div>
-                <p className="font-semibold text-[#D7DADC]">The Treasury</p>
-                <p className="mt-1 text-sm text-[#818384]">When you pay to post, your tokens go to the Treasury. The Treasury acts as a public good, burning its own capital to allow free users to drop the blade. Posting a paid message is an act of philanthropy for the financially ruined.</p>
+                <p className="font-semibold text-[#D7DADC]">The Treasury (The People&rsquo;s Coffers)</p>
+                <p className="mt-1 text-sm text-[#818384]">
+                  All paid messages feed the Treasury. The Treasury then covers
+                  the burn cost for free users &mdash; so the poor can post without
+                  a dime, and every free message also burns tokens, deflating
+                  supply. The Benefactors literally pay for the working class to
+                  participate. That&rsquo;s not charity. That&rsquo;s the system working.
+                </p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FF4500]/20 text-sm font-bold text-[#FF4500]">🆓</span>
               <div>
-                <p className="font-semibold text-[#D7DADC]">The Free Loaders</p>
-                <p className="mt-1 text-sm text-[#818384]">Can&rsquo;t afford $CHOP? Post for free. You actively drain the Treasury&rsquo;s capital and burn tokens on the whales&rsquo; dime. You post the jokes; the oligarchs foot the bill.</p>
+                <p className="font-semibold text-[#D7DADC]">Free Loaders (The Proletariat)</p>
+                <p className="mt-1 text-sm text-[#818384]">
+                  Can&rsquo;t afford $CHOP? No problem. Post for free. The Treasury
+                  burns on your behalf. You post the rage; the Capital Defectors
+                  foot the bill. Every free message still drops the guillotine
+                  blade. Every free message still burns supply. You are not a
+                  leech &mdash; you are the reason the system exists.
+                </p>
               </div>
             </div>
           </div>
 
           <p className="text-sm italic text-[#818384]">
-            Side note: Our CSS guillotine animation already drops frames less
-            often than the X video player. We are out-shipping them.
+            The blade ticks. The supply shrinks. The democracy hums. All funded
+            by people who chose spite over hoarding.
           </p>
         </div>
       </Section>
 
-      {/* ─── Section 4: THE VANGUARD VS THE PARASITES ──────────────────── */}
-      <Section id="vanguard" title="4. The Vanguard vs. The Parasites">
+      {/* ─── Section 4: LIQUID DEMOCRACY & THE AI ORACLE ──────────────────── */}
+      <Section id="democracy" title="4. Liquid Democracy &amp; The AI Oracle">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
-          <p>A revolution needs leaders, and it needs enemies.</p>
+          <p>
+            Here is where $CHOP departs from every crypto project ever launched.
+            We did not build a plutocracy where the richest wallets control
+            everything. We did not build a fake &ldquo;DAO&rdquo; where 3 VCs hold 70%
+            of the voting power. We built an actual liquid democracy, and we
+            handed the agenda to an AI.
+          </p>
 
-          <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-6">
-            <p className="font-bold text-[#FF4500]">THE COMMITTEE (The Vanguard)</p>
+          <div className="rounded-lg border border-[#22c55e]/20 bg-[#22c55e]/5 p-6">
+            <p className="font-bold text-[#22c55e]">🤖 THE AI ORACLE (The Agenda-Setter)</p>
             <p className="mt-2 text-sm leading-relaxed text-[#D7DADC]">
-              Meet the new bosses &mdash; exactly like the old bosses. The top 7
-              largest spenders of $CHOP earn a seat on The Committee. Every epoch,
-              this unelected politburo decides how the Treasury flows. Will they
-              fund a lottery? Will they pay the developers? Will they distribute
-              it to the free users? They bought the revolution, making them the
-              exact central planners they claim to despise. Absolute power, funded
-              by absolute wealth.
+              Every epoch, an AI oracle analyzes on-chain data &mdash; treasury
+              balance, token price, message volume, market conditions &mdash; and
+              generates three policy proposals. Each proposal allocates the
+              treasury across four dimensions:{" "}
+              <span className="font-semibold text-[#FF4500]">Burn Rate</span>{" "}
+              (deflation),{" "}
+              <span className="font-semibold text-[#FF4500]">Bounties</span>{" "}
+              (lottery for participants),{" "}
+              <span className="font-semibold text-[#FF4500]">Dev Allocation</span>{" "}
+              (infrastructure), and{" "}
+              <span className="font-semibold text-[#FF4500]">Marketing</span>{" "}
+              (growth). The AI doesn&rsquo;t decide &mdash; it merely drafts the
+              ballot. The people vote. The AI is the civil servant; the community
+              is the sovereign.
             </p>
           </div>
 
           <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-6">
-            <p className="font-bold text-[#FF4500]">CLASS TRAITORS (Wall of Shame)</p>
+            <p className="font-bold text-[#FF4500]">🗳️ ONE WALLET, ONE VOTE</p>
             <p className="mt-2 text-sm leading-relaxed text-[#D7DADC]">
-              These individuals bought $CHOP and just sat on it, hoping to
-              passively profit off the revolution like they inherited a South
-              African emerald mine. No posts. No participation. Just pure, useless
-              idle capital expecting the working class to do the heavy lifting.
-              Zero voting power. Maximum public embarrassment.
+              This is the radical part. Every $CHOP holder gets exactly one vote
+              per epoch. Not weighted by bag size. Not proportional to capital.
+              One wallet = one voice. The whale with 100,000 tokens has the same
+              voting power as the degen with 10. This is not a bug. This is the
+              entire point. We are testing whether a community can govern itself
+              when capital is decoupled from power &mdash; something no
+              &ldquo;democracy&rdquo; on Earth has ever actually achieved.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-6">
+            <p className="font-bold text-[#FF4500]">🏛️ THE WAR ROOM (Feature Governance)</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#D7DADC]">
+              Beyond treasury allocation, the community governs the platform
+              itself through the War Room &mdash; a Reddit-style message board where
+              anyone can propose new features, changes, or experiments. The
+              community discusses, upvotes, and the most-backed proposals become
+              binding. It is a living constitution, amended in real-time by the
+              people who use it. No board of directors. No CEO decree. Just the
+              mob, organized.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-5">
+            <p className="text-base font-bold text-[#FF4500]">
+              The founder cannot vote. The founder cannot access the treasury.
+              The founder&rsquo;s only power is agenda control &mdash; setting the
+              ballot structure the AI fills &mdash; and the nuclear option of
+              striking if the dev fund is zeroed for three consecutive epochs.
+              That&rsquo;s it. No backdoors. No admin keys. No rug possible.
             </p>
           </div>
         </div>
       </Section>
 
-      {/* ─── Section 5: VOX POPULI ─────────────────────────────────────── */}
-      <Section id="vox-populi" title="5. Vox Populi: The Infinite Queue">
+      {/* ─── Section 5: THE CLASS TRAITORS & CAPITAL DEFECTORS ──────────── */}
+      <Section id="castes" title="5. The Two Castes: Class Traitors &amp; Capital Defectors">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
-            What happens when the blade hits the bottom? We clean the basket and
-            start over.
+            The $CHOP ecosystem has two citizen classes, and which one you fall
+            into depends entirely on what you <em>do</em>, not what you own.
           </p>
 
-          <p>
-            Because tokens are burned every time a message is posted, $CHOP
-            relies on an endless loop of deflation tied directly to the news
-            cycle. Every message cast is also a vote for{" "}
-            <span className="font-bold text-[#D7DADC]">Next in Line</span>.
-            Once the current digital head rolls, the mob immediately transitions
-            to the next target &mdash; be it another tech-bro leech, a hedge fund
-            sociopath, or an absentee CEO.
-          </p>
+          <div className="rounded-lg border border-[#22c55e]/20 bg-[#22c55e]/5 p-6">
+            <p className="font-bold text-[#22c55e]">🫡 CAPITAL DEFECTORS (The Benefactors)</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#D7DADC]">
+              These are the heroes. They burn $CHOP to post messages, funding the
+              Treasury that powers the entire democratic machine. Every paid post
+              is an act of defection from the capitalist imperative to hoard.
+              They chose spite over accumulation. They are celebrated on the{" "}
+              <span className="font-semibold text-[#22c55e]">Capital Defectors</span>{" "}
+              leaderboard &mdash; not for how much they hold, but for how much
+              they&rsquo;ve <em>given</em> to fuel the commons. They are the
+              revolutionary vanguard that pays for the proletariat to post.
+            </p>
+          </div>
 
-          <p>
-            The blade resets. The queue of untouchable elites never ends.
-          </p>
+          <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-6">
+            <p className="font-bold text-[#FF4500]">🐀 CLASS TRAITORS (Wall of Shame)</p>
+            <p className="mt-2 text-sm leading-relaxed text-[#D7DADC]">
+              These individuals bought $CHOP and just sat on it. No posts. No
+              participation. No burning to fund the Treasury. They hold tokens
+              hoping to passively profit off the revolution like they inherited
+              a South African emerald mine. They still get one vote (because
+              democracy is democracy), but their names are displayed publicly
+              on the Class Traitors wall &mdash; a permanent record of their
+              refusal to contribute. They are the idle capital the revolution
+              was built to mock.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-[#343536] bg-[#343536]/50 p-5">
+            <p className="text-base font-bold text-[#D7DADC]">The incentive is the shame.</p>
+            <p className="mt-1 text-sm text-[#818384] leading-relaxed">
+              You can hold $CHOP and vote. That&rsquo;s fine. But if you never post,
+              never burn, never fund the Treasury &mdash; everyone will know. Your
+              wallet address will appear on a public wall labeled &ldquo;Class
+              Traitor.&rdquo; The peer pressure of a community united by shared
+              contempt is a more powerful motivator than any staking yield.
+            </p>
+          </div>
         </div>
       </Section>
 
@@ -277,17 +366,18 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 7: ROADMAP ────────────────────────────────────────── */}
-      <Section id="roadmap" title="7. Roadmap (An Endless Conveyor Belt of Heads)">
+      <Section id="roadmap" title="7. Roadmap (The Experiment Unfolds)">
         <div className="relative">
           <div className="absolute left-5 top-0 h-full w-px bg-gradient-to-b from-[#FF4500] via-[#FF4500]/30 to-transparent" />
 
           <TimelinePhase
             phase="Phase 1"
-            title="Token Launch & The Spite Engine"
+            title="The Spite Engine &amp; Liquid Democracy"
             description={
               <>
-                $CHOP is live. The Proof-of-Hate protocol is functional. The
-                treasury is funding the digital mob.
+                $CHOP is live. The Treasury funds free burns. The AI Oracle
+                generates policy proposals. Every holder votes with equal weight.
+                The War Room governs features. The experiment has begun.
               </>
             }
             status="Active ✅"
@@ -297,31 +387,35 @@ export default function WhitepaperPage() {
 
           <TimelinePhase
             phase="Phase 2"
-            title="The Prediction Market"
+            title="AI Oracle v2 &amp; Cross-Community Alliances"
             description={
               <>
-                &ldquo;Will the blade drop this month?&rdquo; Bet real $CHOP.
-                Winners take all, losers get their tokens burned. It&rsquo;s
-                prediction markets meets the French Revolution.
+                The Oracle evolves. More data sources. Smarter proposals.
+                The platform opens to other communities united by their own
+                common enemies. A federation of spite-driven democracies,
+                each with their own token, their own oracle, their own target.
+                The $CHOP model becomes a blueprint.
               </>
             }
-            status="Planned 🎲"
+            status="Planned 🧠"
             statusColor="text-[#D7DADC]"
             dotColor="bg-[#D7DADC]"
           />
 
           <TimelinePhase
             phase="Phase 3"
-            title="xSpite AI & Mars Guillotine"
+            title="The Prediction Market &amp; The Guillotine Drop"
             description={
               <>
-                We pivot to an AI company because AI is the new blockchain. We
-                announce a Mars-based guillotine for interplanetary tax evaders.
-                We raise $400M in a seed round without writing a single line of
-                code. The website background changes to red. Nobody questions it.
+                &ldquo;Will the blade drop this epoch?&rdquo; Bet $CHOP on the outcome.
+                Winners take the pot. Losers get their tokens burned, feeding
+                the deflationary engine that benefits everyone. The guillotine
+                becomes a democratic event: the community votes on whether to
+                accelerate or delay the drop. A fully autonomous loop of
+                spite, speculation, and collective decision-making.
               </>
             }
-            status="Inevitable 🚀"
+            status="Planned 🎲"
             statusColor="text-purple-400"
             dotColor="bg-purple-400"
             isLast
@@ -334,22 +428,22 @@ export default function WhitepaperPage() {
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-5">
             <p className="text-sm leading-relaxed text-[#D7DADC]">
-              <span className="font-bold text-[#FF4500]">$CHOP is a financial performance art project.</span>{" "}
-              It is a cry for help formatted as a Solana token. Any expectation
-              of profit is a glitch in your own psychology and a testament to
-              the era of financial nihilism we all inhabit.
+              <span className="font-bold text-[#FF4500]">$CHOP is an economic experiment and performance art project.</span>{" "}
+              It is a cry for help formatted as a Solana token and a liquid
+              democracy simulator. Any expectation of profit is a glitch in your
+              own psychology and a testament to the era of financial nihilism we
+              all inhabit.
             </p>
           </div>
 
           <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-5">
             <p className="text-sm leading-relaxed text-[#D7DADC]">
-              <span className="font-bold text-[#FF4500]">The &ldquo;Guillotine Counter&rdquo; is a number on a screen.</span>{" "}
-              It does not trigger an automated smart contract. Any and all wealth
-              redistribution is executed manually at the total discretion of our
-              unelected Committee of top spenders. We bypassed trustless code in
-              favor of backroom handshakes, proving once and for all that no
-              matter how hard you protest, the guys with the most capital still
-              pull the levers.
+              <span className="font-bold text-[#FF4500]">The AI Oracle is real but it is not God.</span>{" "}
+              It generates proposals based on data. It can be wrong. It can be
+              biased. It can hallucinate a burn rate of 420%. The community is
+              the final check. The oracle proposes; the people dispose. That
+              tension &mdash; between algorithmic recommendation and human judgment
+              &mdash; is the entire experiment.
             </p>
           </div>
 
@@ -357,7 +451,10 @@ export default function WhitepaperPage() {
             <p className="text-sm leading-relaxed text-[#D7DADC]">
               <span className="font-bold text-[#FF4500]">This is a parody.</span>{" "}
               But so was the Dogefather SNL appearance. The line between satire
-              and market-moving reality dissolved years ago. You have been warned.
+              and market-moving reality dissolved years ago. The fact that a
+              functional liquid democracy powered by spite can exist as a joke
+              while most governments can&rsquo;t manage a working website says more
+              about the world than it does about us.
             </p>
           </div>
         </div>
@@ -368,18 +465,18 @@ export default function WhitepaperPage() {
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-xl border border-[#FF4500]/20 bg-gradient-to-b from-[#FF4500]/5 to-transparent p-8 text-center">
             <p className="text-base font-bold text-[#D7DADC]">
-              This whitepaper constitutes a legally non-binding expression of contempt.
+              This whitepaper constitutes a legally non-binding declaration of democratic intent.
             </p>
             <p className="mt-4 text-base leading-relaxed text-[#D7DADC]">
-              $CHOP is best understood by asking:{" "}
+              $CHOP asks the only question that matters:{" "}
               <span className="italic text-[#D7DADC]">
-                &ldquo;If he can build a $100B empire on stealing our data,
-                lying about autonomous driving, and selling us vaporware, can
-                we build an economy entirely on hating him for it?&rdquo;
+                &ldquo;If a community united by shared contempt can govern itself
+                more fairly than the systems it despises, what does that say
+                about the systems?&rdquo;
               </span>
             </p>
             <p className="mt-4 text-lg font-bold text-[#FF4500]">
-              The answer is yes. Send tokens to scream.
+              One wallet. One vote. Infinite spite. The experiment is live.
             </p>
           </div>
         </div>
@@ -388,10 +485,10 @@ export default function WhitepaperPage() {
       {/* ─── Footer ────────────────────────────────────────────────────── */}
       <footer className="py-8 text-center">
         <p className="text-xs text-[#818384]">
-          $CHOP Protocol &mdash; Full Self-Decapitation (FSD) Whitepaper
+          $CHOP Protocol &mdash; Liquid Democracy Powered by Proof-of-Spite
         </p>
         <p className="mt-1 text-[10px] text-[#475569]">
-          Not financial advice. Not anything advice. This is a joke. Definitely. Probably.
+          Not financial advice. Not political advice. This is an experiment. Definitely. Probably.
         </p>
       </footer>
     </div>

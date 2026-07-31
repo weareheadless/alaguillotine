@@ -1,10 +1,10 @@
 "use server";
 
-import { Connection, PublicKey } from "@solana/web3.js";
 import type { EpochDocument, EpochSummary } from "../../lib/types";
 import { getEpochThreshold } from "../../lib/types";
 import { LocalDatabases, Query } from "../../lib/local-db";
 import { getDb as getRawDb } from "../../lib/local-db";
+import { fetchTreasuryBalance } from "../../lib/solana";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -14,32 +14,90 @@ function getDb() {
 
 // ─── Epoch Management ──────────────────────────────────────────────────────────
 
-/** Fetch the live on-chain CHOP balance of the treasury wallet */
+/** Fetch the live on-chain CHOP balance of the treasury wallet (delegates to solana.ts) */
 export async function getTreasuryBalance(): Promise<number> {
-  const receiverStr = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET;
-  if (!receiverStr) return 0;
+  return fetchTreasuryBalance();
+}
 
+/**
+ * SINGLE SOURCE OF TRUTH — Oracle-defined burn per free message.
+ *
+ * Computed as: (treasury_balance × burn_pct / 100) / epoch_expected_messages
+ *
+ * Uses the epoch threshold (end_msg_count - start_msg_count) as the divisor,
+ * NOT the current message count — so the burn per message stays stable and
+ * predictable throughout the entire epoch rather than spiking at the start.
+ *
+ * - burn_pct comes from the won proposal for this epoch, or averaged across
+ *   active proposals if voting hasn't resolved yet.
+ * - Returns 0 if there's no active epoch, no treasury, no messages, or no
+ *   oracle proposals with a non-zero burn_pct.
+ *
+ * Used by:
+ *   - submit.ts  → actual on-chain burn transaction amount
+ *   - metrics.ts → sidebar "💰 Burn/msg" display
+ */
+export async function getBurnPerMessage(): Promise<number> {
+  const db = getRawDb();
+
+  // Current active/voting epoch
+  const epoch = db
+    .prepare(
+      "SELECT epoch_number, status, started_at, start_msg_count, end_msg_count FROM epochs WHERE status IN ('active', 'voting') ORDER BY started_at DESC LIMIT 1"
+    )
+    .get() as {
+      epoch_number: number;
+      status: string;
+      started_at: string;
+      start_msg_count: number;
+      end_msg_count: number;
+    } | undefined;
+
+  if (!epoch) return 0;
+
+  // Expected messages in this epoch (threshold = end - start)
+  const expectedMessages = epoch.end_msg_count - epoch.start_msg_count;
+  if (expectedMessages <= 0) return 0;
+
+  // Treasury balance (on-chain, falls back to 0)
+  let treasuryBalance = 0;
   try {
-    const rpc = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-    const connection = new Connection(rpc);
-    const mint = new PublicKey(process.env.NEXT_PUBLIC_CHOP_MINT || "6gup5Cper6pmfNfsGps3MizgpsG3q6uvzobGdUFapump");
-    const treasury = new PublicKey(receiverStr);
-
-    // Use getTokenAccountsByOwner — works for both regular SPL and Token 2022
-    const accounts = await connection.getTokenAccountsByOwner(treasury, { mint });
-    const decimals = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10);
-    let total = 0;
-
-    for (const { account } of accounts.value) {
-      const data = account.data;
-      const amount = Number(data.readBigUInt64LE(64));
-      total += amount / Math.pow(10, decimals);
-    }
-
-    return total;
+    treasuryBalance = await getTreasuryBalance();
   } catch {
-    return 0;
+    // Fall back to DB-stored amount
+    const e = db
+      .prepare("SELECT treasury_amount FROM epochs WHERE epoch_number = ?")
+      .get(epoch.epoch_number) as { treasury_amount: number } | undefined;
+    treasuryBalance = e?.treasury_amount ?? 0;
   }
+  if (treasuryBalance <= 0) return 0;
+
+  // burn_pct: won proposal first, else average of active proposals
+  let burnPct = 0;
+
+  const won = db
+    .prepare(
+      "SELECT burn_pct FROM oracle_proposals WHERE epoch_number = ? AND status = 'won' AND is_none_option = 0 LIMIT 1"
+    )
+    .get(epoch.epoch_number) as { burn_pct: number } | undefined;
+
+  if (won) {
+    burnPct = won.burn_pct;
+  } else {
+    const active = db
+      .prepare(
+        "SELECT burn_pct FROM oracle_proposals WHERE epoch_number = ? AND status = 'active' AND is_none_option = 0"
+      )
+      .all(epoch.epoch_number) as Array<{ burn_pct: number }>;
+
+    if (active.length === 0) return 0;
+    burnPct = active.reduce((sum, p) => sum + p.burn_pct, 0) / active.length;
+  }
+
+  if (burnPct <= 0) return 0;
+
+  const totalBurn = (treasuryBalance * burnPct) / 100;
+  return totalBurn / expectedMessages;
 }
 
 /** Get the current active or voting epoch */

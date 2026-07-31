@@ -13,21 +13,19 @@
  */
 
 const { Connection, PublicKey } = require("@solana/web3.js");
-const { TOKEN_2022_PROGRAM_ID } = require("@solana/spl-token");
 const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
+const {
+  CHOP_MINT, CHOP_MINT_ADDRESS, CHOP_UNIT,
+  RPC_URL, TREASURY_ADDRESS, TOKEN_2022_PROGRAM_ID,
+  fetchTreasuryBalance, getEpochThreshold,
+} = require("./solana-helpers.cjs");
 
-// ─── Config ─────────────────────────────────────────────────────────────────────
-
-const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-const CHOP_MINT = process.env.NEXT_PUBLIC_CHOP_MINT || "6gup5Cper6pmfNfsGps3MizgpsG3q6uvzobGdUFapump";
-const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10);
-const TREASURY_WALLET = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET || "";
+// ─── Local Config ────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 300_000; // every 5 minutes
 const BOARD_SIZE = 7;
-const CHOP_UNIT = Math.pow(10, CHOP_DECIMALS);
 const DB_PATH = path.join(__dirname, "..", "data", "local.db");
 const VOTING_PERIOD_MS = 48 * 60 * 60 * 1000; // 48 hours
 
@@ -47,11 +45,6 @@ function log(msg) {
   console.log(`[${ts}] ${msg}`);
 }
 
-/** Dynamic epoch threshold — matches src/lib/types.ts */
-function getEpochThreshold(epochNumber) {
-  return Math.floor(1000 * Math.pow(1.5, epochNumber - 1));
-}
-
 // ─── Task 1: Discover Top CHOP Holders ────────────────────────────────────────
 
 async function discoverBoard(db) {
@@ -65,7 +58,6 @@ async function discoverBoard(db) {
   }
 
   const connection = new Connection(RPC_URL, "confirmed");
-  const mint = new PublicKey(CHOP_MINT);
 
   log("[discover] Fetching CHOP token holders from RPC...");
 
@@ -73,7 +65,7 @@ async function discoverBoard(db) {
     new PublicKey(TOKEN_2022_PROGRAM_ID.toString()),
     {
       filters: [
-        { memcmp: { offset: 0, bytes: mint.toBase58() } },
+        { memcmp: { offset: 0, bytes: CHOP_MINT.toBase58() } },
       ],
       encoding: "base64",
     }
@@ -171,38 +163,20 @@ async function checkEpochTransition(db) {
 // ─── Task 3: Sync Treasury Balance ───────────────────────────────────────────
 
 async function syncTreasury(db) {
-  if (!TREASURY_WALLET) {
-    return; // no treasury configured
-  }
+  const total = await fetchTreasuryBalance();
 
-  try {
-    const connection = new Connection(RPC_URL, "confirmed");
-    const mint = new PublicKey(CHOP_MINT);
-    const treasury = new PublicKey(TREASURY_WALLET);
-
-    const accounts = await connection.getTokenAccountsByOwner(treasury, { mint });
-    let total = 0;
-
-    for (const { account } of accounts.value) {
-      const data = account.data;
-      const amount = Number(data.readBigUInt64LE(64));
-      total += amount / CHOP_UNIT;
-    }
-
-    // Write treasury balance into the current active/voting epoch
+  if (total > 0) {
     const current = db.prepare(
       "SELECT * FROM epochs WHERE status IN ('active', 'voting') ORDER BY started_at DESC LIMIT 1"
     ).get();
 
     if (current) {
       db.prepare("UPDATE epochs SET treasury_amount = ? WHERE id = ?").run(Math.floor(total), current.id);
+      log(`[treasury] Synced balance: ${Math.floor(total).toLocaleString()} CHOP`);
     }
-
-    log(`[treasury] Balance: ${total.toLocaleString(undefined, { maximumFractionDigits: 2 })} CHOP`);
-  } catch (err) {
-    log(`[treasury] Sync error: ${err.message}`);
   }
 }
+
 
 // ─── Task 4: Check Voting Period Expiry ──────────────────────────────────────
 
@@ -352,8 +326,8 @@ async function runCycle() {
 async function main() {
   log("📡 CHOP Watcher started. Polling every ${POLL_INTERVAL_MS / 1000}s.");
   log(`   RPC: ${RPC_URL}`);
-  log(`   Mint: ${CHOP_MINT}`);
-  log(`   Treasury: ${TREASURY_WALLET || "not configured"}`);
+  log(`   Mint: ${CHOP_MINT_ADDRESS}`);
+  log(`   Treasury: ${TREASURY_ADDRESS || "not configured"}`);
   log("");
 
   // Run immediately on start

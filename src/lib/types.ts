@@ -24,11 +24,15 @@ export interface FeedMessage {
 export interface SubmitFreeResponse {
   success: boolean;
   error?: string;
+  /** Solana tx signature of the burn, for blockchain transparency */
+  burnTx?: string;
 }
 
 export interface SubmitCommentResponse {
   success: boolean;
   error?: string;
+  /** Solana tx signature of the burn, for blockchain transparency */
+  burnTx?: string;
 }
 
 export interface SubmitPaidResponse {
@@ -123,4 +127,7 @@ export type {
   ProposalWithTally,
   EpochTally,
   ProposalComment,
+  WarRoomPost,
+  WarRoomComment,
+  WarRoomVoteStatus,
 } from "./oracle-types";

@@ -12,20 +12,19 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 const crypto = require("crypto");
+const { PublicKey } = require("@solana/web3.js");
+const {
+  CHOP_MINT, CHOP_MINT_ADDRESS, CHOP_DECIMALS,
+  RPC_URL, fetchTreasuryBalance,
+} = require("./solana-helpers.cjs");
 
-// ─── Config ─────────────────────────────────────────────────────────────────────
+// ─── Oracle Config ───────────────────────────────────────────────────────────
 
 const DB_PATH = path.join(__dirname, "..", "data", "local.db");
 const API_KEY = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY || "";
 const BASE_URL = process.env.OPENAI_BASE_URL || "https://api.deepseek.com";
 const MODEL = process.env.OPENAI_MODEL || "deepseek-chat";
 const DRY_RUN = process.argv.includes("--dry-run");
-
-// CHOP token — used for price lookup
-const CHOP_MINT = process.env.NEXT_PUBLIC_CHOP_MINT || "6gup5Cper6pmfNfsGps3MizgpsG3q6uvzobGdUFapump";
-const TREASURY_WALLET = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET || "";
-const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10);
 
 // ─── System Prompt ──────────────────────────────────────────────────────────────
 
@@ -169,7 +168,7 @@ async function fetchTokenSupply() {
       jsonrpc: "2.0",
       id: 1,
       method: "getTokenSupply",
-      params: [CHOP_MINT],
+      params: [CHOP_MINT_ADDRESS],
     };
     const resp = await fetch(RPC_URL, {
       method: "POST",
@@ -188,12 +187,9 @@ async function fetchTokenSupply() {
 
 // ─── Pump.fun Bonding Curve ──────────────────────────────────────────────────
 
-const { PublicKey } = require("@solana/web3.js");
-
 const PUMP_FUN_PROGRAM = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P");
-const CHOP_MINT_PK = new PublicKey(CHOP_MINT);
 const [BONDING_CURVE_PDA] = PublicKey.findProgramAddressSync(
-  [Buffer.from("bonding-curve"), CHOP_MINT_PK.toBuffer()],
+  [Buffer.from("bonding-curve"), CHOP_MINT.toBuffer()],
   PUMP_FUN_PROGRAM
 );
 
@@ -295,46 +291,13 @@ async function fetchSolPrice() {
   }
 }
 
-/** Fetch on-chain CHOP balance of the treasury wallet */
-async function fetchTreasuryBalance() {
-  if (!TREASURY_WALLET) return 0;
-  try {
-    // Use Solana RPC — getTokenAccountsByOwner
-    const body = {
-      jsonrpc: "2.0",
-      id: 1,
-      method: "getTokenAccountsByOwner",
-      params: [
-        TREASURY_WALLET,
-        { mint: CHOP_MINT },
-        { encoding: "jsonParsed" },
-      ],
-    };
-    const resp = await fetch(RPC_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!resp.ok) return 0;
-    const json = await resp.json();
-    if (!json.result || !json.result.value) return 0;
-
-    let total = 0;
-    for (const item of json.result.value) {
-      const uiAmount = item.account.data.parsed.info.tokenAmount.uiAmount;
-      total += uiAmount || 0;
-    }
-    return total;
-  } catch (err) {
-    console.error("[Oracle] Balance fetch failed:", err.message);
-    return 0;
-  }
-}
-
 // ─── Gather Inputs ──────────────────────────────────────────────────────────────
 
 async function gatherInputs(db, epoch) {
+  // Fetch live price + balance + actual supply
+  const currentSupply = await fetchTokenSupply();
+  const chopPrice = await fetchChopPrice();
+  const liveBalance = await fetchTreasuryBalance();
   // Count messages
   const msgCount = db
     .prepare("SELECT COUNT(*) as cnt FROM messages WHERE is_shadowbanned = 0")
@@ -389,10 +352,6 @@ async function gatherInputs(db, epoch) {
     )
     .get();
 
-  // Fetch live price + balance + actual supply
-  const currentSupply = await fetchTokenSupply();
-  const chopPrice = await fetchChopPrice();
-  const liveBalance = await fetchTreasuryBalance();
   const treasuryChop = liveBalance || epoch.treasury_amount || 0;
   const treasuryUsd = chopPrice ? Math.round(treasuryChop * chopPrice * 100) / 100 : null;
 

@@ -1,0 +1,26 @@
+[Unit]
+Description=FuckYouElon Next.js Web Application
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin
+Group=admin
+WorkingDirectory=/FYE
+Environment=NODE_ENV=production
+Environment=PORT=3002
+EnvironmentFile=-/FYE/.env.local
+ExecStart=/home/admin/.local/bin/node /FYE/node_modules/next/dist/bin/next start -p 3002
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fuckyouelon
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

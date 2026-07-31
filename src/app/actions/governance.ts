@@ -9,6 +9,9 @@ import type {
   ProposalWithTally,
   EpochTally,
   ProposalComment,
+  WarRoomPost,
+  WarRoomComment,
+  WarRoomVoteStatus,
 } from "../../lib/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -23,6 +26,53 @@ async function checkModeration(text: string): Promise<boolean> {
     /t+r+[a@]+n+n+y+/i,
   ];
   return blocked.some((r) => r.test(text));
+}
+
+/** Get the identity key for the current user — prefers session, falls back to wallet signature */
+async function resolveIdentity(
+  walletAddress?: string,
+  signature?: string,
+  signedMessage?: string,
+): Promise<{
+  authorId: string | null;
+  authorWallet: string | null;
+  authorName: string;
+  voterKey: string;
+} | null> {
+  const userId = await getSessionUserId();
+  if (userId) {
+    const user = getUserById(userId);
+    if (user) {
+      return {
+        authorId: userId,
+        authorWallet: user.wallet_address || null,
+        authorName: user.display_name || user.username,
+        voterKey: userId,
+      };
+    }
+  }
+
+  // No session — try wallet
+  if (walletAddress && signature && signedMessage) {
+    const expected = `I am posting to the War Room: ${signedMessage.slice(0, 50)}`;
+    if (verifyMessageSignature(walletAddress, expected, signature)) {
+      return {
+        authorId: null,
+        authorWallet: walletAddress,
+        authorName: `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`,
+        voterKey: walletAddress,
+      };
+    }
+  }
+
+  return null;
+}
+
+/** Simple wallet-only identity (for voting — session user or wallet) */
+async function resolveVoterKey(): Promise<string | null> {
+  const userId = await getSessionUserId();
+  if (userId) return userId;
+  return null; // Wallet-only voting requires passing wallet explicitly
 }
 
 // ─── Voting ─────────────────────────────────────────────────────────────────────
@@ -82,6 +132,11 @@ export async function fetchActiveProposals(): Promise<ProposalWithTally[]> {
        FROM oracle_proposals p
        LEFT JOIN governance_votes v ON v.proposal_id = p.id
        WHERE p.status = 'active'
+         AND p.epoch_number = (
+           SELECT epoch_number FROM epochs
+           WHERE status = 'voting'
+           ORDER BY created_at DESC LIMIT 1
+         )
        GROUP BY p.id
        ORDER BY p.is_none_option ASC, p.created_at ASC`
     )
@@ -157,60 +212,263 @@ export async function fetchMyVote(epochNumber: number): Promise<string | null> {
   return row?.proposal_id ?? null;
 }
 
-// ─── Proposal Comments ─────────────────────────────────────────────────────────
+// ─── War Room: Posts ───────────────────────────────────────────────────────────
+
+export async function createWarRoomPost(
+  title: string,
+  body: string,
+  proposalId: string | null = null,
+): Promise<{ success: boolean; postId?: string; error?: string }> {
+  const identity = await resolveIdentity();
+  if (!identity) return { success: false, error: "Not authenticated. Login or connect wallet." };
+
+  const trimmedTitle = title.trim().slice(0, 200);
+  const trimmedBody = body.trim().slice(0, 5000);
+  if (!trimmedTitle) return { success: false, error: "Title cannot be empty." };
+  if (!trimmedBody) return { success: false, error: "Body cannot be empty." };
+
+  const isFlagged = await checkModeration(trimmedTitle + " " + trimmedBody);
+  if (isFlagged) return { success: false, error: "Post rejected by moderation." };
+
+  const db = getDb();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  db.prepare(
+    `INSERT INTO war_room_posts (id, author_id, author_wallet, author_name, title, body, proposal_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, identity.authorId, identity.authorWallet, identity.authorName, trimmedTitle, trimmedBody, proposalId, now);
+
+  return { success: true, postId: id };
+}
+
+export async function fetchWarRoomPosts(
+  page: number = 1,
+  pageSize: number = 20,
+): Promise<{ posts: WarRoomPost[]; total: number }> {
+  const db = getDb();
+  const offset = (page - 1) * pageSize;
+
+  const total = (db.prepare(
+    "SELECT COUNT(*) as cnt FROM war_room_posts WHERE is_removed = 0"
+  ).get() as { cnt: number }).cnt;
+
+  const posts = db.prepare(
+    `SELECT * FROM war_room_posts
+     WHERE is_removed = 0
+     ORDER BY is_sticky DESC, created_at DESC
+     LIMIT ? OFFSET ?`
+  ).all(pageSize, offset) as WarRoomPost[];
+
+  return { posts, total };
+}
+
+export async function fetchWarRoomPost(
+  postId: string,
+): Promise<{ post: WarRoomPost | null; comments: WarRoomComment[] }> {
+  const db = getDb();
+
+  const post = db.prepare(
+    "SELECT * FROM war_room_posts WHERE id = ? AND is_removed = 0"
+  ).get(postId) as WarRoomPost | undefined;
+
+  const comments = db.prepare(
+    `SELECT * FROM war_room_comments
+     WHERE post_id = ? AND is_removed = 0
+     ORDER BY created_at ASC`
+  ).all(postId) as WarRoomComment[];
+
+  return { post: post ?? null, comments };
+}
+
+// ─── War Room: Comments ─────────────────────────────────────────────────────────
+
+export async function postWarRoomComment(
+  postId: string,
+  body: string,
+  parentId: string | null = null,
+): Promise<{ success: boolean; error?: string }> {
+  const identity = await resolveIdentity();
+  if (!identity) return { success: false, error: "Not authenticated. Login or connect wallet." };
+
+  const db = getDb();
+
+  // Verify post exists and isn't locked
+  const post = db.prepare(
+    "SELECT id, is_locked FROM war_room_posts WHERE id = ? AND is_removed = 0"
+  ).get(postId) as any;
+  if (!post) return { success: false, error: "Post not found." };
+  if (post.is_locked) return { success: false, error: "This post is locked." };
+
+  const trimmed = body.trim().slice(0, 2000);
+  if (!trimmed) return { success: false, error: "Comment cannot be empty." };
+
+  const isFlagged = await checkModeration(trimmed);
+  if (isFlagged) return { success: false, error: "Comment rejected by moderation." };
+
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  db.prepare(
+    `INSERT INTO war_room_comments (id, post_id, parent_id, author_id, author_wallet, author_name, body, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, postId, parentId, identity.authorId, identity.authorWallet, identity.authorName, trimmed, now);
+
+  // Update comment count on post
+  db.prepare(
+    "UPDATE war_room_posts SET comment_count = comment_count + 1, updated_at = ? WHERE id = ?"
+  ).run(now, postId);
+
+  return { success: true };
+}
+
+// ─── War Room: Votes ────────────────────────────────────────────────────────────
+
+export async function castWarRoomVote(
+  targetType: "post" | "comment",
+  targetId: string,
+  vote: 1 | -1,
+): Promise<{ success: boolean; error?: string }> {
+  const identity = await resolveIdentity();
+  if (!identity) return { success: false, error: "Not authenticated. Login or connect wallet." };
+
+  const db = getDb();
+  const table = targetType === "post" ? "war_room_posts" : "war_room_comments";
+  const now = new Date().toISOString();
+
+  // Verify target exists
+  const target = db.prepare(`SELECT id FROM ${table} WHERE id = ? AND is_removed = 0`).get(targetId) as any;
+  if (!target) return { success: false, error: "Target not found." };
+
+  // Check existing vote
+  const existing = db.prepare(
+    "SELECT vote FROM war_room_votes WHERE voter_key = ? AND target_type = ? AND target_id = ?"
+  ).get(identity.voterKey, targetType, targetId) as { vote: number } | undefined;
+
+  const voteId = `${identity.voterKey}_${targetType}_${targetId}`;
+
+  if (existing) {
+    if (existing.vote === vote) {
+      // Same vote — remove it (toggle off)
+      db.prepare(
+        "DELETE FROM war_room_votes WHERE voter_key = ? AND target_type = ? AND target_id = ?"
+      ).run(identity.voterKey, targetType, targetId);
+
+      // Decrement the count
+      if (vote === 1) {
+        db.prepare(`UPDATE ${table} SET upvote_count = MAX(0, upvote_count - 1) WHERE id = ?`).run(targetId);
+      } else {
+        db.prepare(`UPDATE ${table} SET downvote_count = MAX(0, downvote_count - 1) WHERE id = ?`).run(targetId);
+      }
+    } else {
+      // Switched vote direction
+      db.prepare(
+        "UPDATE war_room_votes SET vote = ?, created_at = ? WHERE voter_key = ? AND target_type = ? AND target_id = ?"
+      ).run(vote, now, identity.voterKey, targetType, targetId);
+
+      // Swap counts
+      if (vote === 1) {
+        db.prepare(`UPDATE ${table} SET upvote_count = upvote_count + 1, downvote_count = MAX(0, downvote_count - 1) WHERE id = ?`).run(targetId);
+      } else {
+        db.prepare(`UPDATE ${table} SET downvote_count = downvote_count + 1, upvote_count = MAX(0, upvote_count - 1) WHERE id = ?`).run(targetId);
+      }
+    }
+  } else {
+    // New vote
+    db.prepare(
+      "INSERT INTO war_room_votes (id, voter_key, target_type, target_id, vote, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(voteId, identity.voterKey, targetType, targetId, vote, now);
+
+    if (vote === 1) {
+      db.prepare(`UPDATE ${table} SET upvote_count = upvote_count + 1 WHERE id = ?`).run(targetId);
+    } else {
+      db.prepare(`UPDATE ${table} SET downvote_count = downvote_count + 1 WHERE id = ?`).run(targetId);
+    }
+  }
+
+  return { success: true };
+}
+
+export async function fetchMyWarRoomVotes(): Promise<WarRoomVoteStatus> {
+  const identity = await resolveIdentity();
+  if (!identity) return { post_votes: {}, comment_votes: {} };
+
+  const db = getDb();
+  const rows = db.prepare(
+    "SELECT target_type, target_id, vote FROM war_room_votes WHERE voter_key = ?"
+  ).all(identity.voterKey) as Array<{ target_type: string; target_id: string; vote: number }>;
+
+  const postVotes: Record<string, 1 | -1 | 0> = {};
+  const commentVotes: Record<string, 1 | -1 | 0> = {};
+
+  for (const r of rows) {
+    if (r.target_type === "post") {
+      postVotes[r.target_id] = r.vote as 1 | -1;
+    } else {
+      commentVotes[r.target_id] = r.vote as 1 | -1;
+    }
+  }
+
+  return { post_votes: postVotes, comment_votes: commentVotes };
+}
+
+// ─── DEPRECATED: Old proposal comments (kept for backward compat) ──────────────
 
 export async function postComment(
   proposalId: string,
   text: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const userId = await getSessionUserId();
-  if (!userId) return { success: false, error: "Not authenticated." };
-
-  const user = getUserById(userId);
-  if (!user?.wallet_address) return { success: false, error: "Link a wallet first." };
-
+  // Redirect to War Room — find or create the post for this proposal
   const db = getDb();
+  const proposal = db.prepare(
+    "SELECT * FROM oracle_proposals WHERE id = ?"
+  ).get(proposalId) as OracleProposalRow | undefined;
+  if (!proposal) return { success: false, error: "Proposal not found." };
 
-  // Verify proposal exists and is active
-  const proposal = db
-    .prepare("SELECT id FROM oracle_proposals WHERE id = ? AND status = 'active'")
-    .get(proposalId) as any;
-  if (!proposal) return { success: false, error: "Proposal not found or voting closed." };
+  // Find existing war room post for this proposal
+  let warPost = db.prepare(
+    "SELECT id FROM war_room_posts WHERE proposal_id = ? AND is_removed = 0 LIMIT 1"
+  ).get(proposalId) as { id: string } | undefined;
 
-  const trimmed = text.trim().slice(0, 500);
-  if (!trimmed) return { success: false, error: "Comment cannot be empty." };
+  if (!warPost) {
+    // Auto-create a War Room post
+    const identity = await resolveIdentity();
+    if (!identity) return { success: false, error: "Not authenticated." };
 
-  // Moderation check
-  const isFlagged = await checkModeration(trimmed);
-  if (isFlagged) return { success: false, error: "Comment rejected by moderation." };
+    const postId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO war_room_posts (id, author_id, author_wallet, author_name, title, body, proposal_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(postId, identity.authorId, identity.authorWallet, identity.authorName,
+      `${proposal.emoji} ${proposal.title}`,
+      proposal.manifesto,
+      proposalId,
+      now);
+    warPost = { id: postId };
+  }
 
-  const id = crypto.randomUUID();
-  db.prepare(
-    `INSERT INTO proposal_comments (id, proposal_id, author_wallet, author_user_id, author_name, text, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    id,
-    proposalId,
-    user.wallet_address,
-    userId,
-    user.display_name || user.username,
-    trimmed,
-    new Date().toISOString(),
-  );
-
-  return { success: true };
+  // Post comment in War Room
+  return postWarRoomComment(warPost.id, text);
 }
 
 export async function fetchProposalComments(
   proposalId: string,
 ): Promise<ProposalComment[]> {
   const db = getDb();
-  return db
-    .prepare(
-      `SELECT id, proposal_id, author_wallet, author_name, text, created_at
-       FROM proposal_comments
-       WHERE proposal_id = ? AND is_rejected = 0
-       ORDER BY created_at ASC`
-    )
-    .all(proposalId) as ProposalComment[];
+
+  // Find War Room post for this proposal
+  const warPost = db.prepare(
+    "SELECT id FROM war_room_posts WHERE proposal_id = ? AND is_removed = 0 LIMIT 1"
+  ).get(proposalId) as { id: string } | undefined;
+  if (!warPost) return [];
+
+  const comments = db.prepare(
+    `SELECT id, post_id as proposal_id, author_wallet, author_name, body as text, created_at
+     FROM war_room_comments
+     WHERE post_id = ? AND is_removed = 0
+     ORDER BY created_at ASC`
+  ).all(warPost.id) as ProposalComment[];
+
+  return comments;
 }

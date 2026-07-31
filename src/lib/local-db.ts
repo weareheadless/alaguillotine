@@ -169,7 +169,7 @@ function ensureTables(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_gov_votes_proposal ON governance_votes(proposal_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_gov_votes_wallet_epoch ON governance_votes(voter_wallet, epoch_number);
 
-    -- Proposal discussion comments (one flat thread per proposal)
+    -- Proposal discussion comments (DEPRECATED — replaced by war_room_posts + war_room_comments)
     CREATE TABLE IF NOT EXISTS proposal_comments (
       id TEXT PRIMARY KEY,
       proposal_id TEXT NOT NULL REFERENCES oracle_proposals(id),
@@ -182,6 +182,59 @@ function ensureTables(db: Database.Database) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_comments_proposal ON proposal_comments(proposal_id);
+
+    -- ─── War Room (Reddit-style community board) ─────────────────────────────
+
+    CREATE TABLE IF NOT EXISTS war_room_posts (
+      id TEXT PRIMARY KEY,
+      author_id TEXT,
+      author_wallet TEXT,
+      author_name TEXT NOT NULL DEFAULT 'Anonymous',
+      title TEXT NOT NULL DEFAULT '',
+      body TEXT NOT NULL DEFAULT '',
+      proposal_id TEXT,
+      is_sticky INTEGER NOT NULL DEFAULT 0,
+      is_locked INTEGER NOT NULL DEFAULT 0,
+      is_removed INTEGER NOT NULL DEFAULT 0,
+      upvote_count INTEGER NOT NULL DEFAULT 0,
+      downvote_count INTEGER NOT NULL DEFAULT 0,
+      comment_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT '',
+      updated_at TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wr_posts_sticky ON war_room_posts(is_sticky);
+    CREATE INDEX IF NOT EXISTS idx_wr_posts_created ON war_room_posts(created_at);
+    CREATE INDEX IF NOT EXISTS idx_wr_posts_proposal ON war_room_posts(proposal_id);
+
+    CREATE TABLE IF NOT EXISTS war_room_comments (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL REFERENCES war_room_posts(id),
+      parent_id TEXT,
+      author_id TEXT,
+      author_wallet TEXT,
+      author_name TEXT NOT NULL DEFAULT 'Anonymous',
+      body TEXT NOT NULL DEFAULT '',
+      is_removed INTEGER NOT NULL DEFAULT 0,
+      upvote_count INTEGER NOT NULL DEFAULT 0,
+      downvote_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_wr_comments_post ON war_room_comments(post_id);
+    CREATE INDEX IF NOT EXISTS idx_wr_comments_parent ON war_room_comments(parent_id);
+
+    CREATE TABLE IF NOT EXISTS war_room_votes (
+      id TEXT PRIMARY KEY,
+      voter_key TEXT NOT NULL,
+      target_type TEXT NOT NULL CHECK(target_type IN ('post', 'comment')),
+      target_id TEXT NOT NULL,
+      vote INTEGER NOT NULL CHECK(vote IN (1, -1)),
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_wr_votes_unique ON war_room_votes(voter_key, target_type, target_id);
+    CREATE INDEX IF NOT EXISTS idx_wr_votes_target ON war_room_votes(target_type, target_id);
   `);
 }
 

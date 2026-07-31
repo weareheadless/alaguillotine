@@ -83,3 +83,42 @@ export interface ProposalComment {
   text: string;
   created_at: string;
 }
+
+// ─── War Room (Reddit-style community board) ────────────────────────────────────
+
+export interface WarRoomPost {
+  id: string;
+  author_id: string | null;
+  author_wallet: string | null;
+  author_name: string;
+  title: string;
+  body: string;
+  proposal_id: string | null;
+  is_sticky: number;
+  is_locked: number;
+  is_removed: number;
+  upvote_count: number;
+  downvote_count: number;
+  comment_count: number;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface WarRoomComment {
+  id: string;
+  post_id: string;
+  parent_id: string | null;
+  author_id: string | null;
+  author_wallet: string | null;
+  author_name: string;
+  body: string;
+  is_removed: number;
+  upvote_count: number;
+  downvote_count: number;
+  created_at: string;
+}
+
+export interface WarRoomVoteStatus {
+  post_votes: Record<string, 1 | -1 | 0>;    // post_id → vote direction (0 = no vote)
+  comment_votes: Record<string, 1 | -1 | 0>;  // comment_id → vote direction
+}

@@ -1,7 +1,6 @@
 "use client";
 
 import type { ProposalWithTally } from "../lib/types";
-import { ProposalComments } from "./ProposalComments";
 
 interface ProposalCardProps {
   proposal: ProposalWithTally;
@@ -41,62 +40,50 @@ export function ProposalCard({
 
   return (
     <div
-      className={`relative border-4 bg-canvasBlack p-5 font-mono transition-all duration-75 ${borderColor}`}
+      className={`relative border-4 bg-canvasBlack p-4 font-mono transition-all duration-75 flex flex-col ${borderColor}`}
     >
-      {/* Winner badge */}
-      {isWinner && (
-        <div className="absolute -top-4 -right-4 border-4 border-black bg-amber-400 px-4 py-1 text-sm font-black uppercase text-black rotate-[5deg] shadow-[4px_4px_0_0_#000] animate-pulse">
-          🏆 WINNER
-        </div>
-      )}
-
-      {/* My vote indicator */}
-      {isMyVote && (
-        <div className="absolute -top-4 -left-4 border-4 border-black bg-spiteCrimson px-4 py-1 text-sm font-black uppercase text-sheetWhite -rotate-[5deg] shadow-[4px_4px_0_0_#000]">
-          YOUR VOTE
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="mb-4 flex items-start gap-3">
-        <span className="text-4xl drop-shadow-[2px_2px_0_rgba(255,255,255,0.8)]">{proposal.emoji}</span>
-        <div className="flex-1">
-          <h3 className="text-xl font-black uppercase leading-tight text-sheetWhite break-words">
-            {proposal.title}
-          </h3>
-          {isNone && (
-            <span className="text-xs font-bold uppercase text-red-500 bg-black px-1 mt-1 inline-block">
-              ESCAPE HATCH — {3 - (proposal.attempt_number || 0)} ATTEMPTS REMAIN
-            </span>
-          )}
-        </div>
+      {/* Winner / My Vote badges */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-3xl">{proposal.emoji}</span>
+        <h3 className="text-sm font-black uppercase leading-tight text-sheetWhite line-clamp-2 flex-1">
+          {proposal.title}
+        </h3>
+        {isWinner && (
+          <span className="border-2 border-amber-400 bg-amber-400 px-2 py-0.5 text-[9px] font-black uppercase text-black animate-pulse shrink-0">
+            🏆 WIN
+          </span>
+        )}
+        {isMyVote && !isWinner && (
+          <span className="border-2 border-spiteCrimson px-2 py-0.5 text-[9px] font-black uppercase text-spiteCrimson shrink-0">
+            ✓ MY VOTE
+          </span>
+        )}
+        {isNone && (
+          <span className="border-2 border-red-600 bg-red-600/20 px-2 py-0.5 text-[9px] font-black uppercase text-red-500 shrink-0">
+            ⚠ NONE ({3 - (proposal.attempt_number || 0)} LEFT)
+          </span>
+        )}
       </div>
 
-      {/* Manifesto */}
-      <div className="mb-5 border-l-4 border-hypeNeon pl-3">
-        <p className="text-sm leading-relaxed text-sheetWhite">
-          {proposal.manifesto}
-        </p>
-      </div>
+      {/* Manifesto — compact */}
+      <p className="text-[10px] leading-relaxed text-chop-muted mb-3 line-clamp-3 flex-1">
+        {proposal.manifesto}
+      </p>
 
-      {/* Allocation bars */}
-      <div className="mb-4 space-y-2 bg-black p-3 border-2 border-gray-800">
-        <div className="text-[10px] text-chop-muted uppercase mb-1">TREASURY ALLOCATIONS:</div>
+      {/* Allocation bars — compact */}
+      <div className="mb-3 space-y-1 bg-black p-2 border border-gray-800">
         {pcts.map((p) => (
-          <div key={p.label} className="flex items-center gap-3">
-            <span className="w-14 text-xs font-black uppercase text-sheetWhite tracking-widest">
+          <div key={p.label} className="flex items-center gap-1.5">
+            <span className="w-10 text-[8px] font-black uppercase text-chop-muted tracking-wider shrink-0">
               {p.label}
             </span>
-            <div className="h-4 flex-1 border-2 border-gray-800 bg-canvasBlack relative overflow-hidden">
+            <div className="h-3 flex-1 border border-gray-800 bg-canvasBlack relative overflow-hidden">
               <div
                 className={`h-full ${p.color} transition-all duration-500 ease-out`}
                 style={{ width: `${p.value}%` }}
-              >
-                {/* Stripe effect inside bars */}
-                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, #000 4px, #000 8px)' }}></div>
-              </div>
+              />
             </div>
-            <span className="w-10 text-right text-xs font-black text-sheetWhite">
+            <span className="w-7 text-right text-[9px] font-black text-sheetWhite shrink-0">
               {p.value}%
             </span>
           </div>
@@ -104,54 +91,41 @@ export function ProposalCard({
       </div>
 
       {/* Vote count + button */}
-      <div className="flex items-center justify-between border-t-4 border-dashed border-gray-800 pt-4">
-        <div className="text-sm text-chop-muted flex flex-col">
-          <span className="font-black text-sheetWhite text-lg">{proposal.vote_count} <span className="text-xs text-chop-muted uppercase">votes</span></span>
+      <div className="flex items-center justify-between mt-auto">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-black text-sheetWhite">{proposal.vote_count}</span>
+          <span className="text-[9px] text-chop-muted uppercase">votes</span>
           {proposal.percentage > 0 && (
-            <span className="text-xs text-hypeNeon">{proposal.percentage}% SHARE</span>
+            <span className="text-[9px] text-hypeNeon font-bold">{proposal.percentage}%</span>
           )}
         </div>
 
         {canVote && (
           <button
             onClick={() => onVote(proposal.id)}
-            className="border-4 border-black bg-hypeNeon px-6 py-2 text-sm font-black uppercase tracking-widest text-black shadow-[4px_4px_0_0_#000] transition-transform hover:-translate-y-1 hover:bg-spiteCrimson hover:text-sheetWhite active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+            className="border-2 border-black bg-hypeNeon px-4 py-1.5 text-[10px] font-black uppercase tracking-wider text-black shadow-[3px_3px_0_0_#000] hover:bg-spiteCrimson hover:text-sheetWhite active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all"
           >
             VOTE
           </button>
         )}
 
-        {isMyVote && !isWinner && (
-          <span className="border-2 border-spiteCrimson px-3 py-1 text-xs font-black uppercase text-spiteCrimson">
-            VOTED ✓
-          </span>
-        )}
-
         {!isWalletConnected && (
-          <span className="bg-red-900/40 text-red-500 px-2 py-1 text-xs font-bold uppercase border border-red-900">
-            WALLET DISCONNECTED
+          <span className="bg-red-900/40 text-red-500 px-2 py-0.5 text-[9px] font-bold uppercase border border-red-900">
+            NO WALLET
           </span>
         )}
 
         {isWalletConnected && !hasEnoughChop && (
-          <span className="bg-amber-900/40 text-amber-500 px-2 py-1 text-xs font-bold uppercase border border-amber-900">
-            NEED ≥1 $CHOP
+          <span className="bg-amber-900/40 text-amber-500 px-2 py-0.5 text-[9px] font-bold uppercase border border-amber-900">
+            NEED $CHOP
           </span>
         )}
 
         {hasVoted && !isMyVote && (
-          <span className="text-xs font-bold text-chop-muted uppercase line-through">
-            ALREADY VOTED
+          <span className="text-[9px] font-bold text-chop-muted uppercase line-through">
+            VOTED
           </span>
         )}
-      </div>
-
-      {/* Discussion thread */}
-      <div className="mt-4 pt-4 border-t-4 border-black">
-        <ProposalComments
-          proposalId={proposal.id}
-          isWalletConnected={isWalletConnected}
-        />
       </div>
     </div>
   );

@@ -1,0 +1,308 @@
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1
+/FYE/node_modules/rpc-websockets/dist/index.cjs:6
+var uuid = require('uuid');
+           ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /FYE/node_modules/uuid/dist-node/index.js from /FYE/node_modules/rpc-websockets/dist/index.cjs not supported.
+Instead change the require of index.js in /FYE/node_modules/rpc-websockets/dist/index.cjs to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/FYE/node_modules/rpc-websockets/dist/index.cjs:6:12) {
+  code: 'ERR_REQUIRE_ESM'
+}
+
+Node.js v20.18.1

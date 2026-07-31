@@ -6,6 +6,8 @@ import { getDemoMessages } from "../lib/mock-data";
 import { fetchMessageCount } from "../app/actions/feed";
 
 import { EXECUTION_THRESHOLD } from "../lib/constants";
+import { fetchSidebarMetrics } from "../app/actions/metrics";
+import type { SidebarMetrics } from "../app/actions/metrics";
 
 export function HeroCounter({ children, mobileRightSlot }: { children?: React.ReactNode, mobileRightSlot?: React.ReactNode }) {
   const [total, setTotal] = useState<number | null>(null);
@@ -13,6 +15,7 @@ export function HeroCounter({ children, mobileRightSlot }: { children?: React.Re
   const [bumping, setBumping] = useState(false);
   const [pulsing, setPulsing] = useState(false);
   const [flashCount, setFlashCount] = useState(false);
+  const [metrics, setMetrics] = useState<SidebarMetrics | null>(null);
   const [debugMode, setDebugMode] = useState(false);
   const [debugSlider, setDebugSlider] = useState(0);
   const [toasts, setToasts] = useState<{ id: number; authorName: string; amount: number; ts: number }[]>([]);
@@ -65,6 +68,19 @@ export function HeroCounter({ children, mobileRightSlot }: { children?: React.Re
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
+  }, []);
+
+  // Fetch sidebar metrics (tokens burnt, treasury, burn/message)
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const m = await fetchSidebarMetrics();
+        setMetrics(m);
+      } catch { /* silently fail */ }
+    };
+    fetchMetrics();
+    const metricsInterval = setInterval(fetchMetrics, 15_000);
+    return () => clearInterval(metricsInterval);
   }, []);
 
   // In debug mode, use local state; otherwise use fetched count
@@ -264,27 +280,30 @@ export function HeroCounter({ children, mobileRightSlot }: { children?: React.Re
             {/* ─── Status + Stats ────────────────────────────────────── */}
             <div className="md:mt-4 w-full md:w-full flex-1 md:flex-none text-center font-mono">
               {dropped ? (
-                <p className="animate-fade-in text-[9px] md:text-xs font-black uppercase tracking-widest text-spiteCrimson animate-glitch-text">
+                <p className="animate-fade-in text-[10px] md:text-sm font-black uppercase tracking-widest text-spiteCrimson animate-glitch-text">
                   ⚔️ The blade has fallen ⚔️
                 </p>
               ) : (
-                <p className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.15em] text-chop-muted">
+                <p className="text-[9px] md:text-[11px] font-bold uppercase tracking-[0.15em] text-chop-muted">
                   // Progress toward judgment
                 </p>
               )}
-              <div className="mt-1.5 flex items-center justify-center gap-1 md:gap-2 text-[9px] md:text-[10px] tabular-nums font-bold">
+              <div className="mt-1.5 flex items-center justify-center gap-1 md:gap-2 text-[11px] md:text-[13px] tabular-nums font-bold">
                 <span className={`${flashCount ? "animate-counter-pulse text-hypeNeon" : "text-canvasBlack"}`}>
                   {displayTotal.toLocaleString()}
                 </span>
                 <span className="text-chop-muted">/</span>
-                <span className="text-spiteCrimson hidden md:inline">{EXECUTION_THRESHOLD.toLocaleString()}</span>
-                <span className="text-chop-muted hidden md:inline">·</span>
+                <span className="text-spiteCrimson">{EXECUTION_THRESHOLD.toLocaleString()}</span>
+              </div>
+              <div className="mt-0.5 text-[10px] md:text-[11px] tabular-nums font-bold">
                 <span className={`${flashCount ? "animate-counter-pulse" : ""} ${progress >= 90 ? "text-spiteCrimson" : "text-hypeNeon"}`}>
-                  {progress.toFixed(1)}%
+                  {progress < 0.001 && progress > 0
+                    ? progress.toFixed(4)
+                    : progress.toFixed(2)}%
                 </span>
               </div>
               {/* Mini progress bar */}
-              <div className="mx-auto mt-2 h-1.5 w-[80%] md:w-40 overflow-hidden border-2 border-black bg-canvasBlack">
+              <div className="mx-auto mt-2 h-2 w-[85%] md:w-44 overflow-hidden border-2 border-black bg-canvasBlack">
                 <div
                   className={`h-full transition-all duration-1000 ${
                     dropped ? "bg-spiteCrimson" : "bg-gradient-to-r from-spiteCrimson via-hypeNeon to-spiteCrimson"
@@ -292,6 +311,55 @@ export function HeroCounter({ children, mobileRightSlot }: { children?: React.Re
                   style={{ width: `${progress}%` }}
                 />
               </div>
+
+              {/* ─── Treasury Metrics ─────────────────────────────────── */}
+              {metrics && (
+                <div className="mt-3 space-y-1.5 border-t-2 border-dashed border-black pt-3">
+                  {/* Messages this epoch */}
+                  <div className="flex justify-between items-center text-[9px] md:text-[10px]">
+                    <span className="text-chop-muted uppercase tracking-wider">Epoch msgs</span>
+                    <span className="tabular-nums font-bold text-canvasBlack">
+                      {metrics.messagesThisEpoch.toLocaleString()}
+                      {metrics.epochThreshold > 0 && (
+                        <span className="text-chop-muted"> / {metrics.epochThreshold.toLocaleString()}</span>
+                      )}
+                    </span>
+                  </div>
+                  {/* Epoch progress bar */}
+                  {metrics.epochThreshold > 0 && (
+                    <div className="mx-auto h-1.5 w-full overflow-hidden border border-black bg-canvasBlack">
+                      <div
+                        className="h-full bg-gradient-to-r from-hypeNeon to-spiteCrimson transition-all duration-700"
+                        style={{
+                          width: `${Math.min((metrics.messagesThisEpoch / metrics.epochThreshold) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+                  {/* Tokens burnt (total) */}
+                  <div className="flex justify-between items-center text-[9px] md:text-[10px]">
+                    <span className="text-chop-muted uppercase tracking-wider">🔥 Burnt</span>
+                    <span className="tabular-nums font-bold text-spiteCrimson">{metrics.totalBurnt.toLocaleString()} CHOP</span>
+                  </div>
+                  {/* CHOPS in treasury */}
+                  <div className="flex justify-between items-center text-[9px] md:text-[10px]">
+                    <span className="text-chop-muted uppercase tracking-wider">🏦 Treasury</span>
+                    <span className="tabular-nums font-bold text-canvasBlack">{metrics.treasuryBalance.toLocaleString()} CHOP</span>
+                  </div>
+                  {/* Cost per free message */}
+                  <div className="flex justify-between items-center text-[9px] md:text-[10px]">
+                    <span className="text-chop-muted uppercase tracking-wider">💰 Burn/msg</span>
+                    <span className="tabular-nums font-bold text-hypeNeon">
+                      {metrics.burnPerMessage > 0
+                        ? metrics.burnPerMessage < 0.01
+                          ? metrics.burnPerMessage.toFixed(6)
+                          : metrics.burnPerMessage.toFixed(2)
+                        : "—"}{" "}
+                      CHOP
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
             </div>
 

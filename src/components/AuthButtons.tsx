@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../lib/auth-context";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useTerminal } from "../lib/terminal-context";
 import bs58 from "bs58";
 
 export function AuthButtons() {
   const { user, loading, login, register, loginWithWallet, logout, updateDisplayName } = useAuth();
   const { publicKey, signMessage, connected, wallets, select, connect } = useWallet();
+  const { addMessage } = useTerminal();
   const [mode, setMode] = useState<"idle" | "form">("idle");
   const [isRegister, setIsRegister] = useState(false);
   const [formUsername, setFormUsername] = useState("");
@@ -30,6 +32,8 @@ export function AuthButtons() {
     setFormSubmitting(true);
     setFormError("");
 
+    addMessage(`>_ INITIATING TRADITIONAL AUTHENTICATION...`, "text-hypeNeon", 10);
+
     const result = isRegister
       ? await register(formUsername.trim(), formPassword)
       : await login(formUsername.trim(), formPassword);
@@ -37,10 +41,12 @@ export function AuthButtons() {
     setFormSubmitting(false);
 
     if (result.success) {
+      addMessage(`[OK] ACCESS GRANTED FOR USER: ${formUsername.trim()}`, "text-hypeNeon", 10);
       setMode("idle");
       setFormUsername("");
       setFormPassword("");
     } else {
+      addMessage(`[ERROR] AUTHENTICATION FAILED: ${result.error}`, "text-spiteCrimson", 10);
       setFormError(result.error || "Something went wrong.");
     }
   };
@@ -68,30 +74,36 @@ export function AuthButtons() {
   const executeWalletLogin = useCallback(async () => {
     if (!publicKey || !signMessage) return;
     try {
+      addMessage(`>_ WALLET DETECTED: ${publicKey.toBase58()}`, "text-hypeNeon", 10);
       const challengeRes = await fetch("/api/auth/challenge", { method: "POST" });
       const { challenge } = await challengeRes.json();
       const message = `Login to FuckYouElon: ${challenge}`;
 
+      addMessage(`>_ REQUESTING SECURE SIGNATURE...`, "text-hypeNeon", 20);
       const encodedMessage = new TextEncoder().encode(message);
       const signatureBytes = await signMessage(encodedMessage);
       const signature = bs58.encode(signatureBytes);
 
+      addMessage(`[OK] SIGNATURE VERIFIED: ${signature.substring(0, 16)}...`, "text-hypeNeon", 5);
       const result = await loginWithWallet(publicKey.toBase58(), signature, message);
 
       if (result.success) {
+        addMessage(`[OK] WALLET AUTHENTICATED SUCCESSFULLY`, "text-hypeNeon", 10);
         setMode("idle");
         setFormUsername("");
         setFormPassword("");
       } else {
+        addMessage(`[ERROR] WALLET AUTHENTICATION FAILED`, "text-spiteCrimson", 10);
         setFormError(result.error || "Wallet login failed.");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Wallet login cancelled or failed.";
+      addMessage(`[ERROR] ${msg.toUpperCase()}`, "text-spiteCrimson", 10);
       setFormError(msg);
     } finally {
       setFormSubmitting(false);
     }
-  }, [publicKey, signMessage, loginWithWallet]);
+  }, [publicKey, signMessage, loginWithWallet, addMessage]);
 
   // When wallet connects after the user clicked "Login with Wallet",
   // automatically sign and login.
@@ -118,16 +130,19 @@ export function AuthButtons() {
     const preferred = wallets.find(w => w.adapter.name === "Phantom") ?? wallets[0];
     if (preferred) {
       try {
+        addMessage(`>_ INITIATING WALLET CONNECTION...`, "text-hypeNeon", 10);
         select(preferred.adapter.name);
         await connect();
         // Connection triggers the useEffect above → executeWalletLogin
       } catch {
         // User rejected or wallet not available
+        addMessage(`[ERROR] WALLET CONNECTION REJECTED`, "text-spiteCrimson", 10);
         setFormError("Wallet connection failed. Make sure Phantom or Solflare is installed.");
         setFormSubmitting(false);
         walletLoginPending.current = false;
       }
     } else {
+      addMessage(`[ERROR] NO SOLANA WALLET DETECTED`, "text-spiteCrimson", 10);
       setFormError("No Solana wallet detected. Install Phantom or Solflare.");
       setFormSubmitting(false);
       walletLoginPending.current = false;
@@ -168,7 +183,11 @@ export function AuthButtons() {
           </button>
         )}
         <button
-          onClick={logout}
+          onClick={async () => {
+            addMessage(`>_ TERMINATING SECURE SESSION...`, "text-yellow-400", 15);
+            await logout();
+            addMessage(`[OK] SESSION DESTROYED`, "text-yellow-400", 10);
+          }}
           className="cursor-pointer border-2 border-glitchGray px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-mono font-bold text-chop-muted transition-all hover:border-spiteCrimson hover:text-spiteCrimson active:translate-x-0.5 active:translate-y-0.5 flex-shrink-0"
         >
           Logout

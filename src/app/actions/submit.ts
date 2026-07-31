@@ -1,15 +1,14 @@
 "use server";
 
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { getOrCreateAssociatedTokenAccount, transfer, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import bs58 from "bs58";
-import type { SubmitFreeResponse, SubmitPaidResponse, SubmitNominationResponse, NominationEntry } from "../../lib/types";
+import { Connection } from "@solana/web3.js";
+import type { SubmitFreeResponse, SubmitPaidResponse, NominationEntry } from "../../lib/types";
 import { NOMINATION_WEIGHT_FREE, NOMINATION_WEIGHT_MULTIPLIER } from "../../lib/types";
-import { ensureEpoch, checkEpochTransition } from "./epoch";
+import { ensureEpoch, checkEpochTransition, getBurnPerMessage } from "./epoch";
 import { LocalDatabases, Query, getDb as getRawDb } from "../../lib/local-db";
 import { getSessionUserId } from "../../lib/session";
 import { getUserById } from "../../lib/users";
 import { verifySolution } from "../../lib/pow";
+import { burnCHOP, CHOP_UNIT, getRpcUrl, verifyChopPayment } from "../../lib/solana";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -115,152 +114,32 @@ async function checkModeration(text: string): Promise<boolean> {
   }
 }
 
-// ─── CHOP Token Helpers ─────────────────────────────────────────────────────────
+// ─── Burn for Free Message ──────────────────────────────────────────────────────
 
-const CHOP_MINT = new PublicKey(process.env.NEXT_PUBLIC_CHOP_MINT || "6gup5Cper6pmfNfsGps3MizgpsG3q6uvzobGdUFapump");
-const CHOP_DECIMALS = parseInt(process.env.NEXT_PUBLIC_CHOP_DECIMALS || "6", 10);
-const CHOP_UNIT = Math.pow(10, CHOP_DECIMALS); // 1 CHOP = 10^6 raw units
-const BURN_ADDRESS = new PublicKey(process.env.CHOP_BURN_ADDRESS || "11111111111111111111111111111111");
-
-/** Load the treasury wallet keypair from the secret key env var (base58). */
-function getTreasuryWallet(): Keypair | null {
-  const secret = process.env.CHOP_TREASURY_SECRET_KEY;
-  if (!secret) return null;
+/**
+ * Burn the oracle-defined amount of CHOP for a free message.
+ * Single source of truth: getBurnPerMessage() from epoch.ts + burnCHOP() from solana.ts.
+ */
+async function burnForFreeMessage(): Promise<string | null> {
+  // Oracle-defined burn rate
+  let burnPerMessage: number;
   try {
-    const decoded = bs58.decode(secret);
-    return Keypair.fromSecretKey(decoded);
+    burnPerMessage = await getBurnPerMessage();
   } catch {
-    console.error("[CHOP] Failed to decode treasury secret key");
+    console.warn("[CHOP] Failed to fetch burn-per-message — skipping burn");
     return null;
   }
-}
 
-/**
- * Send 1 CHOP from the treasury wallet to the burn address.
- * Called after a free message is posted. Non-blocking — fire-and-forget.
- */
-async function burnOneChopForFreeMessage(): Promise<void> {
-  const treasury = getTreasuryWallet();
-  if (!treasury) {
-    console.warn("[CHOP] No treasury wallet configured — skipping burn for free message");
-    return;
+  if (burnPerMessage <= 0) {
+    console.warn("[CHOP] Oracle burn rate is 0 — skipping burn");
+    return null;
   }
 
-  const rpc = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-  const connection = new Connection(rpc);
+  const amountRaw = BigInt(Math.floor(burnPerMessage * CHOP_UNIT));
+  if (amountRaw <= BigInt(0)) return null;
 
-  try {
-    // Get (or create) treasury's associated token account for CHOP
-    const treasuryAta = await getOrCreateAssociatedTokenAccount(
-      connection,
-      treasury,          // payer for rent if ATA doesn't exist
-      CHOP_MINT,
-      treasury.publicKey,
-      false,             // allowOwnerOffCurve
-      undefined,         // commitment
-      undefined,         // confirmOptions
-      TOKEN_2022_PROGRAM_ID, // CHOP is pump.fun → Token 2022
-    );
-
-    const balance = Number(treasuryAta.amount);
-    if (balance < CHOP_UNIT) {
-      console.warn(`[CHOP] Treasury balance too low: ${balance / CHOP_UNIT} CHOP — skipping burn`);
-      return;
-    }
-
-    // Transfer 1 CHOP to the burn address
-    const sig = await transfer(
-      connection,
-      treasury,
-      treasuryAta.address,
-      BURN_ADDRESS,
-      treasury.publicKey,
-      BigInt(CHOP_UNIT),
-      undefined,              // multiSigners
-      undefined,              // confirmOptions
-      TOKEN_2022_PROGRAM_ID,  // CHOP is Token 2022
-    );
-
-    console.log(`[CHOP] Burned 1 CHOP for free message — tx: ${sig}`);
-  } catch (err) {
-    console.error("[CHOP] Burn failed:", err);
-    // Swallow — don't block the user's message posting
-  }
-}
-
-/**
- * Verify a CHOP payment transaction on-chain.
- *
- * Tries two approaches:
- * 1. Parsed instructions (jsonParsed) — cleanest, but RPC may not parse Token-2022
- * 2. preTokenBalances / postTokenBalances net change — always works, runtime-enforced
- *
- * Returns the transferred amount in CHOP. Throws on any failure.
- */
-async function verifyChopPayment(
-  txSignature: string,
-): Promise<{ amount: number; sender: string }> {
-  const CHOP_MINT_STR = CHOP_MINT.toBase58();
-  const receiverStr = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET;
-  if (!receiverStr) throw new Error("Treasury wallet not configured.");
-
-  const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-
-  console.log("[CHOP verify] Fetching tx:", txSignature.slice(0, 12) + "...");
-
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0", id: 1, method: "getTransaction",
-      params: [txSignature, { encoding: "jsonParsed", maxSupportedTransactionVersion: 0, commitment: "confirmed" }],
-    }),
-  });
-
-  if (!res.ok) throw new Error(`RPC HTTP ${res.status}`);
-  const body = await res.json();
-  if (body.error) throw new Error(`RPC: ${body.error.message || JSON.stringify(body.error)}`);
-  const tx = body.result;
-  if (!tx) throw new Error("Tx not found on-chain yet.");
-  if (tx.meta?.err) throw new Error(`Tx failed: ${JSON.stringify(tx.meta.err)}`);
-
-  // Check parsed instructions for Token-2022 transfer → treasury
-  const ixs = tx.transaction?.message?.instructions ?? [];
-  for (const ix of ixs) {
-    const info = ix.parsed?.info;
-    if (!info) continue;
-    const type = ix.parsed?.type;
-    if (type !== "transfer" && type !== "transferChecked") continue;
-    if (info.mint !== CHOP_MINT_STR) continue;
-    if (info.destination !== receiverStr) continue;
-
-    const amount = info.tokenAmount?.uiAmount ?? Number(info.amount ?? 0) / 1_000_000;
-    const sender = info.authority || info.source || "";
-    console.log("[CHOP verify] ✅", amount, "CHOP from", sender.slice(0, 10) + "...");
-    return { amount, sender };
-  }
-
-  // Fallback: balance diff
-  const preBals: any[] = tx.meta?.preTokenBalances ?? [];
-  const postBals: any[] = tx.meta?.postTokenBalances ?? [];
-  const preMap = new Map<number, number>();
-  for (const b of preBals) {
-    if (b.mint === CHOP_MINT_STR && b.owner === receiverStr) {
-      preMap.set(b.accountIndex, Number(b.uiTokenAmount?.uiAmount ?? 0));
-    }
-  }
-  let net = 0;
-  for (const b of postBals) {
-    if (b.mint === CHOP_MINT_STR && b.owner === receiverStr) {
-      net += Number(b.uiTokenAmount?.uiAmount ?? 0) - (preMap.get(b.accountIndex) ?? 0);
-    }
-  }
-  if (net > 0) {
-    console.log("[CHOP verify] ✅ Balance diff:", net, "CHOP");
-    return { amount: net, sender: "" };
-  }
-
-  throw new Error(`No CHOP transfer to treasury. Mint: ${CHOP_MINT_STR.slice(0, 8)}...`);
+  const connection = new Connection(getRpcUrl());
+  return burnCHOP(connection, amountRaw);
 }
 
 // ─── Wallet profiles — single source of truth for all leaderboards ──────────────
@@ -370,15 +249,14 @@ export async function submitFreeMessage(formData: FormData): Promise<SubmitFreeR
       await createNomination(db, targetName, authorId, authorName, (msgDoc as any).id, 0);
     }
 
-    // Burn 1 CHOP from treasury for this free message (non-blocking)
-    burnOneChopForFreeMessage();
+    // Burn oracle-defined CHOP from treasury for this free message
+    const burnTx = await burnForFreeMessage();
 
-    // Ensure epoch exists + check if threshold crossed (non-blocking)
+    // Ensure epoch exists + check if threshold crossed
     ensureEpoch();
     checkEpochTransition();
 
-    // Always return success to the client
-    return { success: true };
+    return { success: true, burnTx: burnTx || undefined };
   } catch (err) {
     console.error("submitFreeMessage error:", err);
     return { success: false, error: "Something went wrong. Please try again." };
@@ -449,14 +327,14 @@ export async function submitComment(formData: FormData): Promise<SubmitFreeRespo
       await createNomination(db, targetName, authorId, authorName, (commentDoc as any).id, 0);
     }
 
-    // Burn 1 CHOP from treasury for this free comment (non-blocking)
-    burnOneChopForFreeMessage();
+    // Burn oracle-defined CHOP from treasury for this free comment
+    const burnTx = await burnForFreeMessage();
 
-    // Ensure epoch exists + check if threshold crossed (non-blocking)
+    // Ensure epoch exists + check if threshold crossed
     ensureEpoch();
     checkEpochTransition();
 
-    return { success: true };
+    return { success: true, burnTx: burnTx || undefined };
   } catch (err) {
     console.error("submitComment error:", err);
     return { success: false, error: "Something went wrong. Please try again." };

@@ -1,0 +1,18 @@
+[Unit]
+Description=FuckYouElon CHOP Watcher
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/FYE
+Environment=NODE_ENV=production
+EnvironmentFile=/FYE/.env.local
+ExecStart=/usr/local/bin/node /FYE/scripts/watcher.cjs
+Restart=always
+RestartSec=5
+StandardOutput=append:/FYE/logs/watcher.log
+StandardError=append:/FYE/logs/watcher-error.log
+
+[Install]
+WantedBy=multi-user.target
