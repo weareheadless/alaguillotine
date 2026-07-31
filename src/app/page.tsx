@@ -194,20 +194,21 @@ export default function HomePage() {
       <NavBar />
 
       <main className="relative z-10 mx-auto pb-16 md:pb-8">
-        {/* ─── Meme-first hero (above the guillotine on every screen) ── */}
-        <div className="mt-4 md:mt-6 px-6 text-center">
-          <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-sheetWhite animate-glitch-text leading-tight">
-            PISSED OFF AT <span className="text-spiteCrimson">ELON</span>?<br className="sm:hidden" /> GET IN LINE.
-          </h1>
-          <p className="mt-3 text-[11px] md:text-sm font-mono text-chop-muted leading-relaxed">
-            // Post your beef for free. Every message inches the blade closer to judgment.
-          </p>
-          <p className="mt-2 inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-3 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-hypeNeon">
-            NO ACCOUNT. NO WALLET. NO PRISON.
-          </p>
-        </div>
         {/* ─── Sticky Guillotine + Everything Else ────────────────────── */}
         <HeroCounter
+          topSlot={
+            <div className="text-center">
+              <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-sheetWhite animate-glitch-text leading-tight">
+                PISSED OFF AT <span className="text-spiteCrimson">ELON</span>?<br className="sm:hidden" /> GET IN LINE.
+              </h1>
+              <p className="mt-3 text-[11px] md:text-sm font-mono text-chop-muted leading-relaxed">
+                // Post your beef for free. Every message inches the blade closer to judgment.
+              </p>
+              <p className="mt-2 inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-3 py-1 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-hypeNeon">
+                NO ACCOUNT. NO WALLET. NO PRISON.
+              </p>
+            </div>
+          }
           mobileRightSlot={
             <div className="h-full w-full flex flex-col gap-2">
               <div className="flex-shrink-0 h-[120px] w-full overflow-hidden border-2 border-black bg-canvasBlack shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative group">

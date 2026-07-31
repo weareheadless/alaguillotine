@@ -9,7 +9,7 @@ import { EXECUTION_THRESHOLD } from "../lib/constants";
 import { fetchSidebarMetrics } from "../app/actions/metrics";
 import type { SidebarMetrics } from "../app/actions/metrics";
 
-export function HeroCounter({ children, mobileRightSlot }: { children?: React.ReactNode, mobileRightSlot?: React.ReactNode }) {
+export function HeroCounter({ children, mobileRightSlot, topSlot }: { children?: React.ReactNode, mobileRightSlot?: React.ReactNode, topSlot?: React.ReactNode }) {
   const [total, setTotal] = useState<number | null>(null);
   const [dropped, setDropped] = useState(false);
   const [bumping, setBumping] = useState(false);
@@ -209,9 +209,15 @@ export function HeroCounter({ children, mobileRightSlot }: { children?: React.Re
       ref={mainRef}
       className="relative mx-auto mt-4 w-full px-6"
     >
-      <div className="flex flex-col gap-0 md:flex-row border-b-4 border-black md:border-b-0">
+      <div className="flex flex-col gap-0 md:grid md:grid-cols-[minmax(280px,280px)_minmax(0,1fr)] border-b-4 border-black md:border-b-0">
+        {/* ─── Meme-first hero: top on mobile, top of right column on desktop ── */}
+        {topSlot && (
+          <div className="order-1 md:order-none md:col-start-2 md:row-start-1 mt-4 md:mt-6 md:pl-6">
+            {topSlot}
+          </div>
+        )}
         {/* ─── Left: Sidebar (Horizontal on Mobile, Vertical on Desktop) ─ */}
-        <div className="relative flex flex-col md:items-center bg-sheetWhite md:border-r-4 border-black md:sticky md:top-20 md:h-[calc(100vh-5rem)] md:min-w-[280px] md:max-w-[280px] md:flex-shrink-0 md:self-stretch">
+        <div className="order-2 md:order-none md:col-start-1 md:row-start-1 md:row-span-2 relative flex flex-col md:items-center bg-sheetWhite md:border-r-4 border-black md:sticky md:top-20 md:h-[calc(100vh-5rem)] md:min-w-[280px] md:max-w-[280px] md:flex-shrink-0 md:self-stretch">
           {/* Grid overlay */}
           <div className="absolute inset-0 z-0 grid-overlay pointer-events-none opacity-30" />
 
@@ -445,7 +451,7 @@ export function HeroCounter({ children, mobileRightSlot }: { children?: React.Re
         </div>
 
         {/* ─── Right: Content ──────────────────────────────────────── */}
-        <div className="flex w-full min-w-0 flex-1 flex-col md:pl-6">
+        <div className="order-3 md:order-none md:col-start-2 md:row-start-2 flex w-full min-w-0 flex-1 flex-col md:pl-6">
           {children}
         </div>
       </div>
