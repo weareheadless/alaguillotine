@@ -8,30 +8,44 @@ export default function WhitepaperPage() {
       {/* ─── Navigation ───────────────────────────────────────────────── */}
       <NavBar />
 
-      {/* ─── Hero Header ──────────────────────────────────────────────── */}
+      {/* ─── Hero Header: THE MANIFESTO ─────────────────────────────────── */}
       <section className="relative overflow-hidden border-b border-[#343536]">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdib3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAwaDQwdjQwSDB6IiBmaWxsPSJub25lIiBzdHJva2U9IiMxZTI5M2IiIHN0cm9rZS13aWR0aD0iMC41Ii8+PC9zdmc+')] opacity-40" />
 
-        <div className="relative mx-auto max-w-5xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           {/* Status badges */}
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#FF4500]/30 bg-[#FF4500]/10 px-4 py-1.5">
               <span className="h-2 w-2 rounded-full bg-[#FF4500] animate-pulse" />
               <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#FF4500]">
-                ⚠️ Status: Funding Secured.
+                ⚠️ Status: Rage is renewable.
               </span>
             </div>
           </div>
 
           <h1 className="text-5xl font-black tracking-tight sm:text-6xl lg:text-7xl">
-            THE <span className="text-[#FF4500]">$CHOP</span> PROTOCOL
+            THE <span className="text-[#FF4500]">MANIFESTO</span>
           </h1>
           <p className="mt-4 max-w-3xl text-lg font-light italic leading-relaxed text-[#818384] sm:text-xl">
-            A Whitepaper on Liquid Democracy, AI-Augmented Governance,
-            &amp; The First Economic Experiment Powered Entirely by Collective Spite
+            This is not a whitepaper. Whitepapers are how they tell you what they&rsquo;re going to take from you.
+            This is a declaration &mdash; for the angry, the done, and everyone who&rsquo;s been told
+            &ldquo;it&rsquo;s complicated&rdquo; one too many times.
           </p>
 
-          <div className="mt-8 h-px w-24 bg-[#FF4500]/50" />
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a
+              href="#manifesto"
+              className="inline-flex items-center gap-2 rounded-sm border-2 border-[#FF4500] bg-[#FF4500] px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-black transition-colors hover:bg-black hover:text-[#FF4500]"
+            >
+              ⚔️ The Manifesto
+            </a>
+            <a
+              href="#protocol"
+              className="inline-flex items-center gap-2 rounded-sm border-2 border-[#343536] bg-[#343536]/50 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-[#D7DADC] transition-colors hover:border-[#FF4500] hover:text-[#FF4500]"
+            >
+              🔧 The CHOP Protocol
+            </a>
+          </div>
         </div>
       </section>
 
@@ -58,8 +72,148 @@ export default function WhitepaperPage() {
         </div>
       </section>
 
-      {/* ─── Section 1: THE DOORWAY ────────────────────────────────────── */}
-      <Section id="doorway" title="1. The Doorway: 15 Years of Unpunished Vaporware">
+      {/* ═══════════════ PART I — THE MANIFESTO ═══════════════ */}
+      <PartLabel
+        id="manifesto"
+        label="PART I — THE MANIFESTO"
+        subtitle="For the angry. For the done. For everyone who's been told 'it's complicated' one too many times."
+      />
+
+      {/* ─── Manifesto 1: THE PROBLEM ─────────────────────────────────── */}
+      <ManifestoSection id="problem" title="1. The Problem: They Own Everything. Including the Story.">
+        <div className="space-y-6">
+          <p>
+            Somewhere along the way we agreed to be managed. We&rsquo;re told what to fear, what to
+            buy, who to hate &mdash; by people who own the algorithms, the media, the rockets, and most
+            of the politicians. They named a child after a mathematician and a car after a terrorist
+            because, in their world, branding is the only truth that matters.
+          </p>
+          <p>
+            The last fifteen years were a masterclass: vaporware sold as destiny, debt sold as freedom,
+            oligarchy sold as meritocracy. Every broken promise gets a press release. Every failure gets
+            renamed &ldquo;disruption,&rdquo; and we&rsquo;re asked to be patient.
+          </p>
+          <div className="rounded-lg border-l-4 border-[#FF4500] bg-[#FF4500]/5 p-5">
+            <p className="text-xl font-semibold text-[#D7DADC]">
+              We have been the audience of their confidence trick for long enough.
+            </p>
+          </div>
+          <p>
+            This site exists because &ldquo;being reasonable&rdquo; has been the most expensive decision
+            of our generation.
+          </p>
+        </div>
+      </ManifestoSection>
+
+      {/* ─── Manifesto 2: THE IDEA ────────────────────────────────────── */}
+      <ManifestoSection id="idea" title="2. The Idea: Rage Is the Only Renewable Resource Left.">
+        <div className="space-y-6">
+          <p>
+            Every empire runs on a resource. Oil ran the last one. Data runs this one. But there&rsquo;s
+            a resource they forgot to privatize:{" "}
+            <span className="font-bold text-[#FF4500]">rage</span>.
+          </p>
+          <p>
+            Rage is renewable. It regenerates every time a CEO announces layoffs as a &ldquo;synergy.&rdquo;
+            Every time a promise evaporates into the next promise. Every time a billionaire explains
+            that the economy is doing great from the deck of a yacht the size of your street.
+          </p>
+          <p>You can&rsquo;t short it. You can&rsquo;t mine it out. You can only point it.</p>
+          <div className="rounded-lg border-l-4 border-[#FF4500] bg-[#FF4500]/5 p-5">
+            <p className="text-xl font-semibold text-[#D7DADC]">
+              What happens when the people who&rsquo;ve been managed start organizing the one thing
+              they were never able to take from us?
+            </p>
+          </div>
+        </div>
+      </ManifestoSection>
+
+      {/* ─── Manifesto 3: THE DEMOCRACY ───────────────────────────────── */}
+      <ManifestoSection id="democracy" title="3. The Democracy: One Human. One Voice.">
+        <div className="space-y-6">
+          <p>
+            Every system they run is a pyramid: the more you have, the more you count. We&rsquo;re
+            running the opposite one.
+          </p>
+          <p>
+            On this site, one person gets one voice. It doesn&rsquo;t matter what you own, what you
+            bought, or what you couldn&rsquo;t afford to buy. The whale and the broke student vote once
+            each. The people who fund the machine don&rsquo;t get to steer it &mdash; that&rsquo;s not a bug,
+            it&rsquo;s the entire point.
+          </p>
+          <p>
+            There&rsquo;s no gatekeeper. No KYC. No &ldquo;community manager&rdquo; deciding who&rsquo;s
+            worthy. You participate by showing up with a sentence&rsquo;s worth of anger and the guts to
+            say it out loud. The rich don&rsquo;t get more votes. Nobody gets more votes. That&rsquo;s a
+            line we&rsquo;re drawing, not a feature we&rsquo;re selling.
+          </p>
+          <div className="rounded-lg border-l-4 border-[#FF4500] bg-[#FF4500]/5 p-5">
+            <p className="text-xl font-semibold text-[#D7DADC]">
+              We are testing whether people can govern themselves when capital is decoupled from power.
+              So far, the results are more democratic than anything your government runs.
+            </p>
+          </div>
+        </div>
+      </ManifestoSection>
+
+      {/* ─── Manifesto 4: MONEY AS IT WAS INTENDED ────────────────────── */}
+      <ManifestoSection id="money" title="4. Money as It Was Intended: A Tool of the Commons.">
+        <div className="space-y-6">
+          <p>
+            Money was invented as a coordination tool. Then it was captured by people who turned it into
+            a hoard &mdash; and then into a weapon pointed at the rest of us. Every crypto project since
+            has been a reproduction of that same scam: new hoard, new marketing, same pyramid.
+          </p>
+          <p>
+            We use money the way it was meant to be used: as a tool of the commons. Here, tokens get
+            burned on purpose. Money funds free speech for people who can&rsquo;t afford it. Money tries
+            to buy votes and discovers votes aren&rsquo;t for sale. It&rsquo;s money behaving like a
+            citizen instead of a king.
+          </p>
+          <p>
+            We will not promise you returns. We will not promise you a moon. If you want to get rich,
+            we are not your product &mdash; you are our audience, and the show is about the fact that
+            you&rsquo;ve been the product your entire life.
+          </p>
+          <div className="rounded-lg border-l-4 border-[#FF4500] bg-[#FF4500]/5 p-5">
+            <p className="text-xl font-semibold text-[#D7DADC]">
+              This is money with a purpose: to be spent, burned, and shared &mdash; never hoarded,
+              never worshipped.
+            </p>
+          </div>
+        </div>
+      </ManifestoSection>
+
+      {/* ─── Manifesto 5: THE LINE ────────────────────────────────────── */}
+      <ManifestoSection id="line" title="5. The Line: What We Are Not.">
+        <div className="space-y-6">
+          <p>
+            There is nothing to rug. There is no roadmap to a Lambo. There is no anonymous
+            &ldquo;team&rdquo; waiting to dump on you. There is a blade, a counter, and a community
+            where everyone votes with equal weight.
+          </p>
+          <p>
+            If that sounds like less of a crypto project than you&rsquo;re used to &mdash; congratulations,
+            you&rsquo;ve understood the joke. Every &ldquo;serious&rdquo; project promised you the world
+            and delivered a spreadsheet. We promise you nothing and hand you a guillotine.
+          </p>
+          <div className="rounded-lg border-l-4 border-[#FF4500] bg-[#FF4500]/5 p-5">
+            <p className="text-xl font-semibold text-[#D7DADC]">
+              Which is, frankly, more useful.
+            </p>
+          </div>
+        </div>
+      </ManifestoSection>
+
+      {/* ═══════════════ PART II — THE CHOP PROTOCOL ═══════════════ */}
+      <PartLabel
+        id="protocol"
+        label="PART II — THE CHOP PROTOCOL"
+        subtitle="For the curious and the degenerates: the machinery behind the manifesto. Mechanics, tokenomics, the oracle, the experiment — in uncomfortable detail."
+      />
+
+      {/* ─── Section 6: THE DOORWAY ────────────────────────────────────── */}
+      <Section id="doorway" title="6. The Doorway: 15 Years of Unpunished Vaporware">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             To understand $CHOP, you must first understand the macroeconomic
@@ -102,7 +256,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 2: PROOF-OF-SPITE ──────────────────────────────────── */}
-      <Section id="pos" title="2. Proof-of-Spite: The First Renewable Consensus Engine">
+      <Section id="pos" title="7. Proof-of-Spite: The First Renewable Consensus Engine">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             $CHOP is the world&rsquo;s first asset backed by the only truly
@@ -140,7 +294,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 3: THE DIGITAL GUILLOTINE ─────────────────────────── */}
-      <Section id="guillotine" title="3. The Digital Guillotine (How It Works)">
+      <Section id="guillotine" title="8. The Digital Guillotine (How It Works)">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             $CHOP provides a public execution platform for your discontent. It
@@ -200,7 +354,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 4: LIQUID DEMOCRACY & THE AI ORACLE ──────────────────── */}
-      <Section id="democracy" title="4. Liquid Democracy &amp; The AI Oracle">
+      <Section id="democracy" title="9. Liquid Democracy &amp; The AI Oracle">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             Here is where $CHOP departs from every crypto project ever launched.
@@ -269,7 +423,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 5: THE CLASS TRAITORS & CAPITAL DEFECTORS ──────────── */}
-      <Section id="castes" title="5. The Two Castes: Class Traitors &amp; Capital Defectors">
+      <Section id="castes" title="10. The Two Castes: Class Traitors &amp; Capital Defectors">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             The $CHOP ecosystem has two citizen classes, and which one you fall
@@ -318,7 +472,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 6: HYPER-INFLATIONARY HYPE ────────────────────────── */}
-      <Section id="hype" title="6. Hyper-Inflationary Hype &amp; &ldquo;Over-The-Air&rdquo; Disappointment">
+      <Section id="hype" title="11. Hyper-Inflationary Hype &amp; &ldquo;Over-The-Air&rdquo; Disappointment">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <p>
             Deflation alone isn&rsquo;t enough to mimic the billionaire business
@@ -366,7 +520,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 7: ROADMAP ────────────────────────────────────────── */}
-      <Section id="roadmap" title="7. Roadmap (The Experiment Unfolds)">
+      <Section id="roadmap" title="12. Roadmap (The Experiment Unfolds)">
         <div className="relative">
           <div className="absolute left-5 top-0 h-full w-px bg-gradient-to-b from-[#FF4500] via-[#FF4500]/30 to-transparent" />
 
@@ -424,7 +578,7 @@ export default function WhitepaperPage() {
       </Section>
 
       {/* ─── Section 8: DISCLAIMERS ──────────────────────────────────────── */}
-      <Section id="disclaimers" title="8. Disclaimers (The Only Serious Part)">
+      <Section id="disclaimers" title="13. Disclaimers (The Only Serious Part)">
         <div className="space-y-5 text-[#D7DADC] leading-relaxed">
           <div className="rounded-lg border border-[#FF4500]/20 bg-[#FF4500]/5 p-5">
             <p className="text-sm leading-relaxed text-[#D7DADC]">
@@ -517,6 +671,68 @@ function Section({
         </h2>
         <div className="mt-2 mb-8 h-px w-16 bg-[#FF4500]/50" />
         {children}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Part Divider (e.g. PART I — THE MANIFESTO) ─────────────────────────────── */
+
+function PartLabel({
+  id,
+  label,
+  subtitle,
+}: {
+  id: string;
+  label: string;
+  subtitle?: string;
+}) {
+  return (
+    <section
+      id={id}
+      className="scroll-mt-16 border-b border-[#343536] bg-[#FF4500]/[0.04] py-10 sm:py-12"
+    >
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <p className="text-xs font-black uppercase tracking-[0.35em] text-[#FF4500]">
+          {label}
+        </p>
+        {subtitle && (
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#818384]">
+            {subtitle}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Manifesto Section (punchy, big type — Part I style) ────────────────────── */
+
+function ManifestoSection({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      className="scroll-mt-16 border-b border-[#343536] py-14 sm:py-16"
+    >
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[#FF4500]">
+          The Manifesto
+        </p>
+        <h2 className="mt-2 text-3xl font-black tracking-tight text-[#D7DADC] sm:text-4xl">
+          {title}
+        </h2>
+        <div className="mt-3 mb-8 h-1 w-16 bg-[#FF4500]" />
+        <div className="space-y-6 text-lg leading-relaxed text-[#D7DADC]">
+          {children}
+        </div>
       </div>
     </section>
   );
