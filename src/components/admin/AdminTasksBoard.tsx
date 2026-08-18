@@ -15,6 +15,7 @@ interface Task {
   status: "open" | "in_progress" | "done";
   note?: string;
   progress?: string;
+  source?: string;
   updated?: number;
   subtasks?: Subtask[];
 }
@@ -96,6 +97,9 @@ function TaskRow({
               {task.name}
             </span>
             <Pill tone={STATUS_TONE[task.status] ?? "gray"}>{task.status.replace("_", " ")}</Pill>
+            {task.source && task.source !== "human" && (
+              <Pill tone="gray">{task.source === "self" ? "SELF" : task.source.toUpperCase()}</Pill>
+            )}
             {subs.length > 0 && (
               <Pill tone={allDone && task.status !== "done" ? "yellow" : "gray"}>{subtaskCount(task)}</Pill>
             )}
