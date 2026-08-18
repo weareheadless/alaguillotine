@@ -16,6 +16,8 @@ interface Task {
   note?: string;
   progress?: string;
   source?: string;
+  deadline?: number | null;
+  repeat_days?: number;
   updated?: number;
   subtasks?: Subtask[];
 }
@@ -56,11 +58,20 @@ async function api(path: string, body?: Record<string, unknown>) {
   return j;
 }
 
-function subtaskCount(t: Task): string {
-  const subs = t.subtasks ?? [];
-  if (!subs.length) return "";
-  const done = subs.filter((s) => s.done).length;
-  return `✓ ${done}/${subs.length}`;
+function deadlineInfo(t: Task): { label: string; overdue: boolean; soon: boolean } | null {
+  const dl = t.deadline;
+  if (!dl) return null;
+  const now = Date.now() / 1000;
+  const diffDays = Math.ceil((dl - now) / 86400);
+  if (diffDays < 0) return { label: `overdue ${-diffDays}d`, overdue: true, soon: false };
+  if (diffDays === 0) return { label: "due today", overdue: false, soon: true };
+  if (diffDays === 1) return { label: "due tomorrow", overdue: false, soon: true };
+  return { label: `due in ${diffDays}d`, overdue: false, soon: false };
+}
+
+function fmtDeadline(dl: number): string {
+  const d = new Date(dl * 1000);
+  return d.toISOString().slice(0, 10);
 }
 
 function TaskRow({
@@ -72,27 +83,35 @@ function TaskRow({
   onMutate: (body: Record<string, unknown>) => Promise<void>;
   busy: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const [progress, setProgress] = useState("");
   const [newSub, setNewSub] = useState("");
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [dlInput, setDlInput] = useState(task.deadline ? fmtDeadline(task.deadline) : "");
+  const [repeatInput, setRepeatInput] = useState(task.repeat_days ? String(task.repeat_days) : "");
   const subs = task.subtasks ?? [];
   const doneCount = subs.filter((s) => s.done).length;
   const allDone = subs.length > 0 && doneCount === subs.length;
+  const dl = deadlineInfo(task);
+
+  function saveMeta() {
+    const body: Record<string, unknown> = {
+      action: "update",
+      name: task.name,
+      project: task.project,
+    };
+    if (dlInput.trim()) body.deadline = dlInput.trim();
+    else body.deadline = null;
+    if (repeatInput.trim()) body.repeat_days = Number(repeatInput.trim());
+    else body.repeat_days = 0;
+    onMutate(body);
+    setEditingMeta(false);
+  }
 
   return (
     <li className="border border-glitchGray bg-black/60">
       <div className="flex items-start gap-2 px-2 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            {subs.length > 0 && (
-              <button
-                onClick={() => setOpen((o) => !o)}
-                className="text-[10px] text-chop-muted hover:text-hypeNeon"
-                title="toggle subtasks"
-              >
-                {open ? "▾" : "▸"}
-              </button>
-            )}
             <span className={`text-xs font-bold ${task.status === "done" ? "text-chop-muted line-through" : "text-sheetWhite"}`}>
               {task.name}
             </span>
@@ -100,19 +119,54 @@ function TaskRow({
             {task.source && task.source !== "human" && (
               <Pill tone="gray">{task.source === "self" ? "SELF" : task.source.toUpperCase()}</Pill>
             )}
-            {subs.length > 0 && (
-              <Pill tone={allDone && task.status !== "done" ? "yellow" : "gray"}>{subtaskCount(task)}</Pill>
+            {dl && (
+              <Pill tone={dl.overdue ? "red" : dl.soon ? "yellow" : "gray"}>{dl.label}</Pill>
             )}
+            {task.repeat_days ? (
+              <Pill tone="gray">every {task.repeat_days}d</Pill>
+            ) : null}
           </div>
           {task.note && <p className="mt-0.5 text-[10px] leading-snug text-chop-muted">{task.note}</p>}
           {task.progress && task.status !== "done" && (
             <p className="mt-0.5 text-[10px] leading-snug text-hypeNeon/80">{task.progress}</p>
           )}
-          {typeof task.updated === "number" && (
-            <p className="mt-0.5 text-[9px] uppercase tracking-wider text-chop-muted">
-              updated {relTs(task.updated)}
-            </p>
-          )}
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
+            {typeof task.updated === "number" && (
+              <span className="text-[9px] uppercase tracking-wider text-chop-muted">
+                updated {relTs(task.updated)}
+              </span>
+            )}
+            {!editingMeta ? (
+              <button
+                onClick={() => setEditingMeta(true)}
+                className="text-[9px] uppercase tracking-wider text-chop-muted underline decoration-dotted hover:text-hypeNeon"
+              >
+                set deadline / repeat
+              </button>
+            ) : (
+              <span className="flex flex-wrap items-center gap-1">
+                <input
+                  type="date"
+                  value={dlInput}
+                  onChange={(e) => setDlInput(e.target.value)}
+                  className="border border-glitchGray bg-black px-1 py-0.5 text-[10px] text-sheetWhite focus:border-hypeNeon focus:outline-none"
+                />
+                <input
+                  value={repeatInput}
+                  onChange={(e) => setRepeatInput(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="every N days"
+                  className="w-20 border border-glitchGray bg-black px-1 py-0.5 text-[10px] text-sheetWhite placeholder:text-chop-muted focus:border-hypeNeon focus:outline-none"
+                />
+                <button
+                  onClick={saveMeta}
+                  disabled={busy}
+                  className="border border-hypeNeon px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-hypeNeon hover:bg-hypeNeon hover:text-black"
+                >
+                  save
+                </button>
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           {task.status === "open" && (
@@ -130,7 +184,7 @@ function TaskRow({
               disabled={busy}
               className="border border-hypeNeon px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-hypeNeon hover:bg-hypeNeon hover:text-black disabled:opacity-40"
             >
-              done
+              {task.repeat_days ? "next ▸" : "done"}
             </button>
           )}
           <button
@@ -143,44 +197,51 @@ function TaskRow({
         </div>
       </div>
 
-      {open && (
-        <div className="border-t border-glitchGray px-3 py-2">
-          {subs.length === 0 && (
-            <p className="mb-1 text-[10px] text-chop-muted">no subtasks yet</p>
-          )}
-          <ul className="space-y-0.5">
-            {subs.map((s, i) => (
-              <li key={i} className="flex items-center gap-2">
-                <button
-                  onClick={() => onMutate({ action: "subtask_toggle", name: task.name, project: task.project, index: i })}
-                  disabled={busy}
-                  className={`h-3.5 w-3.5 shrink-0 border ${s.done ? "border-hypeNeon bg-hypeNeon" : "border-glitchGray"}`}
-                  aria-label={s.done ? "mark subtask undone" : "mark subtask done"}
-                >
-                  {s.done && <span className="block text-[9px] leading-none text-black">✓</span>}
-                </button>
-                <span className={`text-[11px] ${s.done ? "text-chop-muted line-through" : "text-sheetWhite/90"}`}>
-                  {s.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 flex items-center gap-1.5">
-            <input
-              value={newSub}
-              onChange={(e) => setNewSub(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newSub.trim()) {
-                  onMutate({ action: "subtask_add", name: task.name, project: task.project, text: newSub.trim() });
-                  setNewSub("");
-                }
-              }}
-              placeholder="+ add subtask"
-              className="min-w-0 flex-1 border border-glitchGray bg-black px-2 py-1 text-[11px] text-sheetWhite placeholder:text-chop-muted focus:border-hypeNeon focus:outline-none"
-            />
-          </div>
+      {/* Subtasks — always visible as a real checklist, not collapsed text */}
+      <div className="border-t border-glitchGray/60 px-3 py-2">
+        {subs.length === 0 && (
+          <p className="mb-1 text-[10px] italic text-chop-muted">no subtasks — break this task into steps</p>
+        )}
+        <ul className="space-y-1">
+          {subs.map((s, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <button
+                onClick={() => onMutate({ action: "subtask_toggle", name: task.name, project: task.project, index: i })}
+                disabled={busy}
+                className={`mt-0.5 h-3.5 w-3.5 shrink-0 border ${s.done ? "border-hypeNeon bg-hypeNeon" : "border-glitchGray"}`}
+                aria-label={s.done ? "mark subtask undone" : "mark subtask done"}
+              >
+                {s.done && <span className="block text-[9px] leading-none text-black">✓</span>}
+              </button>
+              <span className={`min-w-0 flex-1 text-[11px] leading-snug ${s.done ? "text-chop-muted line-through" : "text-sheetWhite/90"}`}>
+                {s.text}
+              </span>
+              <button
+                onClick={() => onMutate({ action: "subtask_remove", name: task.name, project: task.project, index: i })}
+                disabled={busy}
+                className="shrink-0 px-1 text-[10px] text-spiteCrimson/60 hover:text-spiteCrimson"
+                title="remove subtask"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 flex items-center gap-1.5">
+          <input
+            value={newSub}
+            onChange={(e) => setNewSub(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newSub.trim()) {
+                onMutate({ action: "subtask_add", name: task.name, project: task.project, text: newSub.trim() });
+                setNewSub("");
+              }
+            }}
+            placeholder="+ add subtask"
+            className="min-w-0 flex-1 border border-glitchGray bg-black px-2 py-1 text-[11px] text-sheetWhite placeholder:text-chop-muted focus:border-hypeNeon focus:outline-none"
+          />
         </div>
-      )}
+      </div>
 
       {task.status !== "done" && (
         <div className="flex items-center gap-1.5 border-t border-glitchGray/60 px-3 py-1.5">
@@ -222,6 +283,8 @@ export function AdminTasksBoard({ wide = false }: { wide?: boolean }) {
   const [name, setName] = useState("");
   const [project, setProject] = useState("");
   const [note, setNote] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [repeatDays, setRepeatDays] = useState("");
   const [subtaskLines, setSubtaskLines] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -264,10 +327,14 @@ export function AdminTasksBoard({ wide = false }: { wide?: boolean }) {
       name: name.trim(),
       project: project.trim(),
       note: note.trim(),
+      deadline: deadline.trim() || null,
+      repeat_days: repeatDays.trim() ? Number(repeatDays.trim()) : 0,
       subtasks: subs,
     });
     setName("");
     setNote("");
+    setDeadline("");
+    setRepeatDays("");
     setSubtaskLines("");
     setAddOpen(false);
   }
@@ -310,6 +377,20 @@ export function AdminTasksBoard({ wide = false }: { wide?: boolean }) {
             placeholder="project (default: General)"
             className="mb-1.5 w-full border border-glitchGray bg-black px-2 py-1.5 text-xs text-sheetWhite placeholder:text-chop-muted focus:border-hypeNeon focus:outline-none"
           />
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <input
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              className="w-1/2 border border-glitchGray bg-black px-2 py-1.5 text-xs text-sheetWhite focus:border-hypeNeon focus:outline-none"
+            />
+            <input
+              value={repeatDays}
+              onChange={(e) => setRepeatDays(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder="repeat every N days"
+              className="w-1/2 border border-glitchGray bg-black px-2 py-1.5 text-[11px] text-sheetWhite placeholder:text-chop-muted focus:border-hypeNeon focus:outline-none"
+            />
+          </div>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
