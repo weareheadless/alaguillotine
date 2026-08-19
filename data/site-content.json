@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T02:00:52.536202+00:00",
+    "updated_at": "2026-08-19T02:15:11.364703+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 6
+    "revision": 7
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -231,7 +231,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "We are not metrics. A stopped van should be noticed in minutes, not hours. Rest is a right, not a reward. When a delivery driver dies in her van and the system clocks nothing, that silence is the loudest indictment. The villeggiatura was hard-won — workers fought for it, and productivity rose. We can build systems that notice a stopped van, that value a stopped worker, that make rest a shared right. That's the world we're building here.",
+    "intro": "A stopped van is not a delivery delay. It is a human signal. This site is a gathering place for people who have had enough of being treated as metrics — and a sharp edge aimed at the systems that measure output instead of presence. We are the ones who notice when someone doesn't move. We make the silence visible.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
