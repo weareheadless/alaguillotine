@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T01:03:59.555095+00:00",
+    "updated_at": "2026-08-19T01:39:38.704203+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 4
+    "revision": 5
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -231,7 +231,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "Rest was won. Then it was stolen. The August break was a union victory, not a gift — and now a stopped van is just noise, a stopped body a failure to deliver. The machine doesn't clock you in as human. So we don't ask permission to rest. We take it back, together.",
+    "intro": "Rest was won, once, by people who stopped together. The August break was not a gift; it was a strike that never ended. Today, a van that stops is a glitch, a delay, a cost line. We are not here to mourn. We are here to build the stoppage that cannot be ignored.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
