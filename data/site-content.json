@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T01:39:38.704203+00:00",
+    "updated_at": "2026-08-19T02:00:52.536202+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 5
+    "revision": 6
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -231,7 +231,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "Rest was won, once, by people who stopped together. The August break was not a gift; it was a strike that never ended. Today, a van that stops is a glitch, a delay, a cost line. We are not here to mourn. We are here to build the stoppage that cannot be ignored.",
+    "intro": "We are not metrics. A stopped van should be noticed in minutes, not hours. Rest is a right, not a reward. When a delivery driver dies in her van and the system clocks nothing, that silence is the loudest indictment. The villeggiatura was hard-won — workers fought for it, and productivity rose. We can build systems that notice a stopped van, that value a stopped worker, that make rest a shared right. That's the world we're building here.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
