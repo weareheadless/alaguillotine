@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T03:03:48.768780+00:00",
+    "updated_at": "2026-08-19T03:40:24.383369+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 13
+    "revision": 14
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -262,7 +262,7 @@
       {
         "id": "problem",
         "part": "one",
-        "title": "We notice the stopped vans.",
+        "title": "The Blade Follows the Leader",
         "blocks": [
           {
             "type": "paragraph",
