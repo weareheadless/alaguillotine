@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T02:15:11.364703+00:00",
+    "updated_at": "2026-08-19T02:19:59.947632+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 7
+    "revision": 8
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -231,7 +231,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "A stopped van is not a delivery delay. It is a human signal. This site is a gathering place for people who have had enough of being treated as metrics — and a sharp edge aimed at the systems that measure output instead of presence. We are the ones who notice when someone doesn't move. We make the silence visible.",
+    "intro": "A stopped van is not a delivery delay. It is a human signal. The system that clocks every package and every minute forgot to clock the person inside. We will not let her be noise. We will not let her name be a metaphor. She was Jaylene. She was thirty-one. And she waited, and waited, in the heat, while the algorithm counted her as late.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
