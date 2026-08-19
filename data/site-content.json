@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T02:19:59.947632+00:00",
+    "updated_at": "2026-08-19T02:24:21.775895+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 8
+    "revision": 9
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -262,7 +262,7 @@
       {
         "id": "problem",
         "part": "one",
-        "title": "1. The Problem: There Is No Cabal. There Are Just Rich Idiots.",
+        "title": "Rest is a right, not a reward",
         "blocks": [
           {
             "type": "paragraph",
