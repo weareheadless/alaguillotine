@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T02:44:41.554924+00:00",
+    "updated_at": "2026-08-19T03:03:48.768780+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 12
+    "revision": 13
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -335,7 +335,7 @@
       {
         "id": "money",
         "part": "one",
-        "title": "4. Money as It Was Intended: A Tool, Not a Personality.",
+        "title": "The Ledger That Notices",
         "blocks": [
           {
             "type": "paragraph",
