@@ -1,11 +1,11 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T03:40:24.383369+00:00",
+    "updated_at": "2026-08-19T13:22:49.261445+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 14
+    "revision": 15
   },
   "hero": {
-    "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
+    "headline": "New headline",
     "subheadline": "Post your beef free while the system posts your labor for profit. The ledger shows who pays: disabled workers excluded by design, offshored jobs sold as progress, a 3% raise announced as a gift when it was a cancelled pay cut. This is the audit. This is the bait. What's in your column?",
     "badge": "NO ACCOUNT. NO WALLET. NO PRISON."
   },
@@ -102,16 +102,8 @@
       "label": "The Manifesto"
     },
     {
-      "href": "/traitors",
-      "label": "Class Traitors"
-    },
-    {
       "href": "/benefactors",
       "label": "Capital Defectors"
-    },
-    {
-      "href": "/leaderboard",
-      "label": "Next in Line"
     },
     {
       "href": "/governance",
