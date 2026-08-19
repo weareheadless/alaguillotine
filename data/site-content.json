@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T02:24:21.775895+00:00",
+    "updated_at": "2026-08-19T02:29:24.497038+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 9
+    "revision": 10
   },
   "hero": {
     "headline": "PISSED OFF AT ELON? GOOD. NOW LET'S AUDIT THE WHOLE LEDGER.",
@@ -231,7 +231,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "A stopped van is not a delivery delay. It is a human signal. The system that clocks every package and every minute forgot to clock the person inside. We will not let her be noise. We will not let her name be a metaphor. She was Jaylene. She was thirty-one. And she waited, and waited, in the heat, while the algorithm counted her as late.",
+    "intro": "We notice the stopped vans. In memory of Jaylene Vargas Gonzalez, a woman who died in a delivery van and whose employer did not notice for hours. No metaphor. No lesson. Just a fact, and a commitment: the invisible are seen here.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
