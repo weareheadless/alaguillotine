@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pill, fmtTs, money } from "./admin-ui";
+import { AdminAgentTelemetry } from "./AdminAgentTelemetry";
 import { AdminTasksBoard } from "./AdminTasksBoard";
 
 interface ServerMsg {
@@ -367,8 +368,11 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
         </div>
 
         {/* Task board sidebar — her projects, tasks, and subtasks, live */}
-        <aside className="w-80 shrink-0 border-l-2 border-glitchGray bg-black/40">
-          <AdminTasksBoard />
+        <aside className="flex w-80 shrink-0 flex-col border-l-2 border-glitchGray bg-black/40">
+          <AdminAgentTelemetry />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <AdminTasksBoard />
+          </div>
         </aside>
       </div>
     </div>
