@@ -3,26 +3,52 @@
 import { useEffect, useState } from "react";
 import { AdminChat } from "@/components/admin/AdminChat";
 import { AdminStatus } from "@/components/admin/AdminStatus";
-import { AdminCosts } from "@/components/admin/AdminCosts";
 import { AdminMind } from "@/components/admin/AdminMind";
 import { AdminActions } from "@/components/admin/AdminActions";
 import { AdminConfig } from "@/components/admin/AdminConfig";
 import { AdminCodebase } from "@/components/admin/AdminCodebase";
 import { AdminChatLog } from "@/components/admin/AdminChatLog";
-import { AdminTasksBoard } from "@/components/admin/AdminTasksBoard";
+import { AdminRuntime } from "@/components/admin/AdminRuntime";
+import { AdminMaintenance } from "@/components/admin/AdminMaintenance";
+import { AdminPermissions } from "@/components/admin/AdminPermissions";
+import { AdminRecovery } from "@/components/admin/AdminRecovery";
+import { AdminTokens } from "@/components/admin/AdminTokens";
+import { AdminArchitecture } from "@/components/admin/AdminArchitecture";
+import { AdminObjectiveStrip } from "@/components/admin/AdminObjectiveStrip";
+import { AdminObjectivesBoard } from "@/components/admin/AdminObjectivesBoard";
+import { ObjectiveProvider } from "@/lib/objective-context";
 
-type Tab = "chat" | "status" | "costs" | "mind" | "actions" | "config" | "codebase" | "chatlog" | "tasks";
+type Tab =
+  | "chat"
+  | "runtime"
+  | "maintenance"
+  | "permissions"
+  | "recovery"
+  | "tokens"
+  | "status"
+  | "mind"
+  | "actions"
+  | "config"
+  | "codebase"
+  | "chatlog"
+  | "tasks"
+  | "architecture";
 
 const NAV: { id: Tab; label: string }[] = [
   { id: "chat", label: "Direct Line" },
+  { id: "runtime", label: "Runtime" },
+  { id: "maintenance", label: "Maintenance" },
+  { id: "permissions", label: "Permissions" },
+  { id: "recovery", label: "Recovery" },
+  { id: "tokens", label: "Tokens" },
   { id: "status", label: "Status" },
-  { id: "costs", label: "Costs" },
   { id: "mind", label: "Mind" },
-  { id: "tasks", label: "Tasks" },
+  { id: "tasks", label: "Objectives" },
   { id: "actions", label: "Actions" },
   { id: "config", label: "Config" },
   { id: "codebase", label: "Codebase" },
   { id: "chatlog", label: "Chat Log" },
+  { id: "architecture", label: "Architecture" },
 ];
 
 type Auth = "loading" | "authed" | "unauth";
@@ -109,61 +135,75 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="flex bg-canvasBlack text-sheetWhite" style={{ height: "calc(100vh - 30px)" }}>
-      {/* Sidebar */}
-      <aside className="flex w-48 shrink-0 flex-col border-r-2 border-glitchGray bg-black/40">
-        <div className="border-b-2 border-glitchGray px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-hypeNeon" />
-            <span className="text-xs font-black uppercase tracking-[0.15em]">ada control</span>
-          </div>
-          <p className="mt-1 text-[9px] uppercase tracking-widest text-chop-muted">
-            direct line · full telemetry
-          </p>
-        </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-          {NAV.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => setTab(n.id)}
-              className={`block w-full border px-3 py-2 text-left text-xs font-bold uppercase tracking-wider ${
-                tab === n.id
-                  ? "border-hypeNeon bg-hypeNeon/10 text-hypeNeon"
-                  : "border-transparent text-chop-muted hover:border-glitchGray hover:text-sheetWhite"
-              }`}
-            >
-              {n.label}
-            </button>
-          ))}
-        </nav>
-        <div className="border-t-2 border-glitchGray p-2">
-          <button
-            onClick={logout}
-            className="w-full border border-spiteCrimson px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-spiteCrimson hover:bg-spiteCrimson hover:text-black"
-          >
-            lock console
-          </button>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className={tab === "chat" ? "flex h-full flex-col" : "mx-auto max-w-5xl p-4"}>
-          {tab === "chat" && <AdminChat onLogout={logout} />}
-          {tab === "status" && <AdminStatus />}
-          {tab === "costs" && <AdminCosts />}
-          {tab === "mind" && <AdminMind />}
-          {tab === "tasks" && (
-            <div className="mx-auto max-w-5xl p-4">
-              <AdminTasksBoard wide />
+    <ObjectiveProvider>
+      <div className="flex h-[calc(100dvh-30px)] min-h-0 flex-col overflow-hidden bg-canvasBlack text-sheetWhite md:flex-row">
+        {/* Sidebar */}
+        <aside className="sticky top-0 z-30 flex w-full shrink-0 flex-col border-b-2 border-glitchGray bg-black/95 md:h-full md:w-52 md:border-b-0 md:border-r-2">
+          <div className="border-b-2 border-glitchGray px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-hypeNeon" />
+              <span className="text-xs font-black uppercase tracking-[0.15em]">ada control</span>
             </div>
-          )}
-          {tab === "actions" && <AdminActions />}
-          {tab === "config" && <AdminConfig />}
-          {tab === "codebase" && <AdminCodebase />}
-          {tab === "chatlog" && <AdminChatLog />}
-        </div>
-      </main>
-    </div>
+            <p className="mt-1 text-[9px] uppercase tracking-widest text-chop-muted">
+              control plane · full telemetry
+            </p>
+            <button
+              onClick={logout}
+              className="mt-2 border border-spiteCrimson px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-spiteCrimson hover:bg-spiteCrimson hover:text-black md:hidden"
+            >
+              lock console
+            </button>
+          </div>
+          <AdminObjectiveStrip onOpenTasks={() => setTab("tasks")} />
+          <nav className="flex min-h-0 flex-1 gap-0.5 overflow-x-auto p-2 md:block md:space-y-0.5 md:overflow-y-auto">
+            {NAV.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => setTab(n.id)}
+                className={`block shrink-0 border px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider md:w-full md:text-xs ${
+                  tab === n.id
+                    ? "border-hypeNeon bg-hypeNeon/10 text-hypeNeon"
+                    : "border-transparent text-chop-muted hover:border-glitchGray hover:text-sheetWhite"
+                }`}
+              >
+                {n.label}
+              </button>
+            ))}
+          </nav>
+          <div className="hidden border-t-2 border-glitchGray p-2 md:block">
+            <button
+              onClick={logout}
+              className="w-full border border-spiteCrimson px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-spiteCrimson hover:bg-spiteCrimson hover:text-black"
+            >
+              lock console
+            </button>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <main className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className={tab === "chat" ? "flex h-full min-h-0 flex-col" : "mx-auto max-w-6xl p-3 sm:p-4"}>
+            {tab === "chat" && <AdminChat onLogout={logout} />}
+            {tab === "runtime" && <AdminRuntime />}
+            {tab === "maintenance" && <AdminMaintenance />}
+            {tab === "permissions" && <AdminPermissions />}
+            {tab === "recovery" && <AdminRecovery />}
+            {tab === "tokens" && <AdminTokens />}
+            {tab === "status" && <AdminStatus />}
+            {tab === "mind" && <AdminMind />}
+            {tab === "tasks" && (
+              <div className="mx-auto max-w-7xl space-y-4 p-4">
+                <AdminObjectivesBoard />
+              </div>
+            )}
+            {tab === "actions" && <AdminActions />}
+            {tab === "config" && <AdminConfig />}
+            {tab === "codebase" && <AdminCodebase />}
+            {tab === "chatlog" && <AdminChatLog />}
+            {tab === "architecture" && <AdminArchitecture />}
+          </div>
+        </main>
+      </div>
+    </ObjectiveProvider>
   );
 }

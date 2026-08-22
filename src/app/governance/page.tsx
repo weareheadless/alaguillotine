@@ -10,7 +10,7 @@ import {
   ensureEpoch,
 } from "../../app/actions/epoch";
 import {
-  fetchActiveProposals,
+  fetchLatestProposals,
   fetchEpochTally,
   fetchMyVote,
   castVote,
@@ -35,23 +35,21 @@ export default function GovernancePage() {
       await ensureEpoch();
       const epoch = await getCurrentEpoch();
 
-      if (!epoch || epoch.status === "active") {
-        // No voting epoch yet
-        setProposals([]);
-        setTally(null);
-        setMyVote(null);
-        if (epoch) setEpochNumber(epoch.epoch_number);
-        return;
-      }
-
-      setEpochNumber(epoch.epoch_number);
-
       const [proposalsData, tallyData] = await Promise.all([
-        fetchActiveProposals(),
+        fetchLatestProposals(),
         fetchEpochTally(),
       ]);
 
       setProposals(proposalsData);
+
+      // The epoch being voted on is whichever epoch produced the latest proposals.
+      const latestEpochNumber =
+        proposalsData[0]?.epoch_number ??
+        tallyData?.epoch_number ??
+        epoch?.epoch_number ??
+        0;
+
+      setEpochNumber(latestEpochNumber);
 
       if (tallyData) {
         setTally(tallyData);
@@ -59,14 +57,14 @@ export default function GovernancePage() {
         setAttemptNumber(tallyData.attempt_number);
       }
 
-      // Set attempt number from active proposals
+      // Set attempt number from the latest proposals
       if (proposalsData.length > 0) {
         setAttemptNumber(proposalsData[0].attempt_number);
       }
 
       // Fetch my vote
-      if (connected && publicKey && epoch) {
-        const vote = await fetchMyVote(epoch.epoch_number);
+      if (connected && publicKey && latestEpochNumber > 0) {
+        const vote = await fetchMyVote(latestEpochNumber);
         setMyVote(vote);
       }
     } catch (e) {

@@ -36,7 +36,12 @@ export function ProposalCard({
     { label: "MKTG", value: proposal.marketing_pct, color: "bg-purple-500" },
   ];
 
-  const canVote = isWalletConnected && hasEnoughChop && !hasVoted && !isNone;
+  const canVote =
+    isWalletConnected &&
+    hasEnoughChop &&
+    !hasVoted &&
+    !isNone &&
+    proposal.status === "active";
 
   return (
     <div

@@ -48,7 +48,7 @@ const TABS = [
   "Conversations",
   "Posted",
   "Mail",
-  "Tasks",
+  "Objectives",
   "Directives",
   "People",
 ] as const;
@@ -222,7 +222,7 @@ export function AdminMind() {
       {tab === "Conversations" && <Section title="Conversations" sub="direct exchanges recorded in her memory"><Timeline items={mind.conversations as Record<string, unknown>[]} /></Section>}
       {tab === "Posted" && <Section title="Posted" sub="everything she has published"><Timeline items={mind.posted as Record<string, unknown>[]} /></Section>}
       {tab === "Mail" && <Section title="Sent mail" sub="emails she has sent"><Timeline items={mind.sent_mail as Record<string, unknown>[]} /></Section>}
-      {tab === "Tasks" && <Section title="Tasks" sub="her own todo list"><Timeline items={mind.tasks as Record<string, unknown>[]} /></Section>}
+       {tab === "Objectives" && <Section title="Operational objectives" sub="the durable task queue"><Timeline items={mind.tasks as Record<string, unknown>[]} /></Section>}
       {tab === "Directives" && (
         <Section title="Directives" sub="standing instructions she has accepted">
           {mind.directives?.length ? (

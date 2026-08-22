@@ -2,7 +2,7 @@
 
 import { getDb } from "../../lib/local-db";
 import { getTreasuryBalance, getBurnPerMessage } from "./epoch";
-import { getEpochThreshold } from "../../lib/types";
+import { fetchCHOPBurned } from "../../lib/solana";
 
 export interface SidebarMetrics {
   /** Total CHOP tokens burnt across all executed epochs */
@@ -57,8 +57,51 @@ export async function fetchSidebarMetrics(): Promise<SidebarMetrics> {
     messagesThisEpoch = epochMsg.cnt;
   }
 
-  // 4. Total burnt: epoch-level allocations + per-message burns
+  // 4. Total burnt — real on-chain truth: initial supply − current supply.
+  //    Every paid post, free-message burn, and treasury burn shrinks the
+  //    supply, so the delta is exact and needs no per-epoch bookkeeping.
   let totalBurnt = 0;
+  try {
+    totalBurnt = await fetchCHOPBurned();
+  } catch {
+    // RPC unavailable — best-effort reconstruction so the sidebar never blanks.
+    totalBurnt = _legacyTotalBurnt(db);
+  }
+
+  // 5. Treasury balance (on-chain)
+  let treasuryBalance = 0;
+  try {
+    treasuryBalance = await getTreasuryBalance();
+  } catch {
+    // Fall back to DB value
+    treasuryBalance = epoch?.treasury_amount ?? 0;
+  }
+  if (treasuryBalance === 0) {
+    treasuryBalance = epoch?.treasury_amount ?? 0;
+  }
+
+  // 6. Burn per message — single source of truth (epoch.ts)
+  const burnPerMessage = await getBurnPerMessage();
+
+  return {
+    totalBurnt: Math.round(totalBurnt),
+    treasuryBalance,
+    burnPerMessage,
+    totalMessages: msgRow.cnt,
+    messagesThisEpoch,
+    epochThreshold,
+    epochNumber: epoch?.epoch_number ?? 0,
+  };
+}
+
+/**
+ * Legacy best-effort estimate of total burned CHOP, used only when the RPC is
+ * unreachable. Reconstructs epoch-level burns from the winning proposals'
+ * burn percentages plus per-message burns. The on-chain supply delta in
+ * fetchSidebarMetrics is the real source of truth; this is just a fallback.
+ */
+function _legacyTotalBurnt(db: ReturnType<typeof getDb>): number {
+  let total = 0;
   const executedEpochs = db
     .prepare("SELECT * FROM epochs WHERE status = 'executed' ORDER BY epoch_number ASC")
     .all() as Array<{
@@ -78,10 +121,8 @@ export async function fetchSidebarMetrics(): Promise<SidebarMetrics> {
       .get(execEpoch.epoch_number) as { burn_pct: number } | undefined;
 
     if (winner && execEpoch.treasury_amount > 0) {
-      // Epoch-level burn (manual, at resolution)
-      totalBurnt += Math.floor((execEpoch.treasury_amount * winner.burn_pct) / 100);
+      total += Math.floor((execEpoch.treasury_amount * winner.burn_pct) / 100);
 
-      // Per-message burns during this epoch
       const epochThreshold = execEpoch.end_msg_count - execEpoch.start_msg_count;
       if (epochThreshold > 0) {
         const burnPerMsg = (execEpoch.treasury_amount * winner.burn_pct / 100) / epochThreshold;
@@ -90,38 +131,9 @@ export async function fetchSidebarMetrics(): Promise<SidebarMetrics> {
             "SELECT COUNT(*) AS cnt FROM messages WHERE is_shadowbanned = 0 AND created_at >= ?"
           )
           .get(execEpoch.started_at) as { cnt: number };
-        totalBurnt += Math.floor(epochMsgCount.cnt * burnPerMsg);
+        total += Math.floor(epochMsgCount.cnt * burnPerMsg);
       }
     }
   }
-
-  // 5. Treasury balance (on-chain)
-  let treasuryBalance = 0;
-  try {
-    treasuryBalance = await getTreasuryBalance();
-  } catch {
-    // Fall back to DB value
-    treasuryBalance = epoch?.treasury_amount ?? 0;
-  }
-  if (treasuryBalance === 0) {
-    treasuryBalance = epoch?.treasury_amount ?? 0;
-  }
-
-  // 6. Burn per message — single source of truth (epoch.ts)
-  const burnPerMessage = await getBurnPerMessage();
-
-  // Add current epoch's per-message burns to total
-  if (burnPerMessage > 0 && messagesThisEpoch > 0) {
-    totalBurnt += Math.floor(messagesThisEpoch * burnPerMessage);
-  }
-
-  return {
-    totalBurnt: Math.round(totalBurnt),
-    treasuryBalance,
-    burnPerMessage,
-    totalMessages: msgRow.cnt,
-    messagesThisEpoch,
-    epochThreshold,
-    epochNumber: epoch?.epoch_number ?? 0,
-  };
+  return total;
 }

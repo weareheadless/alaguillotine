@@ -124,19 +124,22 @@ export async function castVote(
 
 // ─── Proposals ──────────────────────────────────────────────────────────────────
 
-export async function fetchActiveProposals(): Promise<ProposalWithTally[]> {
+/**
+ * Fetch the proposals of the most recent epoch that has any proposals —
+ * regardless of the epoch's current status. This keeps the Oracle visible
+ * and voteable at all times (until the next epoch's proposals replace them),
+ * instead of blanking out between periods.
+ */
+export async function fetchLatestProposals(): Promise<ProposalWithTally[]> {
   const db = getDb();
   const proposals = db
     .prepare(
       `SELECT p.*, COUNT(v.id) as vote_count
        FROM oracle_proposals p
        LEFT JOIN governance_votes v ON v.proposal_id = p.id
-       WHERE p.status = 'active'
-         AND p.epoch_number = (
-           SELECT epoch_number FROM epochs
-           WHERE status = 'voting'
-           ORDER BY created_at DESC LIMIT 1
-         )
+       WHERE p.epoch_number = (
+         SELECT epoch_number FROM oracle_proposals ORDER BY epoch_number DESC LIMIT 1
+       )
        GROUP BY p.id
        ORDER BY p.is_none_option ASC, p.created_at ASC`
     )
@@ -154,7 +157,7 @@ export async function fetchEpochTally(): Promise<EpochTally | null> {
   const db = getDb();
   const epoch = db
     .prepare(
-      "SELECT * FROM epochs WHERE status IN ('voting','executed') ORDER BY created_at DESC LIMIT 1"
+      "SELECT * FROM epochs WHERE epoch_number = (SELECT epoch_number FROM oracle_proposals ORDER BY epoch_number DESC LIMIT 1) LIMIT 1"
     )
     .get() as any;
   if (!epoch) return null;

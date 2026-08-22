@@ -5,17 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthButtons } from "./AuthButtons";
 import { getCurrentEpoch } from "../app/actions/epoch";
-
-const NAV_LINKS = [
-  { href: "/", label: "The Town Square" },
-  { href: "/whitepaper", label: "The Manifesto" },
-  { href: "/traitors", label: "Class Traitors" },
-  { href: "/benefactors", label: "Capital Defectors" },
-  { href: "/leaderboard", label: "Next in Line" },
-  { href: "/governance", label: "The Proxy War" },
-];
+import { useSiteContent } from "../lib/use-site-content";
 
 export function NavBar() {
+  const { content } = useSiteContent();
   const pathname = usePathname();
   const [epochNum, setEpochNum] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -73,7 +66,7 @@ export function NavBar() {
 
         {/* ─── Nav Links (desktop, lg+) ─────────────────────────────── */}
         <nav className="hidden lg:flex flex-1 items-center justify-center gap-1 ml-4">
-          {NAV_LINKS.map((link) => (
+          {content.nav.map((link) => (
             <Link key={link.href} href={link.href} className={linkClass(isActive(link.href))}>
               {link.label}
             </Link>
@@ -122,7 +115,7 @@ export function NavBar() {
           id="mobile-nav"
           className="lg:hidden flex flex-col gap-2 border-t-2 border-black bg-canvasBlack/95 px-4 py-3 backdrop-blur-md"
         >
-          {NAV_LINKS.map((link) => (
+          {content.nav.map((link) => (
             <Link
               key={link.href}
               href={link.href}

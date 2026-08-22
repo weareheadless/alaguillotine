@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.fuckyouelon.net/schemas/site-content.schema.json",
+  "title": "fuckyouelon.net site content — Ada Guillotine's editable copy",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["updated_at", "updated_by", "revision"],
+      "properties": {
+        "updated_at": { "type": "string", "format": "date-time" },
+        "updated_by": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "hero": {
+      "type": "object",
+      "required": ["headline", "subheadline", "badge"],
+      "properties": {
+        "headline": { "type": "string", "maxLength": 200 },
+        "subheadline": { "type": "string", "maxLength": 400 },
+        "badge": { "type": "string", "maxLength": 120 }
+      },
+      "additionalProperties": false
+    },
+    "subliminalMessages": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 160 } },
+    "bannerTexts": { "type": "array", "maxItems": 200, "items": { "type": "string", "maxLength": 400 } },
+    "ads": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "required": ["title", "body", "cta"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 120 },
+          "body": { "type": "string", "maxLength": 600 },
+          "cta": { "type": "string", "maxLength": 60 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "rules": {
+      "type": "object",
+      "required": ["howItWorks", "rules"],
+      "properties": {
+        "howItWorks": { "type": "string", "maxLength": 600 },
+        "rules": { "type": "string", "maxLength": 600 }
+      },
+      "additionalProperties": false
+    },
+    "footer": { "type": "string", "maxLength": 300 },
+    "nav": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["href", "label"],
+        "properties": {
+          "href": { "type": "string", "pattern": "^/", "maxLength": 120 },
+          "label": { "type": "string", "maxLength": 60 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "demoMessages": {
+      "type": "object",
+      "required": ["authors", "texts"],
+      "properties": {
+        "authors": { "type": "array", "maxItems": 100, "items": { "type": "string", "maxLength": 60 } },
+        "texts": { "type": "array", "maxItems": 300, "items": { "type": "string", "maxLength": 300 } }
+      },
+      "additionalProperties": false
+    },
+    "flywheel": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "required": ["emoji", "label", "detail", "tone"],
+        "properties": {
+          "emoji": { "type": "string", "maxLength": 8 },
+          "label": { "type": "string", "maxLength": 40 },
+          "detail": { "type": "string", "maxLength": 300 },
+          "tone": { "enum": ["red", "amber", "crimson", "violet", "blue", "green", "pink"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "adaPage": {
+      "type": "object",
+      "required": ["heroBadge", "heroTitle", "heroIntro", "sections", "closing"],
+      "properties": {
+        "heroBadge": { "type": "string", "maxLength": 120 },
+        "heroTitle": { "type": "string", "maxLength": 120 },
+        "heroIntro": { "type": "string", "maxLength": 2500 },
+        "sections": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "paragraphs"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 60 },
+              "title": { "type": "string", "maxLength": 300 },
+              "paragraphs": {
+                "type": "array",
+                "maxItems": 12,
+                "items": { "type": "string", "maxLength": 1800 }
+              },
+              "box": {
+                "type": "object",
+                "required": ["heading", "text"],
+                "properties": {
+                  "heading": { "type": "string", "maxLength": 200 },
+                  "text": { "type": "string", "maxLength": 1800 }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "closing": {
+          "type": "object",
+          "required": ["line", "sub"],
+          "properties": {
+            "line": { "type": "string", "maxLength": 400 },
+            "sub": { "type": "string", "maxLength": 400 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "manifesto": {
+      "type": "object",
+      "required": ["statusBadge", "introTitle", "intro", "cta", "legalNotice", "partOne", "sections", "partTwo", "roadmap", "closing", "footer"],
+      "properties": {
+        "statusBadge": { "type": "string", "maxLength": 120 },
+        "introTitle": { "type": "string", "maxLength": 120 },
+        "intro": { "type": "string", "maxLength": 2500 },
+        "cta": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["label", "href"],
+            "properties": {
+              "label": { "type": "string", "maxLength": 60 },
+              "href": { "type": "string", "pattern": "^#", "maxLength": 60 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "legalNotice": {
+          "type": "object",
+          "required": ["title", "paragraphs"],
+          "properties": {
+            "title": { "type": "string", "maxLength": 160 },
+            "paragraphs": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 2500 } }
+          },
+          "additionalProperties": false
+        },
+        "partOne": {
+          "type": "object",
+          "required": ["label", "subtitle"],
+          "properties": {
+            "label": { "type": "string", "maxLength": 120 },
+            "subtitle": { "type": "string", "maxLength": 300 }
+          },
+          "additionalProperties": false
+        },
+        "partTwo": {
+          "type": "object",
+          "required": ["label", "subtitle"],
+          "properties": {
+            "label": { "type": "string", "maxLength": 120 },
+            "subtitle": { "type": "string", "maxLength": 300 }
+          },
+          "additionalProperties": false
+        },
+        "sections": {
+          "type": "array",
+          "maxItems": 40,
+          "items": {
+            "type": "object",
+            "required": ["id", "part", "title", "blocks"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "maxLength": 60 },
+              "part": { "enum": ["one", "two"] },
+              "title": { "type": "string", "maxLength": 300 },
+              "blocks": {
+                "type": "array",
+                "maxItems": 30,
+                "items": {
+                  "type": "object",
+                  "required": ["type"],
+                  "properties": {
+                    "type": { "enum": ["paragraph", "callout", "box", "itemBoxes"] },
+                    "text": { "type": "string", "maxLength": 4500 },
+                    "muted": { "type": "boolean" },
+                    "style": { "enum": ["red", "green", "neutral"] },
+                    "heading": { "type": "string", "maxLength": 250 },
+                    "items": {
+                      "type": "array",
+                      "maxItems": 12,
+                      "items": {
+                        "type": "object",
+                        "required": ["icon", "heading", "body"],
+                        "properties": {
+                          "icon": { "type": "string", "maxLength": 8 },
+                          "heading": { "type": "string", "maxLength": 120 },
+                          "body": { "type": "string", "maxLength": 900 }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "roadmap": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "required": ["phase", "title", "description", "status"],
+            "properties": {
+              "phase": { "type": "string", "maxLength": 40 },
+              "title": { "type": "string", "maxLength": 200 },
+              "description": { "type": "string", "maxLength": 1500 },
+              "status": { "enum": ["active", "planned", "final"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "closing": {
+          "type": "object",
+          "required": ["declaration", "question", "tagline"],
+          "properties": {
+            "declaration": { "type": "string", "maxLength": 400 },
+            "question": { "type": "string", "maxLength": 700 },
+            "tagline": { "type": "string", "maxLength": 400 }
+          },
+          "additionalProperties": false
+        },
+        "footer": {
+          "type": "object",
+          "required": ["line", "sub"],
+          "properties": {
+            "line": { "type": "string", "maxLength": 400 },
+            "sub": { "type": "string", "maxLength": 400 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["meta", "hero", "subliminalMessages", "bannerTexts", "ads", "rules", "footer", "nav", "demoMessages", "flywheel", "adaPage", "manifesto"]
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a12" />
+<title>Vaporware Vanguard — The Mars Escape</title>
+<meta name="description" content="A satirical resource-management game. You are a billionaire tech CEO. Pitch lies, farm hype, and flee to Mars before the guillotine fills." />
+<link rel="stylesheet" href="style.css?v=2" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TOP BAR: THE METERS ============ -->
+  <header id="meters">
+    <div class="meter-row">
+      <div class="meter capital">
+        <div class="meter-label">🟩 CAPITAL</div>
+        <div class="meter-track">
+          <div class="meter-fill" id="capitalFill"></div>
+          <div class="meter-text" id="capitalText">$0</div>
+        </div>
+        <div class="rocket-bar"><div id="rocketFill"></div><span id="rocketText">MODULE 0/10</span></div>
+      </div>
+    </div>
+    <div class="meter-row double">
+      <div class="meter loyalty">
+        <div class="meter-label">🟦 CULT LOYALTY</div>
+        <div class="meter-track"><div class="meter-fill" id="loyaltyFill"></div><div class="meter-text" id="loyaltyText">60</div></div>
+      </div>
+      <div class="meter guillotine">
+        <div class="meter-label">🟥 THE GUILLOTINE</div>
+        <div class="meter-track danger"><div class="meter-fill" id="guillotineFill"></div><div class="meter-text" id="guillotineText">0%</div></div>
+      </div>
+    </div>
+    <div id="phaseTag">PHASE 1 · THE HONEYMOON</div>
+  </header>
+
+  <!-- ============ DASHBOARD: NEWSPAPER + WIRE ============ -->
+  <main id="dashboard">
+
+    <!-- Left / main: the newspaper. "Breaking" lives here. -->
+    <section id="newspaper">
+      <div class="masthead">
+        <h1>THE SPITE TIMES</h1>
+        <div class="dateline">EST. 2026 · PRICE: THE TRUTH · VOL. ∞</div>
+      </div>
+      <div id="paperBody"></div>
+    </section>
+
+    <!-- Right / side: the wire — countdowns + your action log. -->
+    <aside id="wire">
+      <div class="wire-head">▌ THE WIRE · LIVE TICKER</div>
+      <div id="wireTimers"></div>
+      <div class="wire-head wire-head-2">▌ THE LEDGER</div>
+      <div id="wireLog"></div>
+    </aside>
+
+  </main>
+
+  <!-- ============ THE HAND: poker cards in a fake hand ============ -->
+  <footer id="handArea">
+    <svg id="handSvg" viewBox="0 0 320 150" aria-hidden="true">
+      <g fill="#23233a" stroke="#3a3a55" stroke-width="2">
+        <rect x="52" y="42" width="26" height="66" rx="12" transform="rotate(-9 65 108)"/>
+        <rect x="92" y="36" width="26" height="72" rx="12" transform="rotate(-3 105 108)"/>
+        <rect x="132" y="34" width="26" height="74" rx="12"/>
+        <rect x="172" y="36" width="26" height="72" rx="12" transform="rotate(3 185 108)"/>
+        <rect x="212" y="42" width="26" height="66" rx="12" transform="rotate(9 225 108)"/>
+        <path d="M48 108 Q50 150 96 150 L224 150 Q270 150 272 108 Q210 120 160 120 Q110 120 48 108 Z"/>
+      </g>
+      <rect x="40" y="140" width="240" height="14" rx="7" fill="#a01313"/>
+    </svg>
+    <div id="handFan"></div>
+    <div id="handThumb" aria-hidden="true"></div>
+    <button id="joker" title="The 3AM K-Hole — once per run">💊</button>
+  </footer>
+
+  <!-- ============ PANIC OVERLAY ============ -->
+  <div id="panic" class="overlay hidden">
+    <div class="panic-inner">
+      <div class="panic-title">⚠️ NEWS STORM</div>
+      <div class="panic-sub" id="panicSub">The feed is flooding with coverage.</div>
+      <button id="panicBtn" class="panic-btn">POST MEME</button>
+      <div class="panic-meta" id="panicMeta"></div>
+    </div>
+  </div>
+
+  <!-- ============ K-HOLE OVERLAY ============ -->
+  <div id="khol" class="overlay hidden"></div>
+
+  <!-- ============ DRAFT OVERLAY ============ -->
+  <div id="draft" class="overlay hidden">
+    <div class="sheet">
+      <div class="sheet-title">🚀 MODULE COMPLETE</div>
+      <div class="sheet-sub">Deal yourself one new playbook card:</div>
+      <div id="draftChoices"></div>
+    </div>
+  </div>
+
+  <!-- ============ INTRO ============ -->
+  <div id="intro" class="overlay">
+    <div class="sheet intro-sheet">
+      <div class="game-title">VAPORWARE<br />VANGUARD</div>
+      <div class="tagline">THE MARS ESCAPE</div>
+      <p class="intro-copy">You are a billionaire tech CEO. Your earthly promises are lies. Your timeline is fiction. Your only goal is to pump enough hype to afford a rocket — and flee to Mars before the public, the press, and the SEC catch on.</p>
+      <p class="intro-copy small">Swipe the paper's headlines left (pay them off) or right (double down). Drag cards from your hand to the timeline. Keep the <b>Guillotine</b> from reaching 100%. The blade is metaphorical. The receipts are real.</p>
+      <button id="startBtn" class="big-btn">TAKE THE HELM</button>
+      <p class="disclaimer">Satire. Public figures appear as symbolic proxies for late-stage capitalism. Sources for every claim are listed on your final Receipt.</p>
+    </div>
+  </div>
+
+  <!-- ============ RECEIPT ============ -->
+  <div id="receiptWrap" class="overlay hidden">
+    <div id="receipt" class="sheet receipt"></div>
+  </div>
+
+</div>
+
+<script src="js/data.js?v=2"></script>
+<script src="js/game.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
+<script src="js/main.js?v=2"></script>
+</body>
+</html>

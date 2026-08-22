@@ -4,12 +4,14 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useExecution } from "../lib/execution-context";
 import { getDemoMessages } from "../lib/mock-data";
 import { fetchMessageCount } from "../app/actions/feed";
+import { useSiteContent } from "../lib/use-site-content";
 
 import { EXECUTION_THRESHOLD } from "../lib/constants";
 import { fetchSidebarMetrics } from "../app/actions/metrics";
 import type { SidebarMetrics } from "../app/actions/metrics";
 
 export function HeroCounter({ children, mobileRightSlot, topSlot }: { children?: React.ReactNode, mobileRightSlot?: React.ReactNode, topSlot?: React.ReactNode }) {
+  const { content } = useSiteContent();
   const [total, setTotal] = useState<number | null>(null);
   const [dropped, setDropped] = useState(false);
   const [bumping, setBumping] = useState(false);
@@ -54,7 +56,7 @@ export function HeroCounter({ children, mobileRightSlot, topSlot }: { children?:
     } catch {
       // Fall back to demo data if DB not configured
       if (total === null) {
-        const demo = getDemoMessages();
+        const demo = getDemoMessages(content.demoMessages.authors, content.demoMessages.texts);
         const count = demo.filter((m) => !m.is_shadowbanned).length;
         setTotal(count);
         setTotalMessages(count);

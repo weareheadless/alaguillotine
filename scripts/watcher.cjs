@@ -191,92 +191,27 @@ async function checkVotingExpiry(db) {
   const elapsed = Date.now() - votingStarted;
 
   if (elapsed >= VOTING_PERIOD_MS) {
-    log(`[vote] Voting period expired for Epoch #${voting.epoch_number}. Auto-tallying...`);
-    await tallyEpoch(db, voting);
+    log(`[vote] Voting period expired for Epoch #${voting.epoch_number}. Finalizing...`);
+    await finalizeEpoch(db, voting);
   }
 }
 
-// ─── Tally Votes (mirrors epoch.ts tallyEpoch) ──────────────────────────────
+// ─── Finalize Epoch (mirrors src/app/actions/epoch.ts finalizeEpoch) ─────────
 
-async function tallyEpoch(db, epoch) {
-  if (epoch.status !== "voting") return;
-
-  const votes = db.prepare(
-    "SELECT * FROM votes WHERE epoch_id = ?"
-  ).all(epoch.id);
-
-  let burn, lottery, dev, board, revolution;
-
-  if (votes.length === 0) {
-    // No votes cast — default allocation
-    burn = 20; lottery = 15; dev = 25; board = 20; revolution = 20;
-    log(`[tally] No votes for Epoch #${epoch.epoch_number}. Using defaults.`);
-  } else {
-    // Average the votes
-    const sumRates = votes.reduce(
-      (acc, v) => ({
-        burn: acc.burn + v.burn_rate,
-        lottery: acc.lottery + v.lottery_rate,
-        dev: acc.dev + v.dev_rate,
-        board: acc.board + v.board_rate,
-        revolution: acc.revolution + v.revolution_rate,
-      }),
-      { burn: 0, lottery: 0, dev: 0, board: 0, revolution: 0 }
-    );
-
-    const n = votes.length;
-    const avg = {
-      burn: sumRates.burn / n,
-      lottery: sumRates.lottery / n,
-      dev: sumRates.dev / n,
-      board: sumRates.board / n,
-      revolution: sumRates.revolution / n,
-    };
-
-    // Normalize to sum 100
-    const total = avg.burn + avg.lottery + avg.dev + avg.board + avg.revolution;
-    burn = Math.round(avg.burn / total * 100);
-    lottery = Math.round(avg.lottery / total * 100);
-    board = Math.round(avg.board / total * 100);
-    revolution = Math.round(avg.revolution / total * 100);
-    dev = 100 - burn - lottery - board - revolution;
-
-    log(`[tally] Epoch #${epoch.epoch_number}: ${votes.length} votes averaged → B:${burn} L:${lottery} D:${dev} Bd:${board} R:${revolution}`);
+/** Mark an epoch executed and stamp executed_at. */
+function markEpochExecuted(db, epochNumber) {
+  const epoch = db.prepare(
+    "SELECT id FROM epochs WHERE epoch_number = ? AND status = 'voting'"
+  ).get(epochNumber);
+  if (epoch) {
+    db.prepare(
+      "UPDATE epochs SET status = 'executed', executed_at = ? WHERE id = ?"
+    ).run(new Date().toISOString(), epoch.id);
   }
+}
 
-  // Determine hypothesis
-  let hypothesisWinner;
-  if (burn > 50) {
-    hypothesisWinner = "H1"; // Plutocracy
-  } else if (lottery + dev >= 30 && lottery >= 10 && dev >= 10) {
-    hypothesisWinner = "H2"; // Class Traitor
-  } else if (board > 50) {
-    hypothesisWinner = "H4"; // Kleptocracy
-  } else {
-    hypothesisWinner = "H3"; // Deadlock
-  }
-
-  db.prepare(`
-    UPDATE epochs SET
-      status = 'executed',
-      executed_at = ?,
-      final_burn = ?,
-      final_lottery = ?,
-      final_dev = ?,
-      final_board = ?,
-      final_revolution = ?,
-      hypothesis_winner = ?
-    WHERE id = ?
-  `).run(
-    new Date().toISOString(),
-    burn, lottery, dev, board, revolution,
-    hypothesisWinner,
-    epoch.id
-  );
-
-  log(`[tally] Epoch #${epoch.epoch_number} executed. Winner: ${hypothesisWinner}`);
-
-  // ─── Create next epoch automatically ──────────────────────────────────
+/** Create the next active epoch so voting stays continuous. */
+async function createNextEpoch(db, epoch) {
   const nextEpochNum = epoch.epoch_number + 1;
   const threshold = getEpochThreshold(nextEpochNum);
 
@@ -302,6 +237,112 @@ async function tallyEpoch(db, epoch) {
   }
 }
 
+/**
+ * Apply governance_votes to an epoch's proposals. Returns the outcome:
+ *   - "executed"   → a real plan won
+ *   - "default"    → no votes, or NONE struck out (Oracle fired)
+ *   - "regenerate" → NONE won but not fired (Oracle should regenerate)
+ * Marks proposals won/lost/expired accordingly.
+ */
+function applyVoteResult(db, epochNumber) {
+  const counts = db.prepare(
+    `SELECT proposal_id, COUNT(*) as cnt FROM governance_votes
+     WHERE epoch_number = ? GROUP BY proposal_id ORDER BY cnt DESC`
+  ).all(epochNumber);
+
+  const now = new Date().toISOString();
+
+  if (counts.length === 0) {
+    db.prepare(
+      "UPDATE oracle_proposals SET status = 'expired', resolved_at = ? WHERE epoch_number = ? AND status = 'active'"
+    ).run(now, epochNumber);
+    return { outcome: "default", winner: null };
+  }
+
+  const winnerId = counts[0].proposal_id;
+  const winner = db.prepare(
+    "SELECT * FROM oracle_proposals WHERE id = ?"
+  ).get(winnerId);
+
+  if (winner && winner.is_none_option) {
+    const noneWins = db.prepare(
+      "SELECT COUNT(*) as cnt FROM oracle_proposals WHERE epoch_number = ? AND is_none_option = 1 AND status = 'won'"
+    ).get(epochNumber);
+
+    db.prepare(
+      "UPDATE oracle_proposals SET status = 'won', resolved_at = ? WHERE id = ?"
+    ).run(now, winnerId);
+
+    if (noneWins.cnt + 1 >= 3) {
+      db.prepare(
+        "UPDATE oracle_proposals SET status = 'expired', resolved_at = ? WHERE epoch_number = ? AND status = 'active'"
+      ).run(now, epochNumber);
+      return { outcome: "default", winner: null };
+    }
+
+    db.prepare(
+      "UPDATE oracle_proposals SET status = 'expired', resolved_at = ? WHERE epoch_number = ? AND status = 'active'"
+    ).run(now, epochNumber);
+    return { outcome: "regenerate", winner: null };
+  }
+
+  if (winner) {
+    db.prepare(
+      "UPDATE oracle_proposals SET status = 'won', resolved_at = ? WHERE id = ?"
+    ).run(now, winnerId);
+  }
+  db.prepare(
+    "UPDATE oracle_proposals SET status = 'lost', resolved_at = ? WHERE epoch_number = ? AND id != ? AND status = 'active'"
+  ).run(now, epochNumber, winnerId);
+
+  return { outcome: "executed", winner };
+}
+
+/**
+ * Finalize a voting epoch using governance_votes. On execution, create the
+ * next active epoch so voting stays continuous.
+ */
+async function finalizeEpoch(db, epoch) {
+  if (epoch.status !== "voting") return;
+
+  const { outcome, winner } = applyVoteResult(db, epoch.epoch_number);
+
+  if (outcome === "regenerate") {
+    log(`[finalize] Epoch #${epoch.epoch_number}: NONE won — regenerating proposals.`);
+    return;
+  }
+
+  markEpochExecuted(db, epoch.epoch_number);
+
+  if (outcome === "default") {
+    log(`[finalize] Epoch #${epoch.epoch_number}: default allocation (no votes or Oracle fired).`);
+  } else {
+    log(`[finalize] Epoch #${epoch.epoch_number}: "${winner.title}" won. Executed.`);
+  }
+
+  await createNextEpoch(db, epoch);
+}
+
+/**
+ * Safety net: resolve proposals still stuck "active" on an already-executed
+ * epoch (e.g. legacy watcher runs that executed the epoch without touching
+ * oracle_proposals). Re-applies the governance_votes tally.
+ */
+function resolveStaleProposals(db) {
+  const staleEpochs = db.prepare(
+    `SELECT DISTINCT e.epoch_number
+     FROM oracle_proposals p
+     JOIN epochs e ON e.epoch_number = p.epoch_number
+     WHERE p.status = 'active' AND e.status = 'executed'`
+  ).all();
+
+  for (const row of staleEpochs) {
+    const { outcome, winner } = applyVoteResult(db, row.epoch_number);
+    const label = outcome === "executed" ? `"${winner.title}"` : outcome;
+    log(`[cleanup] Resolved stale proposals for executed Epoch #${row.epoch_number}: ${label}.`);
+  }
+}
+
 // ─── Main Loop ───────────────────────────────────────────────────────────────
 
 async function runCycle() {
@@ -311,6 +352,7 @@ async function runCycle() {
     await discoverBoard(db);
     await checkEpochTransition(db);
     await syncTreasury(db);
+    resolveStaleProposals(db);
     await checkVotingExpiry(db);
     log("── Cycle complete ──");
   } catch (err) {

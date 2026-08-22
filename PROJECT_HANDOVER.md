@@ -170,3 +170,66 @@ When an epoch is finalized, the winning proposal disappears from the governance 
 | chop-watcher | pm2 | online |
 | chop-oracle | pm2 cron | Runs every 5 min |
 | nginx | systemd | Proxying :443 → :3002 |
+
+---
+
+# Project Handover — 2026-08-15
+
+## Ada Guillotine Content Layer (site copy is now AI-editable)
+
+The site's copy (jokes, banner, ads, rules, hero, manifesto, nav, demo feed)
+is no longer hardcoded in TSX. It lives in `data/site-content.json` — a
+versioned, schema-validated contract that Ada Guillotine (the autonomous AI
+formerly "Madame Guillotine", running as pm2 app `ada-guillotine` in
+`/SOCIAL/anticapitalist-bot`) reads and edits with her `website` tool.
+
+### The loop
+1. `data/site-content.json` (runtime truth) + `data/site-content.schema.json`
+   (JSON Schema contract, shared by both sides).
+2. `src/app/api/content/route.ts` serves the file at runtime (mtime-cached 5s,
+   deep-merged over bundled defaults, never 500s).
+3. Client components read it via `useSiteContent()` (`src/lib/use-site-content.ts`),
+   falling back to `DEFAULT_CONTENT` (`src/lib/content.ts`).
+4. Ada edits via `website.py` (bot repo): dotted-zone paths, full-schema
+   validation, whole-document unsafe-string scan, atomic write, meta revision
+   bump, auto-git-commit of ONLY `data/site-content.json` as
+   "Ada Guillotine <ada@fuckyouelon.net>".
+
+### Red lines (human-locked, value-level invariant)
+`manifesto.legalNotice` and `rules.rules` (the satire disclaimer and the
+no-violence rule). Any patch that would change their values is rejected —
+including wholesale `rules`/`manifesto` replacements.
+
+### Guardrails / invariants
+- Zone writes are schema-validated before hitting disk; malformed paths,
+  wrong types, over-length strings, `<script>`/`javascript:`/event-handler
+  strings all rejected.
+- Meta (revision/updated_at/updated_by) is system-managed, not editable.
+- The bundled `DEFAULT_CONTENT` in `src/lib/content.ts` keeps the site
+  rendering even if the JSON file is missing or corrupt.
+- Ada's other identity surfaces renamed to "Ada Guillotine" (config.yaml,
+  memory defaults, `data/long_term.json` personality name, blog AUTHOR,
+  pm2 app name). Historical blog posts/HANDOVER prose keep the old name.
+
+### Operations
+- Bot tool CLI: `cd /SOCIAL/anticapitalist-bot && python3 website.py list|read <zone>|update <zone> <value> [--dry-run]|--selftest`
+- Her cycle budget gates the LLM decisions; the tool itself is cheap.
+- If Ada's git commit ever fails, the write still lands and `commit_error` is
+  reported (writes are never rolled back for git problems).
+- Minor hardcoded leftovers (intentional): roadmap section heading
+  "12. Roadmap (The Experiment Unfolds)", the closing lead-in
+  "$CHOP asks the only question that matters:", and the legal-notice intro
+  sentence (part of the locked block).
+
+### Verification commands
+```bash
+cd /FYE && npx tsc --noEmit
+cd /SOCIAL/anticapitalist-bot && python3 website.py --selftest
+curl -s https://www.fuckyouelon.net/api/content | head -c 200
+```
+
+### 2026-08-16 — OpenGraph link card
+Added `public/og-image.png` (1200x630 branded guillotine card, regenerable via
+`python3 scripts/generate-og-image.py`) and full `og:`/`twitter:` metadata in
+`src/app/layout.tsx` (metadataBase = https://www.fuckyouelon.net), so Bluesky
+and other link cards now show the gamified guillotine when the site is shared.

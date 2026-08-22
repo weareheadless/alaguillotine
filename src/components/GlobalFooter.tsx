@@ -1,0 +1,31 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
+export function GlobalFooter() {
+  const pathname = usePathname();
+  if (pathname?.startsWith("/admin")) return null;
+  return (
+    <footer className="border-t-4 border-black bg-[#0a0a0a] py-12 px-6 z-50 relative">
+      <div className="mx-auto max-w-4xl font-mono text-xs text-[#818384] leading-relaxed">
+        <h3 className="mb-4 text-center text-[13px] font-bold text-spiteCrimson uppercase tracking-widest">
+          NOTICE OF ARTISTIC SATIRE &amp; SYMBOLIC REPRESENTATION
+        </h3>
+        <p className="mb-6 text-center text-sm">
+          This website is an interactive digital art installation, a work of political satire, and a satirical commentary on modern tech conglomerates.
+        </p>
+        <div className="space-y-4 rounded-sm border-2 border-spiteCrimson/20 bg-black p-6">
+          <p>
+            <strong className="text-sheetWhite">1. Public Figures as Symbols:</strong> Any reference to real individuals, names, or likenesses (including tech executives, billionaires) is used strictly as a <strong className="text-spiteCrimson">symbolic proxy for late-stage capitalism, systemic power structures, and corporate excess</strong>. These individuals are depicted not as private biological targets, but as archetypes of global economic friction (<em>ras-le-bol</em>).
+          </p>
+          <p>
+            <strong className="text-sheetWhite">2. Metaphorical Imagery:</strong> The guillotine and associated mechanical animations are historical metaphors for revolutionary market corrections and the public critique of extreme wealth concentration. They are artistic expressions, not literal, physical, or real-world threats of violence. No physical harm is intended, encouraged, or implied.
+          </p>
+          <p>
+            <strong className="text-sheetWhite">3. Zero Utility &amp; Speculation:</strong> The $CHOP token is a digital collectible with zero utility, no functional roadmap, and no expectation of profit derived from the managerial efforts of others. Buying this token is an explicit act of financial self-harm and internet participation.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}

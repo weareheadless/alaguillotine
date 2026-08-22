@@ -2,7 +2,7 @@
 
 import crypto from "crypto";
 import { Connection } from "@solana/web3.js";
-import type { SubmitFreeResponse, SubmitPaidResponse, NominationEntry } from "../../lib/types";
+import type { SubmitFreeResponse, SubmitPaidResponse } from "../../lib/types";
 import { NOMINATION_WEIGHT_FREE, NOMINATION_WEIGHT_MULTIPLIER } from "../../lib/types";
 import { ensureEpoch, checkEpochTransition, getBurnPerMessage } from "./epoch";
 import { LocalDatabases, Query, getDb as getRawDb } from "../../lib/local-db";
@@ -535,96 +535,6 @@ export async function submitPaidMessage(formData: FormData): Promise<SubmitPaidR
     console.error("submitPaidMessage error:", err);
     return { success: false, error: "Something went wrong. Please try again." };
   }
-}
-
-
-// ─── Server-side leaderboard fetch (used by Leaderboard component) ───────────
-
-export async function fetchLeaderboard(): Promise<NominationEntry[]> {
-  try {
-    const db = getDb();
-
-    const nominations = db.listDocuments(
-      "",
-      "nominations",
-      [Query.limit(5000)]
-    );
-
-    const docs = nominations.documents as unknown as import("../../lib/types").NominationDocument[];
-
-    // Aggregate by target_name
-    const agg = new Map<string, { total_weight: number; total_votes: number; total_paid: number; last_nominated_at: string }>();
-
-    for (const doc of docs) {
-      const key = doc.target_name.toLowerCase();
-      const existing = agg.get(key) || { total_weight: 0, total_votes: 0, total_paid: 0, last_nominated_at: "" };
-      existing.total_weight += doc.weight;
-      existing.total_votes += 1;
-      existing.total_paid += doc.amount_paid;
-      if (doc.created_at > existing.last_nominated_at) {
-        existing.last_nominated_at = doc.created_at;
-      }
-      agg.set(key, existing);
-    }
-
-    // Convert to sorted array
-    const entries: NominationEntry[] = [];
-    for (const [lowerName, data] of agg) {
-      // Find the original-cased name from one of the docs
-      const origName = docs.find(
-        (d) => d.target_name.toLowerCase() === lowerName
-      )?.target_name || lowerName;
-      entries.push({
-        target_name: origName,
-        total_weight: data.total_weight,
-        total_votes: data.total_votes,
-        total_paid: data.total_paid,
-        last_nominated_at: data.last_nominated_at,
-      });
-    }
-
-    entries.sort((a, b) => b.total_weight - a.total_weight);
-
-    return entries;
-  } catch (err) {
-    console.error("fetchLeaderboard error:", err);
-    return [];
-  }
-}
-
-// ─── Server-side traitors fetch (used by Class Traitors component) ───────────
-
-export async function fetchTraitors(): Promise<import("../../lib/types").TraitorEntry[]> {
-  try {
-    const db = getDb();
-    const rawDb = getRawDb();
-    const treasuryWallet = (process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET || "").toLowerCase();
-
-    const paidProfiles = getPaidWalletProfiles();
-
-    const epochs = db.listDocuments("", "epochs", [Query.orderDesc("started_at"), Query.limit(1)]);
-    if (epochs.documents.length === 0) return [];
-    const raw = (epochs.documents[0] as any).board_members;
-    if (!raw || raw === "[]") return [];
-
-    let boardMembers: { wallet: string; balance: number; voted: boolean }[];
-    try { boardMembers = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return []; }
-
-    const entries: import("../../lib/types").TraitorEntry[] = [];
-    for (const m of boardMembers) {
-      const w = m.wallet.toLowerCase();
-      if (paidProfiles.has(w)) continue;
-      if (w === treasuryWallet) continue;
-
-      const msgRow = rawDb.prepare(
-        "SELECT COUNT(*) as cnt, MAX(created_at) as last_at FROM messages WHERE LOWER(author_id) = ? AND amount_paid = 0"
-      ).get(w) as { cnt: number; last_at: string | null } | undefined;
-
-      entries.push({ author_name: m.wallet, total_paid: m.balance, total_messages: msgRow?.cnt || 0, last_active_at: msgRow?.last_at || "" });
-    }
-    entries.sort((a, b) => b.total_paid - a.total_paid);
-    return entries;
-  } catch (err) { console.error("fetchTraitors error:", err); return []; }
 }
 
 // ─── Server-side benefactors fetch (users who PAID to fund the revolution) ───

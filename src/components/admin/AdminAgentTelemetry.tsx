@@ -63,6 +63,7 @@ export function AdminAgentTelemetry() {
   const { data, loading, error, refetch } = useAdmin<AgentStatus>("/api/admin/proxy/agent/status", 2000);
   const [working, setWorking] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   if (loading && !data) {
     return <div className="p-3 text-[10px] uppercase tracking-widest text-chop-muted">loading agent telemetry…</div>;
@@ -125,66 +126,83 @@ export function AdminAgentTelemetry() {
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <div className="flex items-center gap-2">
           <span className={`h-1.5 w-1.5 rounded-full ${pending.length ? "animate-pulse bg-amber-400" : busy ? "animate-pulse bg-hypeNeon" : "bg-glitchGray"}`} />
-          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-sheetWhite">agent activity</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.16em] text-sheetWhite">agent activity</span>
           <Pill tone={tone}>{state}</Pill>
+          {pending.length > 0 && <Pill tone="yellow">{pending.length} approval{pending.length === 1 ? "" : "s"}</Pill>}
         </div>
-        {busy && (
+        <div className="flex items-center gap-1.5">
+          {busy && (
+            <button
+              type="button"
+              onClick={abort}
+              disabled={working !== null}
+              className="border border-spiteCrimson px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-spiteCrimson hover:bg-spiteCrimson hover:text-black disabled:opacity-50"
+            >
+              stop
+            </button>
+          )}
           <button
-            onClick={abort}
-            disabled={working !== null}
-            className="border border-spiteCrimson px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-spiteCrimson hover:bg-spiteCrimson hover:text-black disabled:opacity-50"
+            type="button"
+            aria-expanded={expanded}
+            aria-controls="agent-activity-details"
+            onClick={() => setExpanded((value) => !value)}
+            className="border border-glitchGray px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-chop-muted hover:border-hypeNeon hover:text-hypeNeon"
           >
-            stop
+            {expanded ? "hide" : "show"}
           </button>
-        )}
+        </div>
       </div>
 
-      {pending.length > 0 && (
-        <div className="space-y-2 border-t border-amber-400/40 bg-amber-400/5 px-3 py-2">
-          <div className="text-[9px] font-bold uppercase tracking-widest text-amber-400">approval queue</div>
-          {pending.map((permission) => {
-            const properties = permission.properties ?? {};
-            const id = permissionId(permission);
-            const child = data.children?.find((candidate) => candidate.id === properties.sessionID);
-            const command = properties.metadata?.command;
-            return (
-              <div key={`${properties.sessionID}-${id}`} className="border border-amber-400/40 bg-black px-2 py-2 text-[10px] text-sheetWhite/90">
-                <div className="font-bold text-amber-300">{properties.permission ?? "permission"}</div>
-                <div className="mt-0.5 text-chop-muted">
-                  {child?.agent ?? "subagent"} · {child?.title ?? properties.sessionID ?? "unknown session"}
-                </div>
-                {command && <code className="mt-1 block break-words text-[9px] text-sheetWhite/80">{command}</code>}
-                {properties.patterns?.length ? <div className="mt-1 break-words text-[9px] text-chop-muted">patterns: {properties.patterns.join(", ")}</div> : null}
-                <div className="mt-2 flex flex-wrap gap-1">
-                  <button onClick={() => answer(permission, "once")} disabled={working !== null} className="border border-hypeNeon px-1.5 py-0.5 font-bold uppercase text-hypeNeon hover:bg-hypeNeon hover:text-black disabled:opacity-50">allow once</button>
-                  <button onClick={() => answer(permission, "always")} disabled={working !== null} className="border border-amber-400 px-1.5 py-0.5 font-bold uppercase text-amber-400 hover:bg-amber-400 hover:text-black disabled:opacity-50">always</button>
-                  <button onClick={() => answer(permission, "reject")} disabled={working !== null} className="border border-spiteCrimson px-1.5 py-0.5 font-bold uppercase text-spiteCrimson hover:bg-spiteCrimson hover:text-black disabled:opacity-50">reject</button>
-                </div>
+      {expanded && (
+        <div id="agent-activity-details">
+          {pending.length > 0 && (
+            <div className="space-y-2 border-t border-amber-400/40 bg-amber-400/5 px-3 py-2">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-amber-400">approval queue</div>
+              {pending.map((permission) => {
+                const properties = permission.properties ?? {};
+                const id = permissionId(permission);
+                const child = data.children?.find((candidate) => candidate.id === properties.sessionID);
+                const command = properties.metadata?.command;
+                return (
+                  <div key={`${properties.sessionID}-${id}`} className="border border-amber-400/40 bg-black px-2 py-2 text-[11px] text-sheetWhite/90">
+                    <div className="font-bold text-amber-300">{properties.permission ?? "permission"}</div>
+                    <div className="mt-0.5 text-chop-muted">
+                      {child?.agent ?? "subagent"} · {child?.title ?? properties.sessionID ?? "unknown session"}
+                    </div>
+                    {command && <code className="mt-1 block break-words text-[10px] text-sheetWhite/80">{command}</code>}
+                    {properties.patterns?.length ? <div className="mt-1 break-words text-[10px] text-chop-muted">patterns: {properties.patterns.join(", ")}</div> : null}
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <button type="button" onClick={() => answer(permission, "once")} disabled={working !== null} className="border border-hypeNeon px-1.5 py-0.5 text-[10px] font-bold uppercase text-hypeNeon hover:bg-hypeNeon hover:text-black disabled:opacity-50">allow once</button>
+                      <button type="button" onClick={() => answer(permission, "always")} disabled={working !== null} className="border border-amber-400 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-400 hover:bg-amber-400 hover:text-black disabled:opacity-50">always</button>
+                      <button type="button" onClick={() => answer(permission, "reject")} disabled={working !== null} className="border border-spiteCrimson px-1.5 py-0.5 text-[10px] font-bold uppercase text-spiteCrimson hover:bg-spiteCrimson hover:text-black disabled:opacity-50">reject</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {actionError && <div className="px-3 py-1 text-[11px] text-spiteCrimson">{actionError}</div>}
+
+          <div className="max-h-56 overflow-y-auto border-t border-glitchGray/60 px-3 py-2">
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-chop-muted">high-level activity · no private reasoning</div>
+            {activity.length === 0 ? (
+              <div className="py-2 text-[11px] text-chop-muted">No activity captured yet.</div>
+            ) : (
+              <div className="space-y-1.5">
+                {activity.map((item, index) => (
+                  <div key={`${item.event_id ?? item.at}-${index}`} className="flex gap-2 text-[11px] leading-snug">
+                    <span className="w-12 shrink-0 text-chop-muted">{relTs(item.at)}</span>
+                    <span className={item.kind === "permission" ? "text-amber-300" : item.kind === "tool" ? "text-hypeNeon" : "text-sheetWhite/80"}>
+                      {activityLabel(item)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
       )}
-
-      {actionError && <div className="px-3 py-1 text-[10px] text-spiteCrimson">{actionError}</div>}
-
-      <div className="max-h-56 overflow-y-auto border-t border-glitchGray/60 px-3 py-2">
-        <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-chop-muted">high-level activity · no private reasoning</div>
-        {activity.length === 0 ? (
-          <div className="py-2 text-[10px] text-chop-muted">No activity captured yet.</div>
-        ) : (
-          <div className="space-y-1">
-            {activity.map((item, index) => (
-              <div key={`${item.event_id ?? item.at}-${index}`} className="flex gap-2 text-[10px] leading-snug">
-                <span className="w-12 shrink-0 text-chop-muted">{relTs(item.at)}</span>
-                <span className={item.kind === "permission" ? "text-amber-300" : item.kind === "tool" ? "text-hypeNeon" : "text-sheetWhite/80"}>
-                  {activityLabel(item)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </section>
   );
 }

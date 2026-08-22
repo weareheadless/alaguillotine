@@ -236,6 +236,43 @@ function ensureTables(db: Database.Database) {
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_wr_votes_unique ON war_room_votes(voter_key, target_type, target_id);
     CREATE INDEX IF NOT EXISTS idx_wr_votes_target ON war_room_votes(target_type, target_id);
+
+    -- ─── the-guillotine v2: candidate roster ──────────────────────────────
+    -- Wealth-ranked lineup. The roster IS the queue: the survivor of a race
+    -- holds the board and faces the next candidate in order.
+    CREATE TABLE IF NOT EXISTS roster (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      rank INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'active',   -- active | decapitated
+      net_worth TEXT NOT NULL DEFAULT '',      -- display string ("$247B")
+      emoji TEXT NOT NULL DEFAULT '🪓',
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_roster_rank ON roster(rank);
+
+    -- ─── the-guillotine v2: races ─────────────────────────────────────────
+    -- One active race at a time: candidate_a vs candidate_b. A race ends when
+    -- the leader's weighted lead exceeds 10% of total weighted posts — the
+    -- leader is decapitated and leaves, the survivor stays for the next race.
+    CREATE TABLE IF NOT EXISTS races (
+      id TEXT PRIMARY KEY,
+      candidate_a TEXT NOT NULL,
+      candidate_b TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',   -- active | over
+      started_at TEXT NOT NULL DEFAULT '',
+      ended_at TEXT,
+      decapitated TEXT,                        -- the leader who lost their head
+      survivor TEXT,                           -- the one who holds the board
+      trigger_lead INTEGER NOT NULL DEFAULT 0,
+      total_weight INTEGER NOT NULL DEFAULT 0,
+      epoch_number INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_races_status ON races(status);
+    CREATE INDEX IF NOT EXISTS idx_races_created ON races(created_at);
   `);
 
   // ─── Migrations for existing databases ────────────────────────────────
@@ -256,6 +293,52 @@ function ensureTables(db: Database.Database) {
   const userCols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
   if (!userCols.some((c) => c.name === "is_guest")) {
     db.exec("ALTER TABLE users ADD COLUMN is_guest INTEGER NOT NULL DEFAULT 0");
+  }
+
+  // the-guillotine v2: messages gain race + scoring columns (existing DBs).
+  const msgCols = db.prepare("PRAGMA table_info(messages)").all() as { name: string }[];
+  if (!msgCols.some((c) => c.name === "race_id")) {
+    db.exec("ALTER TABLE messages ADD COLUMN race_id TEXT");
+  }
+  if (!msgCols.some((c) => c.name === "board")) {
+    db.exec("ALTER TABLE messages ADD COLUMN board TEXT NOT NULL DEFAULT 'a'");
+  }
+  if (!msgCols.some((c) => c.name === "score")) {
+    db.exec("ALTER TABLE messages ADD COLUMN score INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!msgCols.some((c) => c.name === "highlight_expires_at")) {
+    db.exec("ALTER TABLE messages ADD COLUMN highlight_expires_at TEXT");
+  }
+
+  // the-guillotine v2: seed the wealth-ranked roster and the opening race.
+  // Idempotent — only seeds when empty so it never overwrites admin changes.
+  const rosterCount = (db.prepare("SELECT COUNT(*) as c FROM roster").get() as { c: number }).c;
+  if (rosterCount === 0) {
+    const seed = db.prepare(
+      "INSERT INTO roster (id, name, rank, status, net_worth, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    );
+    const now = new Date().toISOString();
+    const lineup: [string, string, number, string, string][] = [
+      ["musk", "Musk", 1, "$247B", "🚀"],
+      ["trump", "Trump", 2, "$5B", "🍊"],
+      ["zuckerberg", "Zuckerberg", 3, "$190B", "🦎"],
+      ["thiel", "Thiel", 4, "$12B", "🧛"],
+      ["netanyahu", "Netanyahu", 5, "$13M", "🦅"],
+    ];
+    const tx = db.transaction(() => {
+      for (const [id, name, rank, netWorth, emoji] of lineup) {
+        seed.run(id, name, rank, "active", netWorth, emoji, now);
+      }
+    });
+    tx();
+  }
+
+  const raceCount = (db.prepare("SELECT COUNT(*) as c FROM races").get() as { c: number }).c;
+  if (raceCount === 0) {
+    const now = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO races (id, candidate_a, candidate_b, status, started_at, epoch_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).run(`race_musk_trump_${Date.now()}`, "Musk", "Trump", "active", now, 1, now);
   }
 }
 

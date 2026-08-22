@@ -168,6 +168,32 @@ export async function fetchTreasuryBalance(connection?: Connection): Promise<num
   }
 }
 
+// ─── Supply & Burns ────────────────────────────────────────────────────────────
+
+/**
+ * CHOP tokens minted at launch. pump.fun tokens are created with a fixed
+ * 1,000,000,000 total supply; every burn permanently removes tokens from it,
+ * so `initial supply − current supply` is the ground truth for total burned.
+ */
+export const CHOP_INITIAL_SUPPLY = 1_000_000_000;
+
+/** Fetch the current on-chain total supply of CHOP (Token-2022), in CHOP units. */
+export async function fetchCHOPTotalSupply(connection?: Connection): Promise<number> {
+  const conn = connection || new Connection(getRpcUrl());
+  const supply = await conn.getTokenSupply(CHOP_MINT, "finalized");
+  return Number(supply.value.uiAmount ?? 0);
+}
+
+/**
+ * Total CHOP burned ever = initial supply − current supply. Clamped to zero.
+ * This is the real on-chain truth: every paid post, free-message burn, and
+ * treasury burn shrinks the supply, so the delta never needs bookkeeping.
+ */
+export async function fetchCHOPBurned(connection?: Connection): Promise<number> {
+  const current = await fetchCHOPTotalSupply(connection);
+  return Math.max(0, CHOP_INITIAL_SUPPLY - current);
+}
+
 // ─── Payment Verification ───────────────────────────────────────────────────────
 
 /**

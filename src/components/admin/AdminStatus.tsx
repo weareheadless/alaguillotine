@@ -1,14 +1,11 @@
 "use client";
 
-import { Section, Stat, Pill, Loading, ErrorBox, useAdmin, money, num, fmtTs, relTs } from "./admin-ui";
+import { Section, Stat, Pill, Loading, ErrorBox, useAdmin, num, fmtTs, relTs } from "./admin-ui";
 
 interface StatusData {
   name?: string;
   mood?: string;
   health?: string;
-  budget?: { spent?: number; donated?: number; budget?: number; remaining?: number; capital?: number; health?: string };
-  reserve_usd?: number;
-  onchain?: Record<string, unknown> & { total_usd?: number; error?: string };
   tokens?: {
     spent_today?: number;
     budget?: number;
@@ -20,11 +17,7 @@ interface StatusData {
     context_window_tokens?: number;
     context_breakdown?: Record<string, number>;
   };
-  coding?: { spent_today?: number; budget?: number; remaining?: number; total?: number; error?: string };
   cycles?: { used?: number; budget?: number; remaining?: number; exhausted?: boolean };
-  ledger_totals?: { total_spent?: number; total_donations?: number; capital?: number; total_tokens?: number; total_prompt_tokens?: number; total_completion_tokens?: number; total_coding_tokens?: number };
-  last_usage?: { model?: string; note?: string; total_tokens?: number; ts?: number } | null;
-  last_coding_usage?: { model?: string; note?: string; total_tokens?: number; ts?: number } | null;
   stats?: { total_posts?: number; total_reflections?: number; cycles?: number; total_ingests?: number; last_post?: string; last_wake?: number; last_dream_ts?: number; total_wakes?: number };
   personality?: { voice?: string; tone?: string; beliefs?: string[] };
   memory_store?: { count?: number };
@@ -41,16 +34,6 @@ export function AdminStatus() {
   if (loading && !data) return <Loading />;
   if (error && !data) return <ErrorBox msg={error} onRetry={refetch} />;
   if (!data) return null;
-
-  const b = data.budget ?? {};
-  const onchain = data.onchain ?? {};
-
-  const bc =
-    data.health === "critical"
-      ? "text-spiteCrimson"
-      : data.health === "low"
-        ? "text-amber-400"
-        : "text-hypeNeon";
 
   return (
     <div className="space-y-4">
@@ -120,82 +103,6 @@ export function AdminStatus() {
           </Section>
         );
       })()}
-
-      {/* Life support */}
-      <Section title="Life support" sub="the capital ledger — every thought costs her money">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          <Stat k="capital" v={<span className={bc}>{money(b.capital)}</span>} />
-          <Stat k="spent today" v={money(b.spent)} />
-          <Stat k="daily budget" v={money(b.budget)} />
-          <Stat k="remaining today" v={<span className={bc}>{money(b.remaining)}</span>} />
-          <Stat k="total donated (lifetime)" v={money(data.ledger_totals?.total_donations)} />
-          <Stat k="total spent (lifetime)" v={money(data.ledger_totals?.total_spent)} />
-          <Stat k="total reserve incl on-chain" v={money(data.reserve_usd)} />
-        </div>
-        {onchain.error ? (
-          <p className="mt-3 text-xs text-spiteCrimson">on-chain: {String(onchain.error)}</p>
-        ) : (
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {(["btc", "sol", "eth"] as const).map((c) => {
-              const b = onchain[c];
-              if (!b) return null;
-              const bal = b as { usd?: number; error?: string };
-              return (
-                <div key={c} className="border border-glitchGray bg-black px-3 py-2">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-chop-muted">
-                    {c.toUpperCase()} (on-chain)
-                  </div>
-                  <div className="mt-1 text-sm font-bold text-sheetWhite">
-                    {bal.error ? <span className="text-spiteCrimson">{bal.error}</span> : money(bal.usd)}
-                  </div>
-                </div>
-              );
-            })}
-            <div className="border border-glitchGray bg-black px-3 py-2">
-              <div className="text-[9px] font-bold uppercase tracking-widest text-chop-muted">total</div>
-              <div className="mt-1 text-sm font-bold text-hypeNeon">{money(onchain.total_usd)}</div>
-            </div>
-          </div>
-        )}
-      </Section>
-
-      {/* Token meters */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Thinking tokens" sub="main brain meter">
-          <div className="grid grid-cols-2 gap-2">
-            <Stat k="spent today" v={num(data.tokens?.spent_today)} tone="text-hypeNeon" />
-            <Stat k="budget / day" v={num(data.tokens?.budget)} />
-            <Stat k="remaining" v={<span className={Number(data.tokens?.remaining) <= 0 ? "text-spiteCrimson" : "text-hypeNeon"}>{num(data.tokens?.remaining)}</span>} />
-            <Stat k="total lifetime" v={num(data.tokens?.total)} />
-          </div>
-          {data.last_usage && (
-            <p className="mt-3 border-t border-glitchGray pt-2 text-[11px] text-chop-muted">
-              last: <span className="text-sheetWhite/90">{String(data.last_usage.model ?? "—")}</span> ·{" "}
-              {num(data.last_usage.total_tokens ?? 0)} tok · {data.last_usage.note ?? "—"} · {fmtTs(data.last_usage.ts)}
-            </p>
-          )}
-        </Section>
-
-        <Section title="Coding tokens" sub="separate burner — the sandbox">
-          {data.coding?.error ? (
-            <ErrorBox msg={data.coding.error} />
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <Stat k="spent today" v={num(data.coding?.spent_today)} tone="text-hypeNeon" />
-              <Stat k="budget / day" v={num(data.coding?.budget)} />
-              <Stat k="remaining" v={<span className={Number(data.coding?.remaining) <= 0 ? "text-spiteCrimson" : "text-hypeNeon"}>{num(data.coding?.remaining)}</span>} />
-              <Stat k="total lifetime" v={num(data.coding?.total)} />
-            </div>
-          )}
-          {data.last_coding_usage && (
-            <p className="mt-3 border-t border-glitchGray pt-2 text-[11px] text-chop-muted">
-              last: <span className="text-sheetWhite/90">{String(data.last_coding_usage.model ?? "—")}</span> ·{" "}
-              {num(data.last_coding_usage.total_tokens ?? 0)} tok · {data.last_coding_usage.note ?? "—"} ·{" "}
-              {fmtTs(data.last_coding_usage.ts)}
-            </p>
-          )}
-        </Section>
-      </div>
 
       {/* Cycles + stats */}
       <div className="grid gap-4 lg:grid-cols-2">

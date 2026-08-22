@@ -172,7 +172,7 @@ export function MessageFeed() {
               if (isPaid) {
                 return (
                   <div key={msg.$id} className="w-full border-y-[3px] border-spiteCrimson bg-[#FDE047] px-3 py-2.5 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+                    <div className="absolute inset-0 grid-overlay opacity-10"></div>
                     <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-2 md:gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="break-words text-sm font-bold leading-relaxed text-black">

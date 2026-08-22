@@ -170,7 +170,12 @@ export function VotingPanel({
         const noneVoted = myVote === noneProposal.id;
         const attemptsUsed = noneProposal.attempt_number || 0;
         const attemptsLeft = 3 - attemptsUsed;
-        const canVote = isWalletConnected && hasEnoughChop && !hasVoted;
+        const canVote =
+          isWalletConnected &&
+          hasEnoughChop &&
+          !hasVoted &&
+          !isVotingClosed &&
+          noneProposal.status === "active";
         const isNoneWinner = noneProposal.status === "won";
 
         return (

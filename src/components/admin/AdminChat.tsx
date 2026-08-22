@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Pill, fmtTs, money } from "./admin-ui";
 import { AdminAgentTelemetry } from "./AdminAgentTelemetry";
-import { AdminTasksBoard } from "./AdminTasksBoard";
+import { AdminObjectivesBoard } from "./AdminObjectivesBoard";
+import { useObjectives } from "@/lib/objective-context";
+import type { ObjectiveOperation } from "@/lib/objectives";
 
 interface ServerMsg {
   id: string;
@@ -28,6 +30,10 @@ interface ServerMsg {
     afterthought?: string;
     private?: string;
     error?: string;
+    operation?: ObjectiveOperation;
+    objective_id?: string;
+    objective_status?: string;
+    objective_progress?: number;
   };
 }
 
@@ -72,12 +78,14 @@ function ThinkingBubble() {
 }
 
 export function AdminChat({ onLogout }: { onLogout: () => void }) {
+  const { snapshot } = useObjectives();
   const [msgs, setMsgs] = useState<ServerMsg[]>([]);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [openReasoning, setOpenReasoning] = useState<string | null>(null);
   const [openAfter, setOpenAfter] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [objectivesExpanded, setObjectivesExpanded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
@@ -86,6 +94,7 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const thinking = msgs.some((m) => m.status === "thinking");
+  const operation = snapshot?.operation;
 
   function handleScroll() {
     const el = scrollerRef.current;
@@ -142,10 +151,12 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
     setError(null);
     setSending(true);
     try {
+      const body: { message: string; operation?: ObjectiveOperation } = { message: text };
+      if (operation?.objective) body.operation = operation;
       const r = await fetch("/api/admin/proxy/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify(body),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
@@ -168,14 +179,21 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
   const lastTs = msgs.length ? msgs[msgs.length - 1].ts : 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b-2 border-glitchGray px-4 py-3">
-        <div className="flex items-center gap-2">
+      <div className="sticky top-0 z-20 flex shrink-0 items-center justify-between border-b-2 border-glitchGray bg-canvasBlack px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
           <span className={`h-2 w-2 animate-pulse rounded-full ${thinking ? "bg-hypeNeon" : "bg-glitchGray"}`} />
-          <span className="text-sm font-black uppercase tracking-widest text-sheetWhite">
-            Direct line — background &amp; persistent
-          </span>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-black uppercase tracking-widest text-sheetWhite">
+              Direct line — background &amp; persistent
+            </div>
+            {operation?.objective && (
+              <div className="truncate text-[9px] uppercase tracking-wider text-hypeNeon" title={operation.objective}>
+                operation: {operation.objective}
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {thinking && (
@@ -190,14 +208,14 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
         </div>
       </div>
 
-      {/* Two panes: conversation (left) + task board (right) */}
-      <div className="flex min-h-0 flex-1">
+      {/* Two panes: conversation (left) + operational task queue (right) */}
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         {/* Conversation */}
-        <div className="relative flex min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <div
           ref={scrollerRef}
           onScroll={handleScroll}
-          className="h-full space-y-4 overflow-y-auto px-4 py-4"
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4"
         >
         {msgs.length === 0 && !thinking && (
           <div className="py-16 text-center">
@@ -280,6 +298,11 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
                     {m.meta?.action ?? "reply"}
                   </Pill>
                   {m.meta?.topic && <Pill tone="gray">topic: {m.meta.topic}</Pill>}
+                  {m.meta?.operation?.status && <Pill tone="yellow">operation: {m.meta.operation.status.replace(/_/g, " ")}</Pill>}
+                  {m.meta?.objective_id && <span className="text-[10px] text-chop-muted">objective {m.meta.objective_id}</span>}
+                  {typeof m.meta?.objective_progress === "number" && (
+                    <span className="text-[10px] text-hypeNeon">{Math.round(m.meta.objective_progress)}% complete</span>
+                  )}
                   {m.meta?.mood && <Pill tone="yellow">{m.meta.mood}</Pill>}
                   {m.meta?.health && (
                     <Pill tone={m.meta.health === "critical" ? "red" : "green"}>{m.meta.health}</Pill>
@@ -304,6 +327,11 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
                     </button>
                   )}
                 </div>
+                {m.meta?.operation?.objective && (
+                  <p className="mt-1 border-l-2 border-hypeNeon/50 pl-2 text-[10px] text-chop-muted">
+                    operation metadata: {m.meta.operation.objective}
+                  </p>
+                )}
                 {openAfter === m.id && (m.meta?.afterthought || m.meta?.private) && (
                   <p className="mt-1.5 border border-amber-400/30 bg-amber-400/5 px-3 py-2 text-[11px] italic leading-relaxed text-amber-200/90">
                     <span className="mr-1 font-bold not-italic uppercase tracking-wider text-amber-400">
@@ -330,7 +358,7 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
         )}
 
       {/* Composer */}
-      <div className="border-t-2 border-glitchGray px-4 py-3">
+      <div className="shrink-0 border-t-2 border-glitchGray px-4 py-3">
         {error && (
           <p className="mb-2 text-xs text-spiteCrimson">
             <span className="font-bold">ERROR:</span> {error}
@@ -367,11 +395,11 @@ export function AdminChat({ onLogout }: { onLogout: () => void }) {
       </div>
         </div>
 
-        {/* Task board sidebar — her projects, tasks, and subtasks, live */}
-        <aside className="flex w-80 shrink-0 flex-col border-l-2 border-glitchGray bg-black/40">
+        {/* Operational objectives replace the legacy memory task board. */}
+        <aside className={`sticky top-0 z-20 flex h-64 min-h-0 w-full shrink-0 flex-col border-t-2 border-glitchGray bg-black/40 md:h-auto md:border-l-2 md:border-t-0 ${objectivesExpanded ? "md:w-[min(42rem,60vw)] lg:w-[min(48rem,68vw)]" : "md:w-80"}`}>
           <AdminAgentTelemetry />
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <AdminTasksBoard />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <AdminObjectivesBoard compact onCompactExpandedChange={setObjectivesExpanded} />
           </div>
         </aside>
       </div>

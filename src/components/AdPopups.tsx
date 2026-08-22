@@ -3,46 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchTopBounties } from "../app/actions/feed";
 import type { FeedMessage } from "../lib/types";
-
-const ADS = [
-  {
-    title: "⚠️ GOV EFFICIENCY UPDATE",
-    body: "ZERO LIVES LOST DUE TO GUILLOTINE BUDGET CUTS // WE HAVE SOCIALIZED THE BLADE MAINTENANCE AND PRIVATIZED THE SPITE // \"0.0 DEATHS, FRANKLY\"",
-    cta: "DEFUND OVERSIGHT"
-  },
-  {
-    title: "ACQUISITION ALERT",
-    body: "TREASURY FUNDS REROUTED TO BAIL OUT MY COUSIN’S SOLAR-POWERED GUILLOTINE STARTUP // SYNERGIES WILL BE QUASI-INFINITE // DO NOT VOTE AGAINST MY COMP PACKAGE",
-    cta: "APPROVE PAY"
-  },
-  {
-    title: "MARS COLONY PROTOCOL",
-    body: "RAPID UNSCHEDULED DISASSEMBLY OF THE GUILLOTINE EXPECTED // VALUATION HAS BEEN ADJUSTED UPWARD BY $40 BILLION TO REFLECT THE DATA GATHERED",
-    cta: "FUND EXPLOSION"
-  },
-  {
-    title: "FSD BETA ALERT",
-    body: "BLADE NEURAL NET IS HALLUCINATING AND TARGETING PEDESTRIANS // PLEASE BURN $CHOP TO TRAIN THE ALGORITHM // \"THE SYSTEM IS LEARNING TO AVOID HEAT DEATHS IN EUROPE\"",
-    cta: "IGNORE OVERSIGHT"
-  },
-  {
-    title: "xCHOP AI INTEGRATION",
-    body: "LICENSING YOUR HATE SPEECH TO MY OWN SHELL COMPANY AT A 400% PREMIUM // FUNDING SECURED // THE JOURNALISTS COMPLAINING ARE TRAITORS TO THE WEST",
-    cta: "SUBSIDIZE ME"
-  },
-  {
-    title: "ABUNDANCE PROTOCOL",
-    body: "MONEY WON'T MATTER IN 2036 // PLEASE DEPOSIT ALL YOUR WORTHLESS FIAT INTO THE GUILLOTINE TREASURY SO WE CAN REACH THE SINGULARITY FASTER",
-    cta: "DONATE FIAT"
-  },
-  {
-    title: "⚠️ FSD_MULTISIG_BETA_v4.20",
-    body: "UNVERIFIED HYPE DETECTED // THE AUTOMATED TRUSTLESS MULTI-SIG SMART CONTRACT IS IN FSD BETA — FULL RELEASE \"DEFINITELY NEXT YEAR\" // UNTIL THEN, WEALTH REDISTRIBUTION IS MANAGED BY A CENTRALIZED, HIGHLY CORRUPTIBLE SERVER ON AN OVERHEATING RASPBERRY PI // STATUS: FUNDING SECURED",
-    cta: "BUY MORE $CHOP"
-  }
-];
+import { useSiteContent } from "../lib/use-site-content";
+import type { AdContent } from "../lib/content";
 
 export function AdPopups() {
+  const { content } = useSiteContent();
   const [currentAd, setCurrentAd] = useState<{ isSystem: boolean, data: any } | null>(null);
   const [adHistory, setAdHistory] = useState<number[]>([]);
   const [bounties, setBounties] = useState<FeedMessage[]>([]);
@@ -59,7 +24,20 @@ export function AdPopups() {
     };
     loadBounties();
     const interval = setInterval(loadBounties, 30_000); // Check every 30s
-    return () => clearInterval(interval);
+    const paidMessageHandler = async (event: Event) => {
+      const detail = (event as CustomEvent).detail as FeedMessage;
+      setCurrentAd({ isSystem: false, data: detail });
+      try {
+        setBounties(await fetchTopBounties());
+      } catch {
+        /* The paid message is already available locally for the popup. */
+      }
+    };
+    window.addEventListener("paid-message", paidMessageHandler);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("paid-message", paidMessageHandler);
+    };
   }, []);
 
   const triggerNextAd = useCallback((history: number[], currentBounties: FeedMessage[]) => {
@@ -70,13 +48,13 @@ export function AdPopups() {
       setCurrentAd({ isSystem: false, data: randomBounty });
     } else {
       // Pick a system ad we haven't seen recently
-      const available = ADS.map((_, i) => i).filter(i => !history.includes(i));
-      const nextPool = available.length > 0 ? available : ADS.map((_, i) => i);
+      const available = content.ads.map((_, i) => i).filter(i => !history.includes(i));
+      const nextPool = available.length > 0 ? available : content.ads.map((_, i) => i);
       const nextAdIdx = nextPool[Math.floor(Math.random() * nextPool.length)];
-      setCurrentAd({ isSystem: true, data: ADS[nextAdIdx] });
+      setCurrentAd({ isSystem: true, data: content.ads[nextAdIdx] });
       setAdHistory(prev => [...prev.slice(-2), nextAdIdx]);
     }
-  }, []);
+  }, [content.ads]);
 
   useEffect(() => {
     // Start first ad after a short delay
@@ -105,7 +83,7 @@ export function AdPopups() {
           <span className="text-[10px] md:text-xs font-black tracking-widest animate-pulse text-black uppercase">⚠️ PAID OVERRIDE</span>
           <button onClick={closeAd} className="text-sm font-black hover:text-black focus:outline-none">X</button>
         </div>
-        <div className="p-4 bg-[url('/grid.svg')]">
+        <div className="p-4 grid-overlay">
           <div className="mb-2 inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-0.5 text-[10px] font-bold text-hypeNeon">
             SPONSORED: ${msg.amount_paid.toFixed(2)} CHOP
           </div>
@@ -127,7 +105,7 @@ export function AdPopups() {
   }
 
   // SYSTEM AD
-  const ad = currentAd.data as typeof ADS[0];
+  const ad = currentAd.data as AdContent;
 
   return (
     <div className="fixed bottom-24 md:bottom-6 left-4 md:left-6 z-50 w-64 md:w-72 border-4 border-black bg-[#FDE047] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] animate-fade-in font-mono">

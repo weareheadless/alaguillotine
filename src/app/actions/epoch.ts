@@ -14,6 +14,9 @@ function getDb() {
 
 // ─── Epoch Management ──────────────────────────────────────────────────────────
 
+/** Protocol default allocation burn % — used when no oracle burn rate is resolved. */
+const DEFAULT_BURN_PCT = 25;
+
 /** Fetch the live on-chain CHOP balance of the treasury wallet (delegates to solana.ts) */
 export async function getTreasuryBalance(): Promise<number> {
   return fetchTreasuryBalance();
@@ -28,10 +31,15 @@ export async function getTreasuryBalance(): Promise<number> {
  * NOT the current message count — so the burn per message stays stable and
  * predictable throughout the entire epoch rather than spiking at the start.
  *
- * - burn_pct comes from the won proposal for this epoch, or averaged across
- *   active proposals if voting hasn't resolved yet.
- * - Returns 0 if there's no active epoch, no treasury, no messages, or no
- *   oracle proposals with a non-zero burn_pct.
+ * - burn_pct is resolved from the freshest available signal so the metric
+ *   stays visible at all times (even between epochs when the current epoch
+ *   has no proposals yet):
+ *     1. the won proposal of the current epoch
+ *     2. the average of active proposals of the current epoch
+ *     3. the most recent won proposal across all epochs
+ *     4. the average of active proposals of the most recent epoch that has them
+ * - Falls back to the protocol default allocation (25%) when no non-zero burn
+ *   rate can be resolved, so the metric never blanks out.
  *
  * Used by:
  *   - submit.ts  → actual on-chain burn transaction amount
@@ -40,10 +48,10 @@ export async function getTreasuryBalance(): Promise<number> {
 export async function getBurnPerMessage(): Promise<number> {
   const db = getRawDb();
 
-  // Current active/voting epoch
+  // Current active/voting epoch (preferred source for message threshold)
   const epoch = db
     .prepare(
-      "SELECT epoch_number, status, started_at, start_msg_count, end_msg_count FROM epochs WHERE status IN ('active', 'voting') ORDER BY started_at DESC LIMIT 1"
+      "SELECT epoch_number, status, started_at, start_msg_count, end_msg_count, treasury_amount FROM epochs WHERE status IN ('active', 'voting') ORDER BY started_at DESC LIMIT 1"
     )
     .get() as {
       epoch_number: number;
@@ -51,50 +59,92 @@ export async function getBurnPerMessage(): Promise<number> {
       started_at: string;
       start_msg_count: number;
       end_msg_count: number;
+      treasury_amount: number;
     } | undefined;
 
-  if (!epoch) return 0;
+  // Fall back to the most recent epoch of any status so the metric stays
+  // stable if there's a gap before the next epoch is created.
+  const anchor = epoch ?? (db
+    .prepare(
+      "SELECT epoch_number, status, started_at, start_msg_count, end_msg_count, treasury_amount FROM epochs ORDER BY started_at DESC LIMIT 1"
+    )
+    .get() as {
+      epoch_number: number;
+      status: string;
+      started_at: string;
+      start_msg_count: number;
+      end_msg_count: number;
+      treasury_amount: number;
+    } | undefined);
+
+  if (!anchor) return 0;
 
   // Expected messages in this epoch (threshold = end - start)
-  const expectedMessages = epoch.end_msg_count - epoch.start_msg_count;
+  const expectedMessages = anchor.end_msg_count - anchor.start_msg_count;
   if (expectedMessages <= 0) return 0;
 
-  // Treasury balance (on-chain, falls back to 0)
+  // Treasury balance (on-chain, falls back to DB-stored amount)
   let treasuryBalance = 0;
   try {
     treasuryBalance = await getTreasuryBalance();
   } catch {
-    // Fall back to DB-stored amount
-    const e = db
-      .prepare("SELECT treasury_amount FROM epochs WHERE epoch_number = ?")
-      .get(epoch.epoch_number) as { treasury_amount: number } | undefined;
-    treasuryBalance = e?.treasury_amount ?? 0;
+    treasuryBalance = anchor.treasury_amount ?? 0;
   }
   if (treasuryBalance <= 0) return 0;
 
-  // burn_pct: won proposal first, else average of active proposals
-  let burnPct = 0;
+  // Resolve burn_pct from the freshest available signal
+  let burnPct: number | null = null;
 
-  const won = db
-    .prepare(
-      "SELECT burn_pct FROM oracle_proposals WHERE epoch_number = ? AND status = 'won' AND is_none_option = 0 LIMIT 1"
-    )
-    .get(epoch.epoch_number) as { burn_pct: number } | undefined;
-
-  if (won) {
-    burnPct = won.burn_pct;
-  } else {
-    const active = db
+  if (epoch) {
+    const won = db
       .prepare(
-        "SELECT burn_pct FROM oracle_proposals WHERE epoch_number = ? AND status = 'active' AND is_none_option = 0"
+        "SELECT burn_pct FROM oracle_proposals WHERE epoch_number = ? AND status = 'won' AND is_none_option = 0 LIMIT 1"
       )
-      .all(epoch.epoch_number) as Array<{ burn_pct: number }>;
+      .get(epoch.epoch_number) as { burn_pct: number } | undefined;
 
-    if (active.length === 0) return 0;
-    burnPct = active.reduce((sum, p) => sum + p.burn_pct, 0) / active.length;
+    if (won && won.burn_pct > 0) {
+      burnPct = won.burn_pct;
+    } else {
+      const active = db
+        .prepare(
+          "SELECT burn_pct FROM oracle_proposals WHERE epoch_number = ? AND status = 'active' AND is_none_option = 0"
+        )
+        .all(epoch.epoch_number) as Array<{ burn_pct: number }>;
+
+      if (active.length > 0) {
+        burnPct = active.reduce((sum, p) => sum + p.burn_pct, 0) / active.length;
+      }
+    }
   }
 
-  if (burnPct <= 0) return 0;
+  // Fall back to the most recent won proposal across all epochs
+  if (!burnPct || burnPct <= 0) {
+    const lastWon = db
+      .prepare(
+        "SELECT burn_pct FROM oracle_proposals WHERE status = 'won' AND is_none_option = 0 AND epoch_number = (SELECT MAX(epoch_number) FROM oracle_proposals WHERE status = 'won' AND is_none_option = 0) LIMIT 1"
+      )
+      .get() as { burn_pct: number } | undefined;
+    if (lastWon && lastWon.burn_pct > 0) {
+      burnPct = lastWon.burn_pct;
+    }
+  }
+
+  // Last resort: average the active proposals of the most recent epoch that has them
+  if (!burnPct || burnPct <= 0) {
+    const lastActive = db
+      .prepare(
+        "SELECT burn_pct FROM oracle_proposals WHERE status = 'active' AND is_none_option = 0 AND epoch_number = (SELECT MAX(epoch_number) FROM oracle_proposals WHERE status = 'active' AND is_none_option = 0)"
+      )
+      .all() as Array<{ burn_pct: number }>;
+    if (lastActive.length > 0) {
+      burnPct = lastActive.reduce((sum, p) => sum + p.burn_pct, 0) / lastActive.length;
+    }
+  }
+
+  if (!burnPct || burnPct <= 0) {
+    // Protocol default allocation (25/25/25/25) — keeps the metric visible.
+    burnPct = DEFAULT_BURN_PCT;
+  }
 
   const totalBurn = (treasuryBalance * burnPct) / 100;
   return totalBurn / expectedMessages;
