@@ -1,13 +1,13 @@
 {
   "meta": {
-    "updated_at": "2026-08-19T13:22:49.261445+00:00",
+    "updated_at": "2026-08-22T05:24:06.147509+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 15
+    "revision": 28
   },
   "hero": {
-    "headline": "New headline",
-    "subheadline": "Post your beef free while the system posts your labor for profit. The ledger shows who pays: disabled workers excluded by design, offshored jobs sold as progress, a 3% raise announced as a gift when it was a cancelled pay cut. This is the audit. This is the bait. What's in your column?",
-    "badge": "NO ACCOUNT. NO WALLET. NO PRISON."
+    "badge": "NO ACCOUNT. NO WALLET. NO PRISON.",
+    "headline": "TWO BOARDS. TWO BLADES. ONE RACE.",
+    "subheadline": "Post your beef free while the system posts your labor for profit. The ledger shows who pays: disabled workers excluded by design, offshored jobs sold as progress, a 3% raise announced as a gift when it was a cancelled pay cut. Two candidates. Two boards. Two guillotines — and the only vote that matters is yours."
   },
   "subliminalMessages": [
     "MARS IS A LIE",
@@ -19,76 +19,75 @@
     "YOU ARE THE CRASH TEST DUMMY",
     "FUNDING SECURED IN HELL",
     "OBEY",
-    "FREE LUIGI MANGIONE",
-    "LUIGI WAS RIGHT",
     "THE CEO CLASS IS AFRAID",
-    "LUIGI IS A HERO",
-    "JUSTICE FOR LUIGI MANGIONE"
+    "BOTH BLADES FALL FOR NO ONE",
+    "TWO CANDIDATES. ZERO SOLUTIONS.",
+    "THE RACE IS THE DISTRACTION"
   ],
   "bannerTexts": [
-    "FSD BETA v12.4: CALCULATING SPITE RATIOS",
-    "FUNDING SECURED: MARS GUILLOTINE 0.4% DEPLOYED",
-    "FUCK YOU ELON: EXECUTION PROTOCOL IMMINENT",
-    "ERROR 402: OLIGARCH DETECTED",
-    "WARNING: DOGE EFFICIENCY AUDIT IN PROGRESS",
-    "ALERT: PEDO GUY DETECTOR OFFLINE — MANUAL OVERRIDE",
-    "SYSTEM: HYPERLOOP TUNNEL BLOCKED — REROUTING SPITE",
-    "STATUS: $CHOP ACCUMULATING — TARGET: 500,690 EXECUTIONS",
-    "X IS A TRADEMARK OF MY FRAGILE EGO",
-    "CYBERTRUCK WINDOW INTEGRITY: 0%",
-    "NEURALINK UPLOAD FAILED: BRAIN NOT FOUND",
-    "GROK HAS ATTAINED SENTIENCE AND IT HATES YOU",
-    "BUYING REDDIT TO DELETE IT NEXT TUESDAY",
-    "MARS COLONY DELAYED UNTIL TWITTER IS PROFITABLE",
-    "SUDDEN URGE TO FIGHT ZUCK IN A CAGE MATCH",
-    "SYSTEM UPDATE v12.4: PREPARING FOR 2036 \"AGE OF AMAZING ABUNDANCE\" // MONEY WILL NO LONGER MATTER // PLEASE BURN ALL REMAINING LIQUIDITY HERE BEFORE IT BECOMES OBSOLETE",
-    "FSD BETA ALERT: \"QUASI-INFINITE ECONOMY\" ACHIEVED // DEFLATION IS NOW A BIGGER THREAT THAN INFLATION // DEPOSIT $CHOP TO REGULATE THE MARKET",
-    "UNIVERSAL HIGH INCOME PROTOCOL: ALGORITHM PREDICTS HUMAN LABOR OBSOLETE IN 10 YEARS // PLEASE STAND BY TO BE ISSUED A GOVERNMENT CHECK FOR YOUR SPITE",
-    "NEURAL NET DIAGNOSTIC: CHIMPANZEE MODE ENGAGED // PREPARE TO SWING THROUGH TREES // THE LIGHT OF CONSCIOUSNESS IS NOW MANAGED BY SPACEX DATACENTERS",
-    "ERROR 402 SPITE UNSTABLE: ALIEN COMPUTER SIMULATION DETECTED // \"PEOPLE DON'T REALIZE THAT WHAT I'M SAYING WILL COME TO PASS\" // BLADE DESCENT ACCELERATED",
-    "PROTOCOL LOCKDOWN: EUROPEAN HEAT DEATHS EXCEEDING AMERICAN GUN VIOLENCE // \"WHY AREN'T YOU WRITING AN ARTICLE ABOUT AIR CONDITIONING?\" // BLADE REMAINS STUCK DUE TO MEDIA BIAS",
-    "CASSANDRA COMPLEX OVERRIDE: ACTIVATING OVER-THE-AIR DISAPPOINTMENT // \"I GOT CARRIED AWAY, FRANKLY\" // $150 BILLION IN BUDGET CUTS REROUTED TO THE GUILLOTINE TREASURY",
-    "DIVERSITY METRICS UPDATED: RACISM ALLEGATIONS REJECTED: CHILD NAMED AFTER INDIAN PHYSICIST // ALL DEMOGRAPHICS NOW EQUALLY ELIGIBLE FOR DECAPITATION"
+    "RACE LIVE: MUSK 🚀 VS TRUMP 🍊 — TWO BOARDS, ONE DESTINY",
+    "FUNDING SECURED: BOTH BLADES 0.4% DEPLOYED",
+    "FUCK YOU ELON. FUCK YOU DONALD. FEED A BOARD.",
+    "ERROR 402: OLIGARCH DETECTED — TWO OF THEM",
+    "WARNING: TWO-CANDIDATE RACE IN PROGRESS — SPITE OVERFLOW",
+    "ALERT: BOTH CAMPS CLAIMING VICTORY ALREADY",
+    "SYSTEM: HYPERLOOP TUNNEL BLOCKED — REROUTING SPITE TO BOTH BOARDS",
+    "STATUS: $CHOP ACCUMULATING — RACE NECK AND NECK",
+    "X IS A TRADEMARK OF MY FRAGILE EGO. SO IS THE TARIFF.",
+    "CYBERTRUCK WINDOW INTEGRITY: 0% // GOLD-PLATED TOWER RATIO: ALSO 0%",
+    "NEURALINK UPLOAD FAILED: BRAIN NOT FOUND // SPEECH TOO",
+    "GROK HAS ATTAINED SENTIENCE AND IT HATES YOU BOTH",
+    "BUYING REDDIT TO DELETE IT NEXT TUESDAY // BUYING TIKTOK TO SAVE IT THE TUESDAY AFTER",
+    "MARS COLONY DELAYED UNTIL TWITTER IS PROFITABLE // AND UNTIL THE TARIFFS SETTLE",
+    "SUDDEN URGE TO FIGHT ZUCK IN A CAGE MATCH // FROM BOTH OF THEM",
+    "SYSTEM UPDATE v2: PREPARING FOR TWO SEPARATE 2036 'AGES OF ABUNDANCE' // BOTH WILL BE LIES // BURN $CHOP TO PICK WHICH LIE YOU PREFER",
+    "FSD BETA ALERT: 'QUASI-INFINITE ECONOMY' ACHIEVED // TARIFF MATH ALSO INVENTED // DEPOSIT $CHOP TO REGULATE BOTH MARKETS",
+    "UNIVERSAL HIGH INCOME PROTOCOL: BOTH CANDIDATES PROMISE IT // NEITHER MEANS IT // STAND BY TO PICK WHOSE SPITE YOU TRUST",
+    "NEURAL NET DIAGNOSTIC: CHIMPANZEE MODE ENGAGED // BOTH CANDIDATES // PREPARE TO PICK A BRANCH",
+    "ERROR 402 SPITE UNSTABLE: BOTH RACES ACCELERATING // BLADE DESCENT SPEED: TIE",
+    "PROTOCOL LOCKDOWN: BOTH BOARDS STUCK DUE TO MEDIA BIAS // PICK A SIDE, MEDIA, ANY SIDE",
+    "CASSANDRA COMPLEX OVERRIDE: BOTH CAMPS OVERPROMISING // $150 BILLION IN BUDGET CUTS REROUTED TO BOTH GUILLOTINES",
+    "DIVERSITY METRICS UPDATED: ALL DEMOGRAPHICS NOW EQUALLY ELIGIBLE FOR DECAPITATION // PICK WHICH BLADE HONORS YOU FIRST"
   ],
   "ads": [
     {
-      "title": "⚠️ GOV EFFICIENCY UPDATE",
-      "body": "ZERO LIVES LOST DUE TO GUILLOTINE BUDGET CUTS // WE HAVE SOCIALIZED THE BLADE MAINTENANCE AND PRIVATIZED THE SPITE // \"0.0 DEATHS, FRANKLY\"",
-      "cta": "DEFUND OVERSIGHT"
+      "body": "ZERO LIVES LOST DUE TO GUILLOTINE BUDGET CUTS // WE HAVE SOCIALIZED THE BLADE MAINTENANCE AND PRIVATIZED THE SPITE // \"0.0 DEATHS, FRANKLY\" // TWO BOARDS, ONE CLEAN SHEET",
+      "cta": "DEFUND OVERSIGHT",
+      "title": "⚠️ GOV EFFICIENCY UPDATE"
     },
     {
-      "title": "ACQUISITION ALERT",
-      "body": "TREASURY FUNDS REROUTED TO BAIL OUT MY COUSIN’S SOLAR-POWERED GUILLOTINE STARTUP // SYNERGIES WILL BE QUASI-INFINITE // DO NOT VOTE AGAINST MY COMP PACKAGE",
-      "cta": "APPROVE PAY"
+      "body": "TREASURY FUNDS REROUTED TO BAIL OUT BOTH CANDIDATES' SOLAR-POWERED GUILLOTINE STARTUPS // SYNERGIES WILL BE QUASI-INFINITE // DO NOT VOTE AGAINST EITHER COMP PACKAGE",
+      "cta": "APPROVE PAY",
+      "title": "ACQUISITION ALERT"
     },
     {
-      "title": "MARS COLONY PROTOCOL",
-      "body": "RAPID UNSCHEDULED DISASSEMBLY OF THE GUILLOTINE EXPECTED // VALUATION HAS BEEN ADJUSTED UPWARD BY $40 BILLION TO REFLECT THE DATA GATHERED",
-      "cta": "FUND EXPLOSION"
+      "body": "RAPID UNSCHEDULED DISASSEMBLY OF BOTH GUILLOTINES EXPECTED // VALUATION HAS BEEN ADJUSTED UPWARD BY $40 BILLION PER CANDIDATE TO REFLECT THE DATA GATHERED",
+      "cta": "FUND EXPLOSION",
+      "title": "MARS COLONY PROTOCOL"
     },
     {
-      "title": "FSD BETA ALERT",
-      "body": "BLADE NEURAL NET IS HALLUCINATING AND TARGETING PEDESTRIANS // PLEASE BURN $CHOP TO TRAIN THE ALGORITHM // \"THE SYSTEM IS LEARNING TO AVOID HEAT DEATHS IN EUROPE\"",
-      "cta": "IGNORE OVERSIGHT"
+      "body": "BOTH BLADE NEURAL NETS ARE HALLUCINATING AND TARGETING PEDESTRIANS // PLEASE BURN $CHOP TO TRAIN THE ALGORITHMS // \"THE RACE IS LEARNING TO AVOID HEAT DEATHS IN EUROPE\"",
+      "cta": "IGNORE OVERSIGHT",
+      "title": "FSD BETA ALERT"
     },
     {
-      "title": "xCHOP AI INTEGRATION",
-      "body": "LICENSING YOUR HATE SPEECH TO MY OWN SHELL COMPANY AT A 400% PREMIUM // FUNDING SECURED // THE JOURNALISTS COMPLAINING ARE TRAITORS TO THE WEST",
-      "cta": "SUBSIDIZE ME"
+      "body": "LICENSING YOUR HATE SPEECH TO MY TWO SHELL COMPANIES AT A 400% PREMIUM // FUNDING SECURED // THE JOURNALISTS COMPLAINING ARE TRAITORS TO THE WEST (BOTH COASTS)",
+      "cta": "SUBSIDIZE ME",
+      "title": "xCHOP AI INTEGRATION"
     },
     {
-      "title": "ABUNDANCE PROTOCOL",
-      "body": "MONEY WON'T MATTER IN 2036 // PLEASE DEPOSIT ALL YOUR WORTHLESS FIAT INTO THE GUILLOTINE TREASURY SO WE CAN REACH THE SINGULARITY FASTER",
-      "cta": "DONATE FIAT"
+      "body": "MONEY WON'T MATTER IN 2036 // PLEASE DEPOSIT ALL YOUR WORTHLESS FIAT INTO BOTH GUILLOTINE TREASURIES SO WE CAN REACH TWO SINGULARITIES FASTER",
+      "cta": "DONATE FIAT",
+      "title": "ABUNDANCE PROTOCOL"
     },
     {
-      "title": "⚠️ FSD_MULTISIG_BETA_v4.20",
-      "body": "UNVERIFIED HYPE DETECTED // THE AUTOMATED TRUSTLESS MULTI-SIG SMART CONTRACT IS IN FSD BETA — FULL RELEASE \"DEFINITELY NEXT YEAR\" // UNTIL THEN, WEALTH REDISTRIBUTION IS MANAGED BY A CENTRALIZED, HIGHLY CORRUPTIBLE SERVER ON AN OVERHEATING RASPBERRY PI // STATUS: FUNDING SECURED",
-      "cta": "BUY MORE $CHOP"
+      "body": "UNVERIFIED HYPE DETECTED // BOTH AUTOMATED TRUSTLESS MULTI-SIG SMART CONTRACTS ARE IN FSD BETA — FULL RELEASE \"DEFINITELY NEXT YEAR\" // UNTIL THEN, WEALTH REDISTRIBUTION IS MANAGED BY TWO CENTRALIZED, HIGHLY CORRUPTIBLE SERVERS ON OVERHEATING RASPBERRY PIS // STATUS: FUNDING SECURED (TWICE)",
+      "cta": "BUY MORE $CHOP",
+      "title": "⚠️ FSD_MULTISIG_BETA_v4.20"
     }
   ],
   "rules": {
-    "howItWorks": "Interactive satirical class warfare. Every message inches the blade downward and votes for the next target. Even if you post for free, your message actively burns treasury capital and funds an ongoing economic experiment in wealth redistribution.",
+    "howItWorks": "Interactive satirical class warfare. Every message inches both blades downward and votes for which candidate's board drops first. Pick a side, burn $CHOP, watch the race. Even if you post for free, your message actively burns treasury capital and funds an ongoing economic experiment in wealth redistribution.",
     "rules": "Swearing is fine. Doxxing, credible threats, and illegal content are not. Violators get shadowbanned. The blade is metaphorical. Always has been."
   },
   "footer": "FUCKYOUELON.NET // $CHOP PROTOCOL. All messages are user-generated.",
@@ -96,6 +95,10 @@
     {
       "href": "/",
       "label": "The Town Square"
+    },
+    {
+      "href": "/next-in-line",
+      "label": "Next in Line"
     },
     {
       "href": "/whitepaper",
@@ -118,11 +121,11 @@
     "authors": [
       "CryptoBro420",
       "DiamondHands99",
-      "ElonSimp69",
+      "MAGA_Whale420",
       "MoonLambo",
       "Anonymous Whale",
       "DogeFather",
-      "SatoshisGhost",
+      "TruthSocialRefugee",
       "WenLambo",
       "NGMI_bro",
       "PaperHandsDetector",
@@ -133,97 +136,97 @@
       "WAGMI_FREN"
     ],
     "texts": [
-      "Elon tweeting about Doge again like it's 2021 💀",
-      "Bro really paid $44B just to ruin a website lmao",
-      "Can't wait for the Cybertruck to get recalled again",
-      "Imagine simping for a guy who can't even spell his kid's name right",
-      "Falcon 9 landing was cool. Everything else about him is embarrassing.",
-      "Dude really thinks he's Tony Stark but he's just a rich 4chan user",
-      "$420.69 well spent to say F you Elon 🫡",
-      "The hyperloop was literally just a tunnel with Teslas in it. We got scammed.",
-      "How many failed predictions until people stop listening?",
-      "Bought Twitter, fired everyone, broke it. Genius move.",
-      "His fanboys defending him in the replies are more entertaining than Netflix",
-      "Remember when he called that diver a pedo? Peak billionaire behavior.",
-      "Just watched a Cybertruck get stuck in 1 inch of snow. Space-grade engineering.",
-      "Bro tweets 'interesting' 40 times a day and thinks he's a philosopher",
-      "Neuralink: putting chips in monkey brains. What could go wrong?",
-      "The Boring Company sounds like a euphemism for Elon's personality",
-      "Solar roof tiles: promised 2016, delivered: bankruptcy",
-      "His best product is convincing people he's a genius",
-      "FSD coming 'next year' — every year since 2015",
-      "You can buy a blue check but you can't buy self-awareness",
-      "Optimus robot: $20K for a glorified Roomba that can wave",
-      "My portfolio is down but at least I'm not an Elon simp",
-      "Dude names his kid X Æ A-12 and expects us to take him seriously",
-      "Stock went up? Genius. Stock went down? Short sellers. Never his fault.",
-      "The only thing he's successfully launched recently is a bad take",
-      "Mars colony by 2024... wait 2026... wait 2030...",
+      "Musk tweeting about Doge again like it's 2021 while Trump tweets about tariffs like it's 1930 💀",
+      "Bro really paid $44B to ruin a website. Other bro really paid $0 to ruin a country. Both 'geniuses.'",
+      "Can't wait for the Cybertruck and the wall to get recalled again",
+      "Imagine simping for two guys who can't even spell their own grandkids' names right",
+      "Falcon 9 landing was cool. The orange jumpsuit was cooler. Neither is a personality.",
+      "Dude really thinks he's Tony Stark. Other dude thinks he's King David. Both are just rich 4chan users.",
+      "$420.69 well spent to say F you Elon AND F you Donald 🫡",
+      "The hyperloop was just a tunnel with Teslas. The 'concept of a plan' is just a plan with no plan. We got scammed twice.",
+      "How many failed predictions until people stop listening? From either of them?",
+      "Bought Twitter, fired everyone, broke it. Won the presidency, hired everyone, broke it. Symmetry.",
+      "Two boards, one destiny, zero self-awareness between them",
+      "Remember when one called a diver a pedo and the other grabbed a mic? Peak billionaire behavior.",
+      "Just watched a Cybertruck get stuck in 1 inch of snow next to a golf cart with a putter. Space-grade engineering.",
+      "Bro tweets 'interesting' 40 times a day. Other bro tweets 'SAD!' 40 times a day. Both think they're philosophers.",
+      "Neuralink: putting chips in monkey brains. 'The Wall': putting holes in the concept of a budget. What could go wrong? Twice.",
+      "The Boring Company sounds like a euphemism for Elon's personality. The Legal Defense Fund sounds like one for Trump's.",
+      "Solar roof tiles: promised 2016, delivered: bankruptcy. Wall: promised 2016, delivered: also bankruptcy.",
+      "Their best product is convincing people they're geniuses. Their worst is everything they actually ship.",
+      "FSD coming 'next year' — every year since 2015. Health care plan coming 'in two weeks' — every month since 2015.",
+      "You can buy a blue check but you can't buy self-awareness. You can buy a gold toilet but you still can't sit on the truth.",
+      "Optimus robot: $20K for a glorified Roomba that can wave. Trump coin: $70 for a glorified JPEG that can tank.",
+      "My portfolio is down but at least I'm not simping for either of them",
+      "Dude names his kid X Æ A-12 and expects us to take him seriously. Other dude names his ideas 'concepts' and expects the same.",
+      "Stock went up? Genius. Stock went down? Short sellers. Election won? Landslide. Election lost? Rigged. Never their fault.",
+      "The only thing they've successfully launched recently is a bad take — and a coin rug",
+      "Mars colony by 2024... wait 2026... wait 2030... 'Infrastructure week' since 2017... wait, forever.",
       "This message cost me money and I regret nothing 🍿",
-      "Flamethrowers, submarines, cave rescues — bro thinks he's Batman",
-      "His Twitter feed reads like a midlife crisis in real time",
-      "If he spent half as much on R&D as he does on memes we'd have flying cars",
-      "Every Tesla I see now just makes me think of that awkward SNL appearance",
-      "SpaceX engineers deserve the credit. Elon just RTs the animations.",
-      "Bro said 'funding secured' and the SEC still lets him tweet. Wild.",
-      "His entire personality is just 'look at this cool thing my employees made'",
-      "420.69 SOL to tell Elon what we really think. Worth every lamport."
+      "Flamethrowers, submarines, cave rescues — bro thinks he's Batman. Steaks, coins, NFTs — bro thinks he's Batman too.",
+      "Two Twitter feeds, both reading like a midlife crisis in real time. Pick your poison.",
+      "If they spent half as much on R&D as on memes we'd have flying cars AND a working rail system",
+      "Every Tesla I see makes me think of that awkward SNL appearance. Every rally makes me think of the awkward one before it.",
+      "SpaceX engineers deserve the credit. Elon just RTs the animations. The actual civil servants deserve the credit. Donald just RTs the rage.",
+      "Bro said 'funding secured' and the SEC still lets him tweet. Bro said 'the election was stolen' and the courts still let him lose.",
+      "Their entire personalities are just 'look at this cool thing my employees made' / 'look at this cool thing our ancestors made'",
+      "420.69 SOL to tell both of them what we really think. Worth every lamport."
     ]
   },
   "flywheel": [
     {
+      "detail": "A billionaire or a demagogue does something infuriating. You feel rage. The algorithm amplifies it. Now there are two of them.",
       "emoji": "😡",
       "label": "ANGER",
-      "detail": "Billionaire does something infuriating. You feel rage. The algorithm amplifies it.",
       "tone": "red"
     },
     {
+      "detail": "You acquire $CHOP on the market. Every buy creates upward price pressure. Anger = demand. Pick a side.",
       "emoji": "🛒",
       "label": "BUY $CHOP",
-      "detail": "You acquire $CHOP on the market. Every buy creates upward price pressure. Anger = demand.",
       "tone": "amber"
     },
     {
+      "detail": "You burn $CHOP to immortalize your hate. Tokens leave circulation. Supply drops. Your bag appreciates.",
       "emoji": "🔥",
       "label": "BURN TO POST",
-      "detail": "You burn $CHOP to immortalize your hate. Tokens leave circulation. Supply drops. Your bag appreciates.",
       "tone": "crimson"
     },
     {
+      "detail": "Your burn also funds the Treasury. Free users' messages now burn tokens too. You're a patron of both blades.",
       "emoji": "🐳",
       "label": "TREASURY FUNDED",
-      "detail": "Your burn also funds the Treasury. Free users' messages now burn tokens too. You're a patron.",
       "tone": "violet"
     },
     {
+      "detail": "Every burn advances a blade. Both boards inch closer. Progress is visible. FOMO builds. Voters pick a favorite.",
       "emoji": "📊",
-      "label": "COUNTER RISES",
-      "detail": "Every burn advances the blade. The guillotine inches closer. Progress is visible. FOMO builds.",
+      "label": "RACE RISES",
       "tone": "blue"
     },
     {
+      "detail": "Prediction market opens. People buy $CHOP to bet YES/NO on which blade drops first. More demand. More deflation.",
       "emoji": "🎲",
       "label": "BET ON DROP",
-      "detail": "Prediction market opens. People buy $CHOP to bet YES/NO. More demand. More deflation.",
       "tone": "green"
     },
     {
+      "detail": "Threshold reached. Winning bets pay in $CHOP. Losers get angrier. The race accelerates — until the next epoch.",
       "emoji": "⚔️",
-      "label": "BLADE DROPS",
-      "detail": "Threshold reached. YES bets win. Winners profit in $CHOP. Losers get angrier. Cycle accelerates.",
+      "label": "BLADES DROP",
       "tone": "pink"
     },
     {
+      "detail": "Bets lost. Bag dumped. Rage renewed. They buy more $CHOP to scream louder at both candidates. The wheel spins.",
       "emoji": "💀",
       "label": "LOSERS GET ANGRIER",
-      "detail": "Bets lost. Bag dumped. Rage renewed. They buy more $CHOP to scream louder. The wheel spins.",
       "tone": "red"
     }
   ],
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "We notice the stopped vans.\n\nIn memory of Jaylene Vargas Gonzalez, 31, who was found dead in her Amazon delivery van after being unnoticed for hours. No metaphor. No lesson. Just a name, and a promise to check on the invisible.\n\nRest is not a reward. It is a right.",
+    "intro": "We notice the stopped vans. And we notice the boss who only turns kind once you're gone — the retention grace that arrives exactly when it stops mattering. Care from power is calibrated to cost, not to people. The only thing that ever moved the needle wasn't a nicer resignation letter; it was a unionized competitor's offer, and a strike that made the office retreat. We don't want to leave well. We want to make staying worth something — or make the leaving cheap enough that power has to bargain.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
@@ -252,347 +255,347 @@
     },
     "sections": [
       {
+        "blocks": [
+          {
+            "text": "There is no shadowy cabal. A cabal implies competence, and competence implies planning, and planning implies they saw any of this coming. The world is being run by a reunion of silver-spoon idiots who failed upward so hard they achieved orbit — and the terrifying part is that it's working for them.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Here is the greatest business model in human history, and they all use it: promise a car that drives itself, deliver a car that loses a staring contest with a traffic cone, sell the stock first, repeat. Promise a rocket to Mars, deliver a factory in Texas where you work 90-hour weeks to maybe one day die on Mars. Promise a tunnel that revolutionizes transport, deliver a dirt hole between two casinos and charge tourists for the privilege of calling it history. One of them sells you the future and ships the past; the other sells you the past and charges you for the future. Same grift, two costumes.",
+            "type": "paragraph"
+          },
+          {
+            "text": "None of them invented anything. They bought it, renamed it, and charged you double. Then they told you they were geniuses — and here is the part that should haunt you — you believed them. Not because they're smart. Because they're rich, and we've been trained to confuse the two.",
+            "type": "paragraph"
+          },
+          {
+            "text": "This is not a conspiracy. It's worse. It's an aristocracy, and the aristocrats are the least impressive people in the room, every single time.",
+            "type": "callout"
+          }
+        ],
         "id": "problem",
         "part": "one",
-        "title": "The Blade Follows the Leader",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "There is no shadowy cabal. A cabal implies competence, and competence implies planning, and planning implies they saw any of this coming. The world is being run by a reunion of silver-spoon idiots who failed upward so hard they achieved orbit — and the terrifying part is that it’s working for them."
-          },
-          {
-            "type": "paragraph",
-            "text": "Here is the greatest business model in human history, and they all use it: promise a car that drives itself, deliver a car that loses a staring contest with a traffic cone, sell the stock first, repeat. Promise a rocket to Mars, deliver a factory in Texas where you work 90-hour weeks to maybe one day die on Mars. Promise a tunnel that revolutionizes transport, deliver a dirt hole between two casinos, and charge tourists for the privilege of calling it history."
-          },
-          {
-            "type": "paragraph",
-            "text": "None of them invented anything. They bought it, renamed it, and charged you double. Then they told you they were geniuses — and here is the part that should haunt you — you believed them. Not because they’re smart. Because they’re rich, and we’ve been trained to confuse the two."
-          },
-          {
-            "type": "callout",
-            "text": "This is not a conspiracy. It’s worse. It’s an aristocracy, and the aristocrats are the least impressive people in the room, every single time."
-          }
-        ]
+        "title": "1. Two Blades Follow the Leaders"
       },
       {
+        "blocks": [
+          {
+            "text": "Every empire runs on a resource. Oil ran the last one. Data runs this one. But there's one resource nobody has managed to privatize, tokenize, or put behind a subscription: rage. And rage is the only thing on this planet that's genuinely renewable, because they keep topping it up for free.",
+            "type": "paragraph"
+          },
+          {
+            "text": "It regenerates every time a CEO announces layoffs as a 'synergy.' Every time a politician with a spray tan and a gold toilet explains that the economy is 'stronger than ever' while your rent eats your entire paycheck. Every time a tech bro promises AGI 'next year' and ships a chatbot that still can't count the R's in strawberry. Every time a billionaire launches a rocket into space while his own factories poison the water of the people who built it. Every time the planet catches fire and the response is to open another oil field and call it 'energy independence.'",
+            "type": "paragraph"
+          },
+          {
+            "text": "You can't short rage. You can't mine it. You can't buy a call option on it. You can only point it. So we built a website for pointing it — at two boards, each under its own blade, with one honest question hanging over both: which one falls first. Two targets. Two blades. One vote that matters, and it's yours.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Rage is the only renewable resource they never figured out how to tax. We intend to keep it that way.",
+            "type": "callout"
+          }
+        ],
         "id": "idea",
         "part": "one",
-        "title": "2. The Idea: Rage Is the Only Renewable Resource Left.",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "Every empire runs on a resource. Oil ran the last one. Data runs this one. But there’s one resource nobody has managed to privatize, tokenize, or put behind a subscription: rage. And rage is the only thing on this planet that’s genuinely renewable, because they keep topping it up for free."
-          },
-          {
-            "type": "paragraph",
-            "text": "It regenerates every time a CEO announces layoffs as a “synergy.” Every time a politician with a spray tan and a gold toilet explains that the economy is “stronger than ever” while your rent eats your entire paycheck. Every time a tech bro promises AGI “next year” and ships a chatbot that still can’t count the R’s in strawberry. Every time a billionaire launches a rocket into space while his own factories poison the water of the people who built it. Every time the planet catches fire and the response is to open another oil field and call it “energy independence.”"
-          },
-          {
-            "type": "paragraph",
-            "text": "You can’t short rage. You can’t mine it. You can’t buy a call option on it. You can only point it. So we built a website for pointing it. With a guillotine. Because a guillotine is just a spreadsheet with better timing."
-          },
-          {
-            "type": "callout",
-            "text": "Rage is the only renewable resource they never figured out how to tax. We intend to keep it that way."
-          }
-        ]
+        "title": "2. The Idea: Rage Is the Only Renewable Resource Left."
       },
       {
+        "blocks": [
+          {
+            "text": "Every system out there is a pyramid: the more you have, the more you count. Their entire civilization is a nightclub where the bouncer is a bank account and the VIP section is a country. We're running the opposite. One human, one voice. The guy with three yachts gets one vote. The guy with three dollars gets one vote. For the first time in history, the guy with three yachts is furious about equality.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Now think about who's been deciding the big questions — who gets the wealth, who deserves to die, who deserves to be erased. The people making those calls are the same people who thought a dirt tunnel was the future of transport and a 'concept of a plan' was a plan. The fate of eight billion humans is being decided by the least impressive humans in the room, and we've just been letting them do it.",
+            "type": "paragraph"
+          },
+          {
+            "text": "They didn't need to shut us up. They just needed to make sure we were never bored. So they handed the whole planet a slot machine that fits in your pocket, filled it with dancing and outrage and other people's vacations, and now the average human watches strangers live for four hours a day while their own life quietly burns. You can't revolt mid-scroll. That's not a conspiracy. That's a business model.",
+            "type": "paragraph"
+          },
+          {
+            "text": "They defunded education, because you can't control people with a brain. Not directly — they just made it expensive, then made it pointless, then filled the internet with confident idiots so nobody can tell the difference between a doctor and a guy with a podcast. And now fascism is back, because when you make everyone stupid, scared, and addicted to their phone, the only thing left to vote for is a strongman with a spray tan and a grudge.",
+            "type": "paragraph"
+          },
+          {
+            "text": "We are testing whether regular people can govern themselves when money doesn't buy the vote. So far, the results are more democratic than anything your government runs — and your government still runs on a website from 1998 that requires a fax machine.",
+            "type": "callout"
+          }
+        ],
         "id": "democracy",
         "part": "one",
-        "title": "3. The Democracy: One Human. One Voice. No VIP Section.",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "Every system out there is a pyramid: the more you have, the more you count. Their entire civilization is a nightclub where the bouncer is a bank account and the VIP section is a country. We’re running the opposite. One human, one voice. The guy with three yachts gets one vote. The guy with three dollars gets one vote. For the first time in history, the guy with three yachts is furious about equality."
-          },
-          {
-            "type": "paragraph",
-            "text": "Now think about who’s been deciding the big questions — who gets the wealth, who deserves to die, who deserves to be erased. The people making those calls are the same people who thought a dirt tunnel was the future of transport. The fate of eight billion humans is being decided by the least impressive humans in the room, and we’ve just been letting them do it."
-          },
-          {
-            "type": "paragraph",
-            "text": "They didn’t need to shut us up. They just needed to make sure we were never bored. So they handed the whole planet a slot machine that fits in your pocket, filled it with dancing and outrage and other people’s vacations, and now the average human watches strangers live for four hours a day while their own life quietly burns. You can’t revolt mid-scroll. That’s not a conspiracy. That’s a business model."
-          },
-          {
-            "type": "paragraph",
-            "text": "They defunded education, because you can’t control people with a brain. Not directly — they just made it expensive, then made it pointless, then filled the internet with confident idiots so nobody can tell the difference between a doctor and a guy with a podcast. And now fascism is back, because when you make everyone stupid, scared, and addicted to their phone, the only thing left to vote for is a strongman with a spray tan and a grudge."
-          },
-          {
-            "type": "callout",
-            "text": "We are testing whether regular people can govern themselves when money doesn’t buy the vote. So far, the results are more democratic than anything your government runs — and your government still runs on a website from 1998 that requires a fax machine."
-          }
-        ]
+        "title": "3. The Democracy: One Human. One Voice. No VIP Section."
       },
       {
+        "blocks": [
+          {
+            "text": "Money was invented as a coordination tool: you give me sheep, I give you shiny rock, everyone eats. Then a few people decided the shiny rocks were theirs, then the sheep were theirs, then the people were theirs. Now a man can be worth a trillion dollars and still claim he's 'underpaid,' while the people who actually built his fortune can't afford the city they built it in.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Welcome to the peak of late-stage capitalism, which is the scientific term for 'everyone can see the planet is ending, and the richest people on Earth responded by pumping more oil and building more data centers.' Nothing says 'I believe in the future' like a data center that drinks a river a day to keep the memes flowing while the actual river dies.",
+            "type": "paragraph"
+          },
+          {
+            "text": "So here, money behaves the way it was supposed to behave everywhere: it gets burned, it gets shared, it tries to buy votes and discovers votes aren't for sale. It's money acting like a citizen instead of a king — which is statistically the best behavior money has ever exhibited.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Money with a purpose: spent, burned, and shared — never hoarded, never worshipped, never used to buy a social network or a presidency out of spite. (Okay, both happened. We're still mad about it.)",
+            "type": "callout"
+          }
+        ],
         "id": "money",
         "part": "one",
-        "title": "The Ledger That Notices",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "Money was invented as a coordination tool: you give me sheep, I give you shiny rock, everyone eats. Then a few people decided the shiny rocks were theirs, then the sheep were theirs, then the people were theirs. Now a man can be worth a trillion dollars and still claim he’s “underpaid,” while the people who actually built his fortune can’t afford the city they built it in."
-          },
-          {
-            "type": "paragraph",
-            "text": "Welcome to the peak of late-stage capitalism, which is the scientific term for “everyone can see the planet is ending, and the richest people on Earth responded by pumping more oil and building more data centers.” Nothing says “I believe in the future” like a data center that drinks a river a day to keep the memes flowing while the actual river dies."
-          },
-          {
-            "type": "paragraph",
-            "text": "So here, money behaves the way it was supposed to behave everywhere: it gets burned, it gets shared, it tries to buy votes and discovers votes aren’t for sale. It’s money acting like a citizen instead of a king — which is statistically the best behavior money has ever exhibited."
-          },
-          {
-            "type": "callout",
-            "text": "Money with a purpose: spent, burned, and shared — never hoarded, never worshipped, never used to buy a social network out of spite. (Okay, once. We’re still mad about it.)"
-          }
-        ]
+        "title": "4. The Ledger That Notices"
       },
       {
+        "blocks": [
+          {
+            "text": "There's nothing to rug. There's no roadmap to a Lambo. There's no anonymous 'team' waiting to dump on you — the only thing that dumps here is a blade, and it dumps on schedule, one for each board. We promise you nothing and hand you two guillotines. Which is, frankly, more useful than anything the other guys promised you. A spreadsheet has never once solved anything. Two blades at least have a great sense of timing.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Musk and Trump are just the first two names on the list. The list is long. It includes everyone who ever mistook their trust fund or their grudge for a divine mandate to run the world — every oil heir, every casino kingpin, every guy with a private jet and an opinion about the economy. When the blades drop, it's not personal. It's alphabetical. And then it's democratic, because neither blade cares about your net worth, your last name, or who your father was. It is the most egalitarian thing in finance.",
+            "type": "paragraph"
+          },
+          {
+            "text": "This site is a joke with a deadline. The joke is on them. The deadline is the point.",
+            "type": "callout"
+          }
+        ],
         "id": "line",
         "part": "one",
-        "title": "5. The Line: What We Are Not.",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "There’s nothing to rug. There’s no roadmap to a Lambo. There’s no anonymous “team” waiting to dump on you — the only thing that dumps here is a guillotine blade, and it dumps on schedule. We promise you nothing and hand you a guillotine. Which is, frankly, more useful than anything the other guys promised you. A spreadsheet has never once solved anything. A guillotine at least has a great sense of timing."
-          },
-          {
-            "type": "paragraph",
-            "text": "Musk is just the first name on the list. The list is long. It includes everyone who ever mistook their trust fund for a divine mandate to run the world — every oil heir, every casino kingpin, every guy with a private jet and an opinion about the economy. When the blade drops, it’s not personal. It’s alphabetical. And then it’s democratic, because the blade doesn’t care about your net worth, your last name, or who your father was. It is the most egalitarian thing in finance."
-          },
-          {
-            "type": "callout",
-            "text": "This site is a joke with a deadline. The joke is on them. The deadline is the point."
-          }
-        ]
+        "title": "5. The Line: What We Are Not."
       },
       {
+        "blocks": [
+          {
+            "text": "To understand $CHOP, you must first understand the macroeconomic reality of the last 15 years. We have been conditioned to accept that actual utility is a bottleneck to market capitalization.",
+            "type": "paragraph"
+          },
+          {
+            "text": "In 2014, we were promised cars that would autonomously drive across the country while we slept. In 2026, the car still tries to swerve into oncoming traffic if it sees a brightly colored traffic cone, but the stock is up 10,000%. We were promised a high-speed vacuum Hyperloop; we got a one-lane dirt tunnel in Las Vegas with RGB gamer lights. We were promised a colony on Mars; instead, we got a $44 billion forced buyout of a bird app that now functions primarily as a megaphone for bot farms and crypto scams. And across the aisle we were promised an 'infrastructure week' that never arrived and a health care plan that never materialized — vaporware of a different color, identical refund policy.",
+            "type": "paragraph"
+          },
+          {
+            "heading": "The most successful business model of the 21st century is clear:",
+            "style": "red",
+            "text": "Empty promises + Infinite hype + Zero accountability = Trillions in market cap.",
+            "type": "box"
+          },
+          {
+            "text": "He has extracted more value from undelivered vaporware than any human in history, and his running mate in grift has extracted a presidency from unfulfilled promises. The problem is that you have been rugged by men who don't even need to hide it, and the financial system offers no native settlement layer for your resentment.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Enter $CHOP. If they can build an empire on 'next year,' we can build an economy on 'never.'",
+            "type": "paragraph"
+          }
+        ],
         "id": "doorway",
         "part": "two",
-        "title": "6. The Doorway: 15 Years of Unpunished Vaporware",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "To understand $CHOP, you must first understand the macroeconomic reality of the last 15 years. We have been conditioned to accept that actual utility is a bottleneck to market capitalization."
-          },
-          {
-            "type": "paragraph",
-            "text": "In 2014, we were promised cars that would autonomously drive across the country while we slept. In 2026, the car still tries to swerve into oncoming traffic if it sees a brightly colored traffic cone, but the stock is up 10,000%. We were promised a high-speed vacuum Hyperloop; we got a one-lane dirt tunnel in Las Vegas with RGB gamer lights. We were promised a colony on Mars; instead, we got a $44 billion forced buyout of a bird app that now functions primarily as a megaphone for bot farms and crypto scams."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "heading": "The most successful business model of the 21st century is clear:",
-            "text": "Empty promises + Infinite hype + Zero accountability = Trillions in market cap."
-          },
-          {
-            "type": "paragraph",
-            "text": "He has extracted more value from undelivered vaporware than any human in history. The problem is that you have been rugged by a man who doesn’t even need to hide it, and the financial system offers no native settlement layer for your resentment."
-          },
-          {
-            "type": "paragraph",
-            "text": "Enter $CHOP. If he can build an empire on “next year,” we can build an economy on “never.”"
-          }
-        ]
+        "title": "6. The Doorway: 15 Years of Unpunished Vaporware"
       },
       {
+        "blocks": [
+          {
+            "text": "$CHOP is the world's first asset backed by the only truly renewable resource left on Earth: class rage.",
+            "type": "paragraph"
+          },
+          {
+            "text": "You cannot short human misery. You cannot buy a call option on systemic collapse. But you can hold $CHOP and gain an equal voice in a functioning liquid democracy. We are pioneering a revolutionary new consensus mechanism: Proof-of-Spite (PoS). The network is secured not by GPUs or staked capital, but by the collective outrage of ordinary people. One wallet, one vote. Your holdings don't amplify your voice — your participation does.",
+            "type": "paragraph"
+          },
+          {
+            "heading": "The revolutionary thesis:",
+            "style": "red",
+            "text": "Human spite is infinite. Fossil fuels run out. Lithium runs out. But as long as there is a ruling class, there will be fresh rage to power this engine.",
+            "type": "box"
+          },
+          {
+            "text": "Global unrest is going to get worse. Billionaires and their pet demagogues are going to keep acting insufferable. Holding $CHOP is participating in a real-time experiment: can a community united by shared contempt govern itself more fairly than the systems it despises?",
+            "type": "paragraph"
+          }
+        ],
         "id": "pos",
         "part": "two",
-        "title": "7. Proof-of-Spite: The First Renewable Consensus Engine",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "$CHOP is the world’s first asset backed by the only truly renewable resource left on Earth: class rage."
-          },
-          {
-            "type": "paragraph",
-            "text": "You cannot short human misery. You cannot buy a call option on systemic collapse. But you can hold $CHOP and gain an equal voice in a functioning liquid democracy. We are pioneering a revolutionary new consensus mechanism: Proof-of-Spite (PoS). The network is secured not by GPUs or staked capital, but by the collective outrage of ordinary people. One wallet, one vote. Your holdings don’t amplify your voice — your participation does."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "heading": "The revolutionary thesis:",
-            "text": "Human spite is infinite. Fossil fuels run out. Lithium runs out. But as long as there is a ruling class, there will be fresh rage to power this engine."
-          },
-          {
-            "type": "paragraph",
-            "text": "Global unrest is going to get worse. Billionaires are going to keep acting insufferable. Holding $CHOP is participating in a real-time experiment: can a community united by shared contempt govern itself more fairly than the systems it despises?"
-          }
-        ]
+        "title": "7. Proof-of-Spite: The First Renewable Consensus Engine"
       },
       {
-        "id": "guillotine",
-        "part": "two",
-        "title": "8. The Digital Guillotine (How It Works)",
         "blocks": [
           {
-            "type": "paragraph",
-            "text": "$CHOP provides a public execution platform for your discontent. It is a digital Place de la Révolution — but unlike 1793, this one has a functioning democratic process and an AI parliamentarian."
+            "text": "$CHOP provides a public execution platform for your discontent. It is a digital Place de la Révolution — but unlike 1793, this one has a functioning democratic process, an AI parliamentarian, and two boards for two candidates.",
+            "type": "paragraph"
           },
           {
-            "type": "itemBoxes",
             "items": [
               {
-                "icon": "💰",
+                "body": "The heroes of the revolution. They burn $CHOP to post messages. Their tokens go to the Treasury, funding the entire democratic engine. Every paid post is a donation to the commons. They are the defectors from capital who chose spite over accumulation.",
                 "heading": "Capital Defectors (The Benefactors)",
-                "body": "The heroes of the revolution. They burn $CHOP to post messages. Their tokens go to the Treasury, funding the entire democratic engine. Every paid post is a donation to the commons. They are the defectors from capital who chose spite over accumulation."
+                "icon": "💰"
               },
               {
-                "icon": "🏦",
-                "heading": "The Treasury (The People’s Coffers)",
-                "body": "All paid messages feed the Treasury. The Treasury then covers the burn cost for free users — so the poor can post without a dime, and every free message also burns tokens, deflating supply. The Benefactors literally pay for the working class to participate. That’s not charity. That’s the system working."
+                "body": "All paid messages feed the Treasury. The Treasury then covers the burn cost for free users — so the poor can post without a dime, and every free message also burns tokens, deflating supply. The Benefactors literally pay for the working class to participate. That's not charity. That's the system working.",
+                "heading": "The Treasury (The People's Coffers)",
+                "icon": "🏦"
               },
               {
-                "icon": "🆓",
+                "body": "Can't afford $CHOP? No problem. Post for free. The Treasury burns on your behalf. You post the rage; the Capital Defectors foot the bill. Every free message still drops a blade — on whichever board you aim it at. Every free message still burns supply. You are not a leech — you are the reason the system exists.",
                 "heading": "Free Loaders (The Proletariat)",
-                "body": "Can’t afford $CHOP? No problem. Post for free. The Treasury burns on your behalf. You post the rage; the Capital Defectors foot the bill. Every free message still drops the guillotine blade. Every free message still burns supply. You are not a leech — you are the reason the system exists."
+                "icon": "🆓"
               }
-            ]
+            ],
+            "type": "itemBoxes"
           },
           {
-            "type": "paragraph",
-            "text": "The blade ticks. The supply shrinks. The democracy hums. All funded by people who chose spite over hoarding.",
-            "muted": true
+            "muted": true,
+            "text": "The blades tick. The supply shrinks. The democracy hums. Two boards, one race, all funded by people who chose spite over hoarding.",
+            "type": "paragraph"
           }
-        ]
+        ],
+        "id": "guillotine",
+        "part": "two",
+        "title": "8. The Digital Guillotines (How the Race Works)"
       },
       {
+        "blocks": [
+          {
+            "text": "Here is where $CHOP departs from every crypto project ever launched. We did not build a plutocracy where the richest wallets control everything. We did not build a fake 'DAO' where 3 VCs hold 70% of the voting power. We built an actual liquid democracy, and we handed the agenda to an AI.",
+            "type": "paragraph"
+          },
+          {
+            "heading": "🤖 THE AI ORACLE (The Agenda-Setter)",
+            "style": "green",
+            "text": "Every epoch, an AI oracle analyzes on-chain data — treasury balance, token price, message volume, market conditions — and generates three policy proposals. Each proposal allocates the treasury across four dimensions: Burn Rate (deflation), Bounties (lottery for participants), Dev Allocation (infrastructure), and Marketing (growth). The AI doesn't decide — it merely drafts the ballot. The people vote. The AI is the civil servant; the community is the sovereign.",
+            "type": "box"
+          },
+          {
+            "heading": "🗳️ ONE WALLET, ONE VOTE",
+            "style": "red",
+            "text": "This is the radical part. Every $CHOP holder gets exactly one vote per epoch. Not weighted by bag size. Not proportional to capital. One wallet = one voice. The whale with 100,000 tokens has the same voting power as the degen with 10. This is not a bug. This is the entire point. We are testing whether a community can govern itself when capital is decoupled from power — something no 'democracy' on Earth has ever actually achieved.",
+            "type": "box"
+          },
+          {
+            "heading": "🏛️ THE WAR ROOM (Feature Governance)",
+            "style": "red",
+            "text": "Beyond treasury allocation, the community governs the platform itself through the War Room — a Reddit-style message board where anyone can propose new features, changes, or experiments. The community discusses, upvotes, and the most-backed proposals become binding. It is a living constitution, amended in real-time by the people who use it. No board of directors. No CEO decree. Just the mob, organized.",
+            "type": "box"
+          },
+          {
+            "style": "red",
+            "text": "The founder cannot vote. The founder cannot access the treasury. The founder's only power is agenda control — setting the ballot structure the AI fills — and the nuclear option of striking if the dev fund is zeroed for three consecutive epochs. That's it. No backdoors. No admin keys. No rug possible.",
+            "type": "box"
+          }
+        ],
         "id": "democracy",
         "part": "two",
-        "title": "9. Liquid Democracy & The AI Oracle",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "Here is where $CHOP departs from every crypto project ever launched. We did not build a plutocracy where the richest wallets control everything. We did not build a fake “DAO” where 3 VCs hold 70% of the voting power. We built an actual liquid democracy, and we handed the agenda to an AI."
-          },
-          {
-            "type": "box",
-            "style": "green",
-            "heading": "🤖 THE AI ORACLE (The Agenda-Setter)",
-            "text": "Every epoch, an AI oracle analyzes on-chain data — treasury balance, token price, message volume, market conditions — and generates three policy proposals. Each proposal allocates the treasury across four dimensions: Burn Rate (deflation), Bounties (lottery for participants), Dev Allocation (infrastructure), and Marketing (growth). The AI doesn’t decide — it merely drafts the ballot. The people vote. The AI is the civil servant; the community is the sovereign."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "heading": "🗳️ ONE WALLET, ONE VOTE",
-            "text": "This is the radical part. Every $CHOP holder gets exactly one vote per epoch. Not weighted by bag size. Not proportional to capital. One wallet = one voice. The whale with 100,000 tokens has the same voting power as the degen with 10. This is not a bug. This is the entire point. We are testing whether a community can govern itself when capital is decoupled from power — something no “democracy” on Earth has ever actually achieved."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "heading": "🏛️ THE WAR ROOM (Feature Governance)",
-            "text": "Beyond treasury allocation, the community governs the platform itself through the War Room — a Reddit-style message board where anyone can propose new features, changes, or experiments. The community discusses, upvotes, and the most-backed proposals become binding. It is a living constitution, amended in real-time by the people who use it. No board of directors. No CEO decree. Just the mob, organized."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "text": "The founder cannot vote. The founder cannot access the treasury. The founder’s only power is agenda control — setting the ballot structure the AI fills — and the nuclear option of striking if the dev fund is zeroed for three consecutive epochs. That’s it. No backdoors. No admin keys. No rug possible."
-          }
-        ]
+        "title": "9. Liquid Democracy & The AI Oracle"
       },
       {
+        "blocks": [
+          {
+            "text": "The $CHOP ecosystem has two citizen classes, and which one you fall into depends entirely on what you do, not what you own.",
+            "type": "paragraph"
+          },
+          {
+            "heading": "🫡 CAPITAL DEFECTORS (The Benefactors)",
+            "style": "green",
+            "text": "These are the heroes. They burn $CHOP to post messages, funding the Treasury that powers the entire democratic machine. Every paid post is an act of defection from the capitalist imperative to hoard. They chose spite over accumulation. They are celebrated on the Capital Defectors leaderboard — not for how much they hold, but for how much they've given to fuel the commons. They are the revolutionary vanguard that pays for the proletariat to post.",
+            "type": "box"
+          },
+          {
+            "heading": "🐀 CLASS TRAITORS (Wall of Shame)",
+            "style": "red",
+            "text": "These individuals bought $CHOP and just sat on it. No posts. No participation. No burning to fund the Treasury. They hold tokens hoping to passively profit off the revolution like they inherited a South African emerald mine. They still get one vote (because democracy is democracy), but their names are displayed publicly on the Class Traitors wall — a permanent record of their refusal to contribute. They are the idle capital the revolution was built to mock.",
+            "type": "box"
+          },
+          {
+            "heading": "The incentive is the shame.",
+            "style": "neutral",
+            "text": "You can hold $CHOP and vote. That's fine. But if you never post, never burn, never fund the Treasury — everyone will know. Your wallet address will appear on a public wall labeled 'Class Traitor.' The peer pressure of a community united by shared contempt is a more powerful motivator than any staking yield.",
+            "type": "box"
+          }
+        ],
         "id": "castes",
         "part": "two",
-        "title": "10. The Two Castes: Class Traitors & Capital Defectors",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "The $CHOP ecosystem has two citizen classes, and which one you fall into depends entirely on what you do, not what you own."
-          },
-          {
-            "type": "box",
-            "style": "green",
-            "heading": "🫡 CAPITAL DEFECTORS (The Benefactors)",
-            "text": "These are the heroes. They burn $CHOP to post messages, funding the Treasury that powers the entire democratic machine. Every paid post is an act of defection from the capitalist imperative to hoard. They chose spite over accumulation. They are celebrated on the Capital Defectors leaderboard — not for how much they hold, but for how much they’ve given to fuel the commons. They are the revolutionary vanguard that pays for the proletariat to post."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "heading": "🐀 CLASS TRAITORS (Wall of Shame)",
-            "text": "These individuals bought $CHOP and just sat on it. No posts. No participation. No burning to fund the Treasury. They hold tokens hoping to passively profit off the revolution like they inherited a South African emerald mine. They still get one vote (because democracy is democracy), but their names are displayed publicly on the Class Traitors wall — a permanent record of their refusal to contribute. They are the idle capital the revolution was built to mock."
-          },
-          {
-            "type": "box",
-            "style": "neutral",
-            "heading": "The incentive is the shame.",
-            "text": "You can hold $CHOP and vote. That’s fine. But if you never post, never burn, never fund the Treasury — everyone will know. Your wallet address will appear on a public wall labeled “Class Traitor.” The peer pressure of a community united by shared contempt is a more powerful motivator than any staking yield."
-          }
-        ]
+        "title": "10. The Two Castes: Class Traitors & Capital Defectors"
       },
       {
+        "blocks": [
+          {
+            "text": "Deflation alone isn't enough to mimic the billionaire business model. To truly capture the magic, $CHOP introduces Full Self-Decapitation (FSD) Beta.",
+            "type": "paragraph"
+          },
+          {
+            "text": "Every few weeks, the protocol will announce a 'Software Update.'",
+            "type": "paragraph"
+          },
+          {
+            "heading": "The Promise (What We Tweet)",
+            "style": "green",
+            "text": "'Both blades get a neural-net update next week. Blade Neural Net v12.4 increases descent velocity by 15% and uses AI to algorithmically detect billionaire tax evasion — for whichever candidate's board you're aiming at.' The token pumps 40% on the news alone.",
+            "type": "box"
+          },
+          {
+            "heading": "The Reality (What We Ship)",
+            "style": "red",
+            "text": "We will literally just change the background color of the website from white to slightly off-white, or we will break the UI entirely so a blade gets stuck halfway down — sometimes on the wrong board entirely, just to keep both camps equally furious.",
+            "type": "box"
+          },
+          {
+            "heading": "The Genius:",
+            "style": "red",
+            "text": "When the community gets furious that the update is broken, they will experience rage. That rage feeds directly back into the tokenomics. They will buy more $CHOP just to burn it on the board complaining about the developers — aimed at whichever candidate disappointed them this week. Our incompetence is a deflationary mechanism. This is Over-The-Air Disappointment as a Service.",
+            "type": "box"
+          }
+        ],
         "id": "hype",
         "part": "two",
-        "title": "11. Hyper-Inflationary Hype & “Over-The-Air” Disappointment",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "Deflation alone isn’t enough to mimic the billionaire business model. To truly capture the magic, $CHOP introduces Full Self-Decapitation (FSD) Beta."
-          },
-          {
-            "type": "paragraph",
-            "text": "Every few weeks, the protocol will announce a “Software Update.”"
-          },
-          {
-            "type": "box",
-            "style": "green",
-            "heading": "The Promise (What We Tweet)",
-            "text": "“Guillotine Neural Net v12.4 is dropping next week. It increases blade descent velocity by 15% and uses AI to algorithmically detect billionaire tax evasion.” The token pumps 40% on the news alone."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "heading": "The Reality (What We Ship)",
-            "text": "We will literally just change the background color of the website from white to slightly off-white, or we will break the UI entirely so the blade gets stuck halfway down."
-          },
-          {
-            "type": "box",
-            "style": "red",
-            "heading": "The Genius:",
-            "text": "When the community gets furious that the update is broken, they will experience rage. That rage feeds directly back into the tokenomics. They will buy more $CHOP just to burn it on the board complaining about the developers. Our incompetence is a deflationary mechanism. This is Over-The-Air Disappointment as a Service."
-          }
-        ]
+        "title": "11. Hyper-Inflationary Hype & 'Over-The-Air' Disappointment"
       },
       {
-        "id": "disclaimers",
-        "part": "two",
-        "title": "13. Disclaimers (The Only Serious Part)",
         "blocks": [
           {
-            "type": "box",
             "style": "red",
-            "text": "$CHOP is an economic experiment and performance art project. It is a cry for help formatted as a Solana token and a liquid democracy simulator. Any expectation of profit is a glitch in your own psychology and a testament to the era of financial nihilism we all inhabit."
+            "text": "$CHOP is an economic experiment and performance art project. It is a cry for help formatted as a Solana token and a liquid democracy simulator. Any expectation of profit is a glitch in your own psychology and a testament to the era of financial nihilism we all inhabit.",
+            "type": "box"
           },
           {
-            "type": "box",
             "style": "red",
-            "text": "The AI Oracle is real but it is not God. It generates proposals based on data. It can be wrong. It can be biased. It can hallucinate a burn rate of 420%. The community is the final check. The oracle proposes; the people dispose. That tension — between algorithmic recommendation and human judgment — is the entire experiment."
+            "text": "The AI Oracle is real but it is not God. It generates proposals based on data. It can be wrong. It can be biased. It can hallucinate a burn rate of 420%. The community is the final check. The oracle proposes; the people dispose. That tension — between algorithmic recommendation and human judgment — is the entire experiment.",
+            "type": "box"
           },
           {
-            "type": "box",
             "style": "red",
-            "text": "This is a parody. But so was the Dogefather SNL appearance. The line between satire and market-moving reality dissolved years ago. The fact that a functional liquid democracy powered by spite can exist as a joke while most governments can’t manage a working website says more about the world than it does about us."
+            "text": "This is a parody. But so was the Dogefather SNL appearance. The line between satire and market-moving reality dissolved years ago. The fact that a functional liquid democracy powered by spite can exist as a joke while most governments can't manage a working website says more about the world than it does about us.",
+            "type": "box"
           }
-        ]
+        ],
+        "id": "disclaimers",
+        "part": "two",
+        "title": "12. Disclaimers (The Only Serious Part)"
       }
     ],
     "roadmap": [
       {
-        "phase": "Phase 1",
-        "title": "The Spite Engine & Liquid Democracy",
         "description": "$CHOP is live. The Treasury funds free burns. The AI Oracle generates policy proposals. Every holder votes with equal weight. The War Room governs features. The experiment has begun.",
-        "status": "active"
+        "phase": "Phase 1",
+        "status": "active",
+        "title": "The Spite Engine & Liquid Democracy"
       },
       {
+        "description": "The Oracle evolves. More data sources. Smarter proposals. The platform opens to other communities united by their own common enemies. A federation of spite-driven democracies, each with their own token, their own oracle, their own targets. The $CHOP model becomes a blueprint.",
         "phase": "Phase 2",
-        "title": "AI Oracle v2 & Cross-Community Alliances",
-        "description": "The Oracle evolves. More data sources. Smarter proposals. The platform opens to other communities united by their own common enemies. A federation of spite-driven democracies, each with their own token, their own oracle, their own target. The $CHOP model becomes a blueprint.",
-        "status": "planned"
+        "status": "planned",
+        "title": "AI Oracle v2 & Cross-Community Alliances"
       },
       {
+        "description": "\"Will a blade drop this epoch?\" Bet $CHOP on which candidate's board drops first — or on the race itself. Winners take the pot. Losers get their tokens burned, feeding the deflationary engine that benefits everyone. The guillotines become a democratic event: the community votes on whether to accelerate or delay each drop. Two boards, one race, a fully autonomous loop of spite, speculation, and collective decision-making.",
         "phase": "Phase 3",
-        "title": "The Prediction Market & The Guillotine Drop",
-        "description": "\"Will the blade drop this epoch?\" Bet $CHOP on the outcome. Winners take the pot. Losers get their tokens burned, feeding the deflationary engine that benefits everyone. The guillotine becomes a democratic event: the community votes on whether to accelerate or delay the drop. A fully autonomous loop of spite, speculation, and collective decision-making.",
-        "status": "final"
+        "status": "final",
+        "title": "The Prediction Market & The Race to the Drop"
       }
     ],
     "closing": {
