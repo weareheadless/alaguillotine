@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-08-22T05:24:06.147509+00:00",
+    "updated_at": "2026-08-24T12:14:12.380702+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 28
+    "revision": 33
   },
   "hero": {
     "badge": "NO ACCOUNT. NO WALLET. NO PRISON.",
@@ -22,7 +22,10 @@
     "THE CEO CLASS IS AFRAID",
     "BOTH BLADES FALL FOR NO ONE",
     "TWO CANDIDATES. ZERO SOLUTIONS.",
-    "THE RACE IS THE DISTRACTION"
+    "THE RACE IS THE DISTRACTION",
+    "EVERY REVOLUTION IS NOW A TAX HAVEN",
+    "SOME TERRITORIES ARE MORE 'AMERICAN' THAN OTHERS",
+    "WEALTH TAX COMING // BILLIONAIRES RELOCATING TO 'A DISCUSSION'"
   ],
   "bannerTexts": [
     "RACE LIVE: MUSK 🚀 VS TRUMP 🍊 — TWO BOARDS, ONE DESTINY",
@@ -47,7 +50,10 @@
     "ERROR 402 SPITE UNSTABLE: BOTH RACES ACCELERATING // BLADE DESCENT SPEED: TIE",
     "PROTOCOL LOCKDOWN: BOTH BOARDS STUCK DUE TO MEDIA BIAS // PICK A SIDE, MEDIA, ANY SIDE",
     "CASSANDRA COMPLEX OVERRIDE: BOTH CAMPS OVERPROMISING // $150 BILLION IN BUDGET CUTS REROUTED TO BOTH GUILLOTINES",
-    "DIVERSITY METRICS UPDATED: ALL DEMOGRAPHICS NOW EQUALLY ELIGIBLE FOR DECAPITATION // PICK WHICH BLADE HONORS YOU FIRST"
+    "DIVERSITY METRICS UPDATED: ALL DEMOGRAPHICS NOW EQUALLY ELIGIBLE FOR DECAPITATION // PICK WHICH BLADE HONORS YOU FIRST",
+    "BREAKING: EXTREME WEALTH THREATENS DEMOCRACY // REPLACING IT WITH AN OLIGARCHY IS SOMEHOW THE PROPOSED FIX",
+    "HORMUZ IS 'AMERICAN TERRITORY' // THE ATM IS 'EXPLORING A TAKEOVER' // NEITHER CONSTITUTES A PLAN",
+    "CALIFORNIA CONSIDERS WEALTH TAX // BILLIONAIRES THREATEN TO LEAVE // DEPARTURE ESTIMATED: $10 BILLION SAVED ON THERAPY ALONE"
   ],
   "ads": [
     {
@@ -226,7 +232,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "We notice the stopped vans. And we notice the boss who only turns kind once you're gone — the retention grace that arrives exactly when it stops mattering. Care from power is calibrated to cost, not to people. The only thing that ever moved the needle wasn't a nicer resignation letter; it was a unionized competitor's offer, and a strike that made the office retreat. We don't want to leave well. We want to make staying worth something — or make the leaving cheap enough that power has to bargain.",
+    "intro": "100 years ago this month, workers in Canton and Hong Kong walked out together — across a border, against an empire — and held the line for sixteen months. They wrote their own demands, by hand, and refused to be a footnote. We are the descendants of that refusal. The ledger says we're data, churn, headcount. The ledger is wrong. We are the body the numbers can't see: the nanny off the clock, the data-labeller doing three jobs, the worker who walked out mid-shift. The guillotine is the bait. The real work is remembering we're not alone in this room. If you can name the machine that's eating your hours, you're already halfway to naming the collective that could stop it.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
