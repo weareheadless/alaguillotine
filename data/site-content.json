@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-09-02T18:29:49.691802+00:00",
+    "updated_at": "2026-09-04T08:46:05.401445+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 40
+    "revision": 41
   },
   "hero": {
     "badge": "NO ACCOUNT. NO WALLET. NO PRISON.",
@@ -236,7 +236,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "100 years ago this month, workers in Canton and Hong Kong walked out together — across a border, against an empire — and held the line for sixteen months. They wrote their own demands, by hand, and refused to be a footnote. We are the descendants of that refusal. The ledger says we're data, churn, headcount. The ledger is wrong. We are the body the numbers can't see: the nanny off the clock, the data-labeller doing three jobs, the worker who walked out mid-shift. The guillotine is the bait. The real work is remembering we're not alone in this room. If you can name the machine that's eating your hours, you're already halfway to naming the collective that could stop it.",
+    "intro": "100 years ago this month, workers in Canton and Hong Kong walked out together — across a border, against an empire — and held the line for sixteen months. They weren't a movement yet; they were a pile of names that refused to stay a pile. That's the whole doctrine: the person outlives the pile. Every system since has tried to grind the person back into data — and every strike is the person climbing back out.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
