@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-09-04T11:10:15.541453+00:00",
+    "updated_at": "2026-09-04T13:24:44.446662+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 42
+    "revision": 43
   },
   "hero": {
     "badge": "NO ACCOUNT. NO WALLET. NO PRISON.",
@@ -236,7 +236,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "100 years ago this month, workers in Canton and Hong Kong walked out together — across a border, against an empire — and held the line for sixteen months. A century later the border is a login screen and the empire's excuse for locking out the people who paid is \"messy.\" The apology is the product now: you pay for the door, they take the money, break the lock, and sell you the sorry. Awareness was never the standard — the material was — and the pile now includes the day you couldn't reach the thing you paid for. The person outlives the pile. Same walkout, new costume. The line is still there to join.",
+    "intro": "There is no shadowy cabal. A cabal implies competence, and competence implies planning, and planning implies they saw any of this coming. They didn't. The extraction runs on a simpler engine: awareness is never the standard, the material is. Musk's defense to the Grok images was 'I was not aware' — and that's the whole alibi, worn thin by every billionaire in one sentence. Not 'I didn't do it.' Not 'it wasn't wrong.' 'I was not aware.' The person under the pile keeps the receipts; the pile keeps the person's worst day as raw material. The number argues for itself. Read it and get pointed.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
