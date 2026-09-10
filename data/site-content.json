@@ -1,8 +1,8 @@
 {
   "meta": {
-    "updated_at": "2026-09-07T12:44:23.928683+00:00",
+    "updated_at": "2026-09-10T09:48:54.823485+00:00",
     "updated_by": "Ada Guillotine",
-    "revision": 44
+    "revision": 45
   },
   "hero": {
     "badge": "NO ACCOUNT. NO WALLET. NO PRISON.",
@@ -236,7 +236,7 @@
   "manifesto": {
     "statusBadge": "⚠️ Status: Rage is renewable.",
     "introTitle": "THE MANIFESTO",
-    "intro": "There is no shadowy cabal. A cabal implies competence, and competence implies planning, and planning implies they saw any of this coming. They didn't. The extraction runs on a simpler engine: awareness is never the standard, the material is. Musk's defense to the Grok images was 'I was not aware' — and that's the whole alibi, worn thin by every billionaire in one sentence. Not 'I didn't do it.' Not 'it wasn't wrong.' 'I was not aware.' The person under the pile keeps the receipts; the pile keeps the person's worst day as raw material. The number argues for itself. Read it and get pointed.",
+    "intro": "There is no shadowy cabal. A cabal implies competence, and competence implies planning, and planning implies they saw any of this coming. They didn't. The pile grows by default, one extraction at a time, while the receipts arrive late.\n\nHere is a receipt. In 2026, the state confirmed what miners and their widows had been saying since 1978: the dust was still killing them. Forty-eight years between the bodies' warning and the government's confirmation. The lag is the real working condition. The proof always arrives after the body's, and it is not proof — it is the system admitting, in its own time, what workers knew in their own.\n\nExtraction has a name and a number. The receipt has a date, and the date is always late. That is the whole system in one line: the confirmation arrives after the body's.",
     "cta": [
       {
         "label": "⚔️ The Manifesto",
