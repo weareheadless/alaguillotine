@@ -13,7 +13,10 @@ import path from "path";
 
 // ─── Singleton ──────────────────────────────────────────────────────────────────
 
-const DB_PATH = path.join(process.cwd(), "data", "local.db");
+// FYE_DB_PATH lets tests and local preview servers point at a disposable
+// fixture database instead of the live one. Production leaves it unset, so
+// the default remains the real DB on disk.
+const DB_PATH = process.env.FYE_DB_PATH || path.join(process.cwd(), "data", "local.db");
 
 let _db: Database.Database | null = null;
 

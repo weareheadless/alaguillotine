@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRaceResult } from "../../../lib/race";
+import { buildRaceResultMetadata, raceResultImagePath } from "../../../lib/race-share";
 
 interface RaceResultPageProps {
   params: Promise<{ id: string }>;
@@ -9,21 +10,25 @@ interface RaceResultPageProps {
 
 export async function generateMetadata({ params }: RaceResultPageProps): Promise<Metadata> {
   const { id } = await params;
-  const result = getRaceResult(id);
-  if (!result) {
-    return { title: "Result not found — FUCKYOUELON" };
+  const meta = buildRaceResultMetadata(getRaceResult(id), id);
+  if (meta.noindex) {
+    return { title: meta.title, robots: { index: false, follow: false } };
   }
-  const { message, candidate } = result;
-  const authorName = message.author_name || "Anonymous Spite";
+  // The image is generated per result by the opengraph-image / twitter-image
+  // file conventions at race/<id>/opengraph-image (see og-card.tsx). Pointing
+  // at the canonical path keeps the tag stable regardless of Next's cache hash.
+  const image = { url: raceResultImagePath(id), width: 1200, height: 630, alt: meta.imageAlt };
   return {
-    title: `${authorName} scored ${message.score}/5 on ${candidate} — FUCKYOUELON`,
-    description: message.text.slice(0, 200),
+    title: meta.title,
+    description: meta.description,
     openGraph: {
       type: "article",
       url: `/race/${id}`,
-      images: ["/og-image.png"],
+      title: meta.title,
+      description: meta.description,
+      images: [image],
     },
-    twitter: { card: "summary_large_image" },
+    twitter: { card: "summary_large_image", title: meta.title, description: meta.description, images: [image.url] },
   };
 }
 

@@ -6,6 +6,7 @@ import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import { createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, getAccount, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { fetchRaceMessages, submitPaidRaceMessage, submitRaceMessage, type RaceMessage, type RaceSubmitResponse } from "../app/actions/race-submit";
+import { buildSharePayload } from "../lib/race-share";
 
 const SOLANA_RECEIVER = process.env.NEXT_PUBLIC_SOLANA_RECEIVER_WALLET || "";
 const CHOP_MINT = process.env.NEXT_PUBLIC_CHOP_MINT || "6gup5Cper6pmfNfsGps3MizgpsG3q6uvzobGdUFapump";
@@ -144,7 +145,11 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
   const [mode, setMode] = useState<"free" | "paid">("free");
   const [paidSubmitting, setPaidSubmitting] = useState(false);
   const [paidError, setPaidError] = useState("");
+  const [paidResult, setPaidResult] = useState<RaceSubmitResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
+  // The box is cleared on success, so keep the accepted text for the share payload.
+  const submittedTextRef = useRef("");
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const { setVisible: showWalletModal } = useWalletModal();
@@ -161,6 +166,29 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
 
   const s = side(board);
   const permalink = state.success && typeof state.id === "string" ? state.id : null;
+
+  // Emit the ready-to-post text+image payload. No network post is made: the
+  // payload goes to the native share sheet when available, else the clipboard.
+  const shareResult = useCallback(
+    async (id: string, author: string, score: number, messageText: string) => {
+      const payload = buildSharePayload(
+        { id, authorName: author, score, candidate: name, messageText },
+        { baseUrl: window.location.origin },
+      );
+      try {
+        if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+          await navigator.share({ title: payload.imageAlt, text: payload.text });
+        } else {
+          await copyText(payload.text);
+        }
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+      } catch {
+        /* the user dismissed the share sheet — nothing to do */
+      }
+    },
+    [name],
+  );
 
   const handlePaidSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -213,6 +241,8 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
       const result = await submitPaidRaceMessage({ success: false }, formData);
       if (!result.success) throw new Error(result.error || "Paid message was not accepted.");
 
+      submittedTextRef.current = paidText.trim();
+      setPaidResult(result);
       setPaidText("");
       setPaidName("");
       setPaidAmount("");
@@ -235,7 +265,7 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
       </div>
 
       {mode === "free" ? (
-        <form action={async (fd) => { fd.set("board", board); formAction(fd); }}>
+        <form action={async (fd) => { fd.set("board", board); submittedTextRef.current = text.trim(); formAction(fd); }}>
           <input type="hidden" name="board" value={board} />
           <textarea name="text" value={text} onChange={(e) => setText(e.target.value)} placeholder={`Aim for the ${name} side… say it sideways.`} maxLength={5000} rows={2} className={`w-full resize-none border ${s.border} bg-canvasBlack/90 px-3 py-2 font-mono text-[11px] text-sheetWhite placeholder:text-chop-muted focus:outline-none focus:ring-2 ${s.ring}`} />
           <div className="mt-1.5 flex items-center justify-between gap-2">
@@ -261,6 +291,13 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
                   >
                     {copied ? "copied" : "copy link"}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => shareResult(permalink, freeName.trim() || "Anonymous Spite", state.score ?? 0, submittedTextRef.current)}
+                    className="border border-hypeNeon bg-hypeNeon/20 px-1.5 py-0.5 text-[8px] font-bold uppercase hover:bg-hypeNeon hover:text-canvasBlack"
+                  >
+                    {shared ? "shared" : "share"}
+                  </button>
                 </p>
               )}
             </div>
@@ -276,6 +313,18 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
             <button type="submit" disabled={paidSubmitting || !paidText.trim() || !paidAmount} className="border border-black bg-[#FDE047] px-2 py-1 text-[9px] font-black uppercase text-canvasBlack disabled:opacity-40">{paidSubmitting ? "..." : publicKey ? "Pay" : "Wallet"}</button>
           </div>
           <p className="mt-1 font-mono text-[9px] text-[#FDE047]">Paid messages are highlighted and hack the system.</p>
+          {paidResult?.id && (
+            <p className="mt-1 flex items-center gap-2 font-mono text-[9px] text-[#FDE047]">
+              <a href={`/race/${paidResult.id}`} className="underline decoration-dotted hover:text-sheetWhite">permalink</a>
+              <button
+                type="button"
+                onClick={() => shareResult(paidResult.id as string, paidResult.authorName || "Anonymous Whale", paidResult.score ?? 0, submittedTextRef.current)}
+                className="border border-[#FDE047] bg-[#FDE047]/20 px-1.5 py-0.5 text-[8px] font-bold uppercase hover:bg-[#FDE047] hover:text-canvasBlack"
+              >
+                {shared ? "shared" : "share"}
+              </button>
+            </p>
+          )}
           {paidError && <p className="mt-1 font-mono text-[9px] text-spiteCrimson">{paidError}</p>}
         </form>
       )}
