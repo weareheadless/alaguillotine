@@ -21,6 +21,8 @@ export type ObjectiveStepStatus =
   | "unknown";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "not_required" | "unknown";
+
+export type ApprovalKind = "permission" | "plan" | "side_effect" | "start";
 export type ObjectiveAction =
   | "create"
   | "edit"
@@ -42,8 +44,13 @@ export interface ObjectiveApproval {
   objective_id?: string;
   step_id?: string;
   status: ApprovalStatus;
+  kind?: ApprovalKind;
+  gate_id?: string;
+  action?: string;
+  target?: string;
   label?: string;
   reason?: string;
+  requested_by?: string;
   requested_at?: number | string | null;
 }
 
@@ -187,6 +194,19 @@ function approvalStatus(value: unknown): ApprovalStatus {
   return "unknown";
 }
 
+function approvalKind(raw: JsonRecord): ApprovalKind {
+  const explicit = text(raw, ["kind"], "");
+  if (explicit === "permission" || explicit === "plan" || explicit === "side_effect" || explicit === "start") {
+    return explicit;
+  }
+  if (text(raw, ["permission_id", "session_id"], "")) return "permission";
+  const requestedBy = text(raw, ["requested_by"], "").toLowerCase();
+  const gateId = text(raw, ["gate_id"], "");
+  if (requestedBy === "administrator") return "start";
+  if (gateId === "plan_implementation") return "plan";
+  return "side_effect";
+}
+
 function normalizeApproval(value: unknown, index: number, fallbackObjectiveId?: string): ObjectiveApproval | null {
   const raw = asRecord(value);
   if (!Object.keys(raw).length) return null;
@@ -196,8 +216,13 @@ function normalizeApproval(value: unknown, index: number, fallbackObjectiveId?: 
     objective_id: text(raw, ["objective_id"], fallbackObjectiveId) || undefined,
     step_id: text(raw, ["step_id"], "") || undefined,
     status: approvalStatus(first(raw, ["status", "state"])),
+    kind: approvalKind(raw),
+    gate_id: text(raw, ["gate_id"], "") || undefined,
+    action: text(raw, ["action"], "") || undefined,
+    target: text(raw, ["target"], "") || undefined,
     label: text(raw, ["label", "title", "name"], "") || undefined,
     reason: text(raw, ["reason", "message", "description"], "") || undefined,
+    requested_by: text(raw, ["requested_by"], "") || undefined,
     requested_at: first(raw, ["requested_at", "created_at", "ts"]) as number | string | null | undefined,
   };
 }
@@ -356,4 +381,53 @@ export function normalizeObjectivesResponse(value: unknown): ObjectivesSnapshot 
     operation,
     updated_at: first(raw, ["updated_at", "ts"]) as number | string | null | undefined,
   };
+}
+
+export type BoardColumnId = "todo" | "doing" | "needs_you" | "stuck" | "done";
+
+export const BOARD_COLUMNS: { id: BoardColumnId; label: string; hint: string }[] = [
+  { id: "todo", label: "to do", hint: "queued and waiting for Ada" },
+  { id: "doing", label: "doing", hint: "Ada is working on it now" },
+  { id: "needs_you", label: "needs you", hint: "waiting on your decision" },
+  { id: "stuck", label: "stuck", hint: "blocked or failed, needs a nudge" },
+  { id: "done", label: "done", hint: "completed objectives" },
+];
+
+const COLUMN_OF_STATUS: Record<ObjectiveStatus, BoardColumnId> = {
+  queued: "todo",
+  planning: "todo",
+  paused: "todo",
+  unknown: "todo",
+  in_progress: "doing",
+  awaiting_approval: "needs_you",
+  blocked: "stuck",
+  failed: "stuck",
+  completed: "done",
+  cancelled: "done",
+};
+
+export function statusToColumn(status: ObjectiveStatus): BoardColumnId {
+  return COLUMN_OF_STATUS[status] ?? "todo";
+}
+
+export function isRemoved(status: ObjectiveStatus): boolean {
+  return status === "cancelled";
+}
+
+export function approvalHeadline(approval: ObjectiveApproval): string {
+  const detail = [approval.action, approval.target].filter(Boolean).join(" ").trim();
+  switch (approval.kind) {
+    case "permission":
+      return `Allow ${approval.label || approval.gate_id || "a tool permission"}${detail ? ` — ${detail}` : ""}`;
+    case "plan":
+      return "Approve this plan so Ada can start implementing";
+    case "start":
+      return "Approve & start queues this objective";
+    case "side_effect":
+      return detail
+        ? `Approve side effect: ${detail}`
+        : `Approve ${approval.label || "the requested action"}`;
+    default:
+      return approval.label || approval.reason || "Approval required";
+  }
 }
