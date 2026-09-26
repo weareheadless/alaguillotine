@@ -6,7 +6,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { OG_CONTENT_TYPE, OG_HEIGHT, OG_WIDTH, renderRaceResultCard } from "./race-og";
+import { OG_CONTENT_TYPE, OG_HEIGHT, OG_WIDTH, renderRaceResultCard, toRaceCardData } from "./race-og";
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -55,3 +55,48 @@ test("card output is data-driven (different results differ)", async () => {
   const b = await renderBytes({ ...realResult, authorName: "Someone Else", score: 1, side: "b" });
   assert.ok(!a.equals(b), "cards for different results must not be byte-identical");
 });
+
+// ─── Result-to-card mapping (the seam the route uses) ──────────────────────
+
+const raceRow = {
+  message: { author_name: "John Smith", score: 4, text: "A well-aimed line" },
+  candidate: "Musk",
+  side: "a" as const,
+};
+
+test("maps a found result to card data with its candidate and side", () => {
+  const data = toRaceCardData(raceRow);
+  assert.equal(data.found, true);
+  assert.equal(data.authorName, "John Smith");
+  assert.equal(data.score, 4);
+  assert.equal(data.candidate, "Musk");
+  assert.equal(data.messageText, "A well-aimed line");
+  assert.equal(data.side, "a");
+});
+
+test("maps a board-b result to side b", () => {
+  assert.equal(toRaceCardData({ ...raceRow, side: "b" }).side, "b");
+});
+
+test("maps a missing result to the not-found fallback card data", () => {
+  const data = toRaceCardData(null);
+  assert.equal(data.found, false);
+  assert.equal(data.side, null);
+  assert.equal(data.authorName, "Anonymous Spite");
+  assert.equal(data.candidate, "the board");
+  assert.equal(data.messageText, "");
+});
+
+test("mapping supplies neutral fallbacks for blank fields", () => {
+  const data = toRaceCardData({ message: { author_name: "", score: 0, text: "" }, candidate: "", side: "a" });
+  assert.equal(data.found, true);
+  assert.equal(data.authorName, "Anonymous Spite");
+  assert.equal(data.candidate, "the board");
+  assert.equal(data.messageText, "No verdict on this board.");
+});
+
+test("the mapped card of a real result rasterizes", async () => {
+  const buf = await renderBytes(toRaceCardData(raceRow));
+  assert.ok(buf.length > 2000);
+});
+

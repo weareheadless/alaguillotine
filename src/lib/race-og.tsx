@@ -27,6 +27,38 @@ export interface RaceCardData {
   side: "a" | "b" | null;
 }
 
+/** Structural shape of the fields the card needs from getRaceResult(). */
+export interface RaceResultLike {
+  message: { author_name: string; score: number; text: string };
+  candidate: string;
+  side: "a" | "b";
+}
+
+/**
+ * Map a getRaceResult() row (or null) to card data. Extracted from the route
+ * so the result-to-card mapping is exercised by tests without a database.
+ */
+export function toRaceCardData(result: RaceResultLike | null | undefined): RaceCardData {
+  if (!result) {
+    return {
+      found: false,
+      authorName: "Anonymous Spite",
+      score: 0,
+      candidate: "the board",
+      messageText: "",
+      side: null,
+    };
+  }
+  return {
+    found: true,
+    authorName: result.message.author_name || "Anonymous Spite",
+    score: result.message.score ?? 0,
+    candidate: result.candidate || "the board",
+    messageText: result.message.text || "No verdict on this board.",
+    side: result.side ?? null,
+  };
+}
+
 export function renderRaceResultCard(data: RaceCardData): ImageResponse {
   const rawText = data.messageText || "No verdict on this board.";
   const text = rawText.length > 240 ? `${rawText.slice(0, 239).trimEnd()}…` : rawText;
