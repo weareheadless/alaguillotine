@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "tsc src/lib/race-share.ts src/lib/race-share.test.ts --outDir /tmp/fye-race-test-build --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --types node --lib ES2022 && node --test /tmp/fye-race-test-build/race-share.test.js",
+    "test": "tsc src/lib/race-share.ts src/lib/race-share.test.ts src/lib/race-og.tsx src/lib/race-og.test.ts --outDir /tmp/fye-race-test-build --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --types node --lib ES2022 --jsx react-jsx && NODE_PATH=\"$PWD/node_modules\" node --test /tmp/fye-race-test-build/race-share.test.js /tmp/fye-race-test-build/race-og.test.js",
     "lint": "next lint"
   },
   "dependencies": {
