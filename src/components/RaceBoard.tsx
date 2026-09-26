@@ -56,6 +56,26 @@ const SIDE = {
 } as const;
 const side = (b: "a" | "b") => SIDE[b];
 
+// Clipboard helper — same pattern as /src/app/ada/page.tsx (with fallback).
+function copyText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+  return new Promise((resolve, reject) => {
+    try {
+      const el = document.createElement("textarea");
+      el.value = text;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      resolve();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
 // ─── Guillotine (compact, reusable) ────────────────────────────────────────
 
 function MiniGuillotine({
@@ -124,6 +144,7 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
   const [mode, setMode] = useState<"free" | "paid">("free");
   const [paidSubmitting, setPaidSubmitting] = useState(false);
   const [paidError, setPaidError] = useState("");
+  const [copied, setCopied] = useState(false);
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const { setVisible: showWalletModal } = useWalletModal();
@@ -139,6 +160,7 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
   }, [state.success]);
 
   const s = side(board);
+  const permalink = state.success && typeof state.id === "string" ? state.id : null;
 
   const handlePaidSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -225,6 +247,22 @@ function BoardForm({ board, name }: { board: "a" | "b"; name: string }) {
             <div className="mt-1 border border-hypeNeon/60 bg-hypeNeon/10 px-2 py-1 font-mono text-[9px] text-hypeNeon">
               <p className="font-bold">✓ ON THE BOARD — Referee scored it {state.score}/5{state.quip ? <span> — &ldquo;{state.quip}&rdquo;</span> : null}</p>
               {state.dropped && <p className="mt-0.5 text-spiteCrimson">⚔️ {state.decapitated} LOST THEIR HEAD! {state.survivor} holds the board.</p>}
+              {permalink && (
+                <p className="mt-1 flex items-center gap-2">
+                  <a href={`/race/${permalink}`} className="underline decoration-dotted hover:text-sheetWhite">permalink</a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      copyText(`${window.location.origin}/race/${permalink}`);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    }}
+                    className="border border-hypeNeon px-1.5 py-0.5 text-[8px] font-bold uppercase hover:bg-hypeNeon hover:text-canvasBlack"
+                  >
+                    {copied ? "copied" : "copy link"}
+                  </button>
+                </p>
+              )}
             </div>
           )}
           {!state.success && state.error && <p className="mt-1 font-mono text-[9px] text-spiteCrimson">{state.error}</p>}

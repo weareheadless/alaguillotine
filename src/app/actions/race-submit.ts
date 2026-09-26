@@ -37,6 +37,7 @@ function markDuplicate(key: string): boolean {
 export interface RaceSubmitResponse {
   success: boolean;
   error?: string;
+  id?: string;
   authorName?: string;
   score?: number;
   reason?: string;
@@ -163,6 +164,7 @@ export async function submitRaceMessage(
 
     return {
       success: true,
+      id: msgId,
       score,
       reason: v.reason,
       quip: v.quip,
@@ -249,6 +251,7 @@ export async function submitPaidRaceMessage(
     const result = recordAcceptedMessage(msgId, board, score, { authorId, amountPaid: actualAmount, now: new Date(now) });
     return {
       success: true,
+      id: msgId,
       authorName,
       score,
       dropped: result.dropped,

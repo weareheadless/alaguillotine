@@ -125,6 +125,67 @@ export function computeRaceState(
   };
 }
 
+// ─── Shareable result lookup ─────────────────────────────────────────────────
+
+export interface RaceResultMessage {
+  id: string;
+  text: string;
+  author_name: string;
+  score: number;
+  amount_paid: number;
+  race_id: string | null;
+  board: string | null;
+  created_at: string;
+}
+
+export interface RaceResultRace {
+  id: string;
+  candidate_a: string;
+  candidate_b: string;
+  status: string;
+  decapitated: string | null;
+  survivor: string | null;
+  ended_at: string | null;
+}
+
+export interface RaceResult {
+  message: RaceResultMessage;
+  race: RaceResultRace | null;
+  side: "a" | "b";
+  candidate: string;
+}
+
+/**
+ * Look up one accepted message for its shareable /race/<id> permalink.
+ * Server-only. Unlike getDocument(), returns null for a missing row instead
+ * of throwing. Mirrors fetchRaceMessages' visibility filter: shadowbanned
+ * rows and replies (non-null parent_id) are never exposed.
+ */
+export function getRaceResult(id: string): RaceResult | null {
+  const rawDb = getDb();
+  const message = rawDb.prepare(
+    `SELECT id, text, author_name, score, amount_paid, race_id, board, created_at
+     FROM messages
+     WHERE id = ? AND parent_id IS NULL AND is_shadowbanned = 0`
+  ).get(id) as RaceResultMessage | undefined;
+  if (!message) return null;
+
+  const side: "a" | "b" = message.board === "b" ? "b" : "a";
+
+  let race: RaceResultRace | null = null;
+  if (message.race_id) {
+    const raceRow = rawDb.prepare(
+      `SELECT id, candidate_a, candidate_b, status, decapitated, survivor, ended_at
+       FROM races WHERE id = ?`
+    ).get(message.race_id) as RaceResultRace | undefined;
+    race = raceRow ?? null;
+  }
+
+  const candidate = race ? (side === "a" ? race.candidate_a : race.candidate_b) : "";
+
+  return { message, race, side, candidate };
+}
+
 /**
  * Record an accepted message into the active race and re-check the drop.
  * Returns the updated race state plus whether the blade dropped.
