@@ -41,14 +41,17 @@ export function NewsReel({ messages }: { messages: string[] }) {
       .then((data) => {
         const live = Array.isArray(data?.clips) ? data.clips : [];
         if (!cancelled && live.length) {
-          setClips(
-            live.map((c: { url: string; caption: string; source: string; kind: string }) => ({
+          const list = live.map(
+            (c: { url: string; caption: string; source: string; kind: string }) => ({
               src: c.url,
               caption: c.caption || c.source || "news",
               source: c.source,
               kind: c.kind === "youtube" ? "youtube" : "file",
-            })),
+            }),
           );
+          setClips(list);
+          // Start somewhere else every visit: a stream, not a front page.
+          setIndex(Math.floor(Math.random() * list.length));
           return;
         }
         return fetch("/static/reel/reel.json", { cache: "no-store" })

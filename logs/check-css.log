@@ -24402,3 +24402,9 @@
  32137342026-11-07T03:10:02Z OK /_next/static/css/25d47acfb64e88a8.css -> 103176 bytes
 2026-11-07T03:15:01Z OK /_next/static/css/25d47acfb64e88a8.css -> 103176 bytes
 2026-11-07T03:20:01Z OK /_next/static/css/25d47acfb64e88a8.css -> 103176 bytes
+2026-11-07T03:25:01Z FAIL /_next/static/css/25d47acfb64e88a8.css -> HTTP 400, 2022 bytes (min 90000)
+2026-11-07T03:25:01Z restarting next start (fuser -TERM on :3002; systemd Restart=always will relaunch)
+ 32195702026-11-07T03:30:01Z OK /_next/static/css/028fd9761ce21e1d.css -> 103687 bytes
+2026-11-07T03:35:01Z OK /_next/static/css/028fd9761ce21e1d.css -> 103687 bytes
+2026-11-07T03:40:01Z OK /_next/static/css/028fd9761ce21e1d.css -> 103687 bytes
+2026-11-07T03:45:02Z OK /_next/static/css/028fd9761ce21e1d.css -> 103687 bytes

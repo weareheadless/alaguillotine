@@ -13,7 +13,7 @@ import { LineRow } from "@/components/LineRow";
  */
 export default function NextInLinePage() {
   const hate = useHateometer();
-  const standing = hate.figures.filter((f) => !f.droppedAt);
+  const standing = hate.figures.filter((f) => !f.droppedAt).slice(1);
   const chopped = hate.figures.filter((f) => f.droppedAt);
 
   return (

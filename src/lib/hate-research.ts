@@ -36,15 +36,16 @@ RULES — hard:
 3. Quip: ONE line, max 140 chars, contemptuous and funny, aimed at the pattern or the institution. No calls to violence, no dehumanising language, nothing about anyone's body, family, ethnicity or religion.
 4. File each item under: war, civilian, repression, arms, incitement.
 5. harm 0-100: 90-100 mass civilian harm documented; 70-89 significant lethal violence or systematic repression; 50-69 structural harm or the machinery feeding it; 30-49 tension without documented harm; 0-29 noise.
-6. You choose who belongs in the line. Include anyone whose decisions, companies or orders cause mass harm: heads of state and ministers, military and security chiefs, arms and defence executives, and the billionaires, funders and lobbyists whose money and platforms make it possible. Exclude only private individuals, and anyone the text presents purely as a victim, witness or critic.
+6. You choose who belongs in the line. The reporting is not the only thing you know: if a person is a documented, widely reported author of mass harm and today's feed simply missed them, name them anyway and set "basis" to the record you are drawing on. Up to five of those per pass. The feed is the news; you are the memory. Include anyone whose decisions, companies or orders cause mass harm: heads of state and ministers, military and security chiefs, arms and defence executives, and the billionaires, funders and lobbyists whose money and platforms make it possible. Exclude only private individuals, and anyone the text presents purely as a victim, witness or critic.
 7. Every figure cites item_indices. No figure without items.
 8. Name everyone the reporting supports, up to 15. A thin list is a wasted pass — the queue is the point of the site.
 9. score is YOUR judgement, 0-100, of how much this person deserves the blade. No formula overrules you and nothing is averaged. Only people, never a company. Scores must differ from each other — if everyone lands on 50 you have not decided. Use the whole range: 90+ for someone who ordered or bankrolled mass death, 70s for systematic cruelty with a body count, 50s for extraction and impunity, 30s for complicity.
-10. reason is what they are accused of, one sentence, max 240 chars. Be specific about the act, the place and the year. If the reporting is thin, say what is alleged, not what is proven.
+10. The line must include the owners as well as the officials. If the reporting names a billionaire, an executive, a funder or a lobbyist whose money or platform causes the harm, they belong here with their own charge — the people who pay are as responsible as the people who sign.
+11. reason is what they are accused of, one sentence, max 240 chars. Be specific about the act, the place and the year. If the reporting is thin, say what is alleged, not what is proven.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],
- "figures":[{"name":"","role":"","country":"","reason":"what they are accused of","score":0,"item_indices":[0]}]}`;
+ "figures":[{"name":"","role":"","country":"","reason":"what they are accused of","score":0,"item_indices":[0],"basis":""}]}`;
 
 interface Candidate {
   topic: string;
@@ -125,7 +126,7 @@ export async function runHatePass(
           role: "user",
           content: JSON.stringify({
             queue: roster,
-            results: pool.slice(0, 24).map((c, index) => ({
+            results: pool.slice(0, 40).map((c, index) => ({
               index,
               topic: c.topic,
               title: c.title,
@@ -171,7 +172,8 @@ export async function runHatePass(
     const cited = (Array.isArray(f.item_indices) ? f.item_indices : [])
       .map((i) => items[Number(i)])
       .filter(Boolean);
-    if (!cited.length) return [];
+    // No article today is not a reason to forget a documented record.
+    if (!cited.length && !clip(f.basis, 200)) return [];
     const given = Number(f.score);
     return [
       {
@@ -181,8 +183,10 @@ export async function runHatePass(
         score: Number.isFinite(given) ? Math.max(0, Math.min(100, Math.round(given))) : 50,
         mentions: cited.length,
         reason: clip(f.reason, 240),
-        source: cited[0].source,
-        sourceUrl: cited[0].sourceUrl,
+        source: cited[0]?.source ?? "ada's record",
+        sourceUrl:
+          cited[0]?.sourceUrl ??
+          `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(name)}`,
         items: cited.slice(0, 4),
       },
     ];

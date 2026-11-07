@@ -30,6 +30,9 @@ export default function HomePage() {
   // The homepage shows deaths, never the queue. Everyone still waiting belongs
   // on /next-in-line, so nobody appears in two places.
   const executing = chopped.slice(0, 2);
+  const atTheBlock = standing[0];
+  // The next one is brought up to the block, not left in the line.
+  const promoted = standing[0];
 
   return (
     <div className="relative min-h-screen bg-canvasBlack">
@@ -97,8 +100,27 @@ export default function HomePage() {
               </span>
             </div>
 
+            {atTheBlock && (
+              <div className="mt-4">
+                <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-spiteCrimson">
+                  <span>at the block</span>
+                  <span className="text-chop-muted">promoted from the line</span>
+                </div>
+                <QueueCard figure={atTheBlock} />
+              </div>
+            )}
+
             {executing.length > 0 ? (
               <div className="mt-4 space-y-3">
+                {promoted && (
+                  <div>
+                    <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-hypeNeon">
+                      <span>on the block</span>
+                      <span className="text-chop-muted">promoted from the line</span>
+                    </div>
+                    <QueueCard figure={promoted} />
+                  </div>
+                )}
                 {executing.map((person) => (
                   <QueueCard key={person.name} figure={person} />
                 ))}
