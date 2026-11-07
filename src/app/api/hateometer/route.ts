@@ -1,5 +1,6 @@
 import { emptyHate, type HateState } from "@/lib/hateometer";
-import { getDb, readHate, readQueue } from "@/lib/hate-store";
+import { DROP_THRESHOLD } from "@/lib/hateometer";
+import { evaluateDrops, getDb, readHate, readQueue } from "@/lib/hate-store";
 
 export const revalidate = 0;
 
@@ -9,6 +10,7 @@ export async function GET() {
     const db = await getDb();
     if (!db) return Response.json(emptyHate(), { headers: { "Cache-Control": "no-store" } });
 
+    await evaluateDrops(db, DROP_THRESHOLD);
     const row = await readHate(db);
     const queue = await readQueue(db);
     if (!row && queue.length === 0) {

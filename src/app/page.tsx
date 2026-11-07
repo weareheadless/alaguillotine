@@ -4,12 +4,12 @@ import { FsdBanner } from "../components/FsdBanner";
 import { AdPopups } from "../components/AdPopups";
 import { NavBar } from "../components/NavBar";
 import { RulesBanner } from "../components/RulesBanner";
-import { DoomsdayClock } from "../components/DoomsdayClock";
+import { useClock } from "../components/DoomsdayClock";
 import { Hateometer, useHateometer } from "../components/Hateometer";
 import { QueueCard } from "../components/QueueCard";
 import { RageStack } from "../components/RageStack";
 import { SubliminalVideo } from "../components/SubliminalVideo";
-import { useClock } from "../components/DoomsdayClock";
+import { NewsReel } from "../components/NewsReel";
 import { useSiteContent } from "../lib/use-site-content";
 
 /**
@@ -50,9 +50,49 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* ── The feed ────────────────────────────────────────────────── */}
+        <div className="mx-auto mt-8 max-w-6xl px-4 md:px-6">
+          <NewsReel messages={content.subliminalMessages} />
+          <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2 font-mono text-[9px] uppercase tracking-[0.25em] text-chop-muted">
+            <span>the feed · speeches, crackdowns, the machinery</span>
+            <span>frames are single, the message is one of them</span>
+          </div>
+        </div>
+
         {/* ── The two instruments ─────────────────────────────────────── */}
         <div className="mx-auto mt-6 grid max-w-6xl gap-4 px-4 md:px-6 lg:grid-cols-[1fr_320px]">
-          <DoomsdayClock state={state} pulls={pulls} />
+          <div className="flex flex-col justify-center border border-chop-border bg-chop-card/60 p-5 md:p-6">
+            <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
+              t&nbsp;–&nbsp;minus
+            </div>
+            <div className="font-mono text-5xl font-black leading-none tracking-tighter text-sheetWhite md:text-6xl">
+              {state.tMinus}
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-3 border-t border-chop-border pt-4 font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted">
+              <div>
+                <div className="text-lg font-black tabular-nums text-sheetWhite">
+                  {Math.round(state.level)}
+                </div>
+                index
+              </div>
+              <div>
+                <div className="text-lg font-black tabular-nums text-sheetWhite">
+                  {state.items.length}
+                </div>
+                items
+              </div>
+              <div>
+                <div className="text-lg font-black tabular-nums text-sheetWhite">{pulls}</div>
+                pulls
+              </div>
+            </div>
+            <p className="mt-4 font-mono text-[11px] leading-relaxed text-chop-muted">
+              {state.voice.line || "No reading yet. The machine is still looking."}
+            </p>
+            <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.25em] text-chop-muted">
+              <span className="text-spiteCrimson">ada</span> · {state.voice.mood}
+            </div>
+          </div>
           <Hateometer state={hate} />
         </div>
 

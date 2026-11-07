@@ -40,10 +40,13 @@ export default {
       console.error("clock_cron_misconfigured");
       return;
     }
-    const isTwelveHour = event.cron === "30 */12 * * *";
-    const paths = isTwelveHour
-      ? ["/api/clock/refresh", "/api/hateometer/refresh", "/api/posts/refresh"]
-      : ["/api/clock/refresh"];
+    // Hourly: the clock. Every three hours: the queue. Twice a day: a dispatch.
+    const paths =
+      event.cron === "30 */12 * * *"
+        ? ["/api/clock/refresh", "/api/hateometer/refresh", "/api/posts/refresh"]
+        : event.cron === "15 */3 * * *"
+          ? ["/api/clock/refresh", "/api/hateometer/refresh"]
+          : ["/api/clock/refresh"];
 
     for (const path of paths) {
       context.waitUntil(

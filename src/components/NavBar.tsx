@@ -57,7 +57,7 @@ export function NavBar() {
         {/* ─── Brand ─────────────────────────────────────────────────── */}
         <Link href="/" className="flex items-center gap-2 md:gap-3">
           <span className="text-lg md:text-xl font-black uppercase tracking-tighter text-sheetWhite animate-glitch-text">
-            <span className="text-spiteCrimson">FUCKYOU</span>ELON
+            <span className="text-spiteCrimson">A LA</span> GUILLOTINE
           </span>
           <span className="hidden rounded-sm border-2 border-spiteCrimson bg-spiteCrimson/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-spiteCrimson sm:inline-block">
             $CHOP PROTOCOL

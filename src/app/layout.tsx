@@ -9,29 +9,29 @@ import { LayoutExtras } from "../components/LayoutExtras";
 import { GlobalFooter } from "../components/GlobalFooter";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.fuckyouelon.net"),
-  title: "FUCKYOUELON — $CHOP PROTOCOL",
+  metadataBase: new URL("https://alaguillotine.com"),
+  title: "A LA GUILLOTINE — the clock",
   description:
-    "The guillotine is a game. Post your beef, move the blade, and join a spite-powered economic experiment. One wallet. One vote. Infinite spite.",
+    "A doomsday clock for the billionaire class. Ada reads the news, scores the harm, and lowers the blade. Every number is linked to its source.",
   openGraph: {
     type: "website",
-    url: "https://www.fuckyouelon.net",
-    siteName: "FuckYouElon",
-    title: "FUCKYOUELON — $CHOP PROTOCOL",
+    url: "https://alaguillotine.com",
+    siteName: "A LA GUILLOTINE",
+    title: "A LA GUILLOTINE — the clock",
     description:
-      "The guillotine is a game. Post your beef, move the blade, and join a spite-powered economic experiment. One wallet. One vote. Infinite spite.",
+      "A doomsday clock for the billionaire class. Ada reads the news, scores the harm, and lowers the blade. Every number is linked to its source.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "FuckYouElon — the gamified guillotine. Every message inches the blade closer to judgment.",
+        alt: "A LA GUILLOTINE — the blade is a metaphor. For now.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "FUCKYOUELON — $CHOP PROTOCOL",
+    title: "A LA GUILLOTINE — the clock",
     description:
       "The guillotine is a game. Post your beef, move the blade, and join a spite-powered economic experiment.",
     images: ["/og-image.png"],

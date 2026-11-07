@@ -24,7 +24,7 @@ export function useHateometer() {
       }
     };
     load();
-    const id = setInterval(load, 10 * 60 * 1000);
+    const id = setInterval(load, 90 * 1000);
     return () => {
       cancelled = true;
       clearInterval(id);

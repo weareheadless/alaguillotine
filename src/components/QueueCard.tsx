@@ -10,15 +10,21 @@ import type { Figure } from "../lib/hateometer";
  * name this pass. Nothing is pooled, nothing is averaged across the queue.
  */
 
-function MiniBlade({ score }: { score: number }) {
-  const travel = (Math.min(97, Math.max(3, score)) / 100) * 46;
+function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
+  const travel = dropped ? 46 : (Math.min(97, Math.max(3, score)) / 100) * 46;
   return (
     <svg viewBox="0 0 64 92" className="h-24 w-16 shrink-0" aria-hidden>
       <rect x="6" y="4" width="52" height="5" fill="#18181B" stroke="#27272A" />
       <rect x="8" y="4" width="4" height="84" fill="#141416" stroke="#27272A" />
       <rect x="52" y="4" width="4" height="84" fill="#141416" stroke="#27272A" />
       <line x1="32" y1="9" x2="32" y2={14 + travel} stroke="#3F3F46" strokeWidth="1" strokeDasharray="2 2" />
-      <g style={{ transform: `translateY(${travel}px)`, transition: "transform 1.2s cubic-bezier(.22,1,.36,1)" }}>
+      <g
+        className={dropped ? "blade-drop" : undefined}
+        style={{
+          transform: `translateY(${travel}px)`,
+          transition: "transform 1.2s cubic-bezier(.22,1,.36,1)",
+        }}
+      >
         <rect x="12" y="14" width="40" height="6" fill="#A1A1AA" />
         <path d="M12 20 L52 20 L32 29 Z" fill="#7F1D1D" />
         <line x1="12" y1="20" x2="52" y2="20" stroke="#F4F4F5" strokeWidth="1" opacity="0.8" />
@@ -43,12 +49,22 @@ function Move({ delta }: { delta: number | null }) {
 }
 
 export function QueueCard({ figure }: { figure: Figure }) {
+  const dropped = Boolean(figure.droppedAt);
+
   return (
-    <article className="group relative border border-chop-border bg-chop-card/40 transition-colors hover:bg-chop-card">
-      <div className="absolute left-0 top-0 h-full bg-spiteCrimson" style={{ width: 2 }} aria-hidden />
+    <article
+      className={`group relative border bg-chop-card/40 transition-colors hover:bg-chop-card ${
+        dropped ? "border-spiteCrimson/70 bg-spiteCrimson/[0.06]" : "border-chop-border"
+      }`}
+    >
+      <div
+        className="absolute left-0 top-0 h-full bg-spiteCrimson"
+        style={{ width: dropped ? 4 : 2 }}
+        aria-hidden
+      />
 
       <div className="flex gap-4 p-4 md:gap-6 md:p-5">
-        <MiniBlade score={figure.score} />
+        <MiniBlade score={figure.score} dropped={dropped} />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
@@ -72,10 +88,18 @@ export function QueueCard({ figure }: { figure: Figure }) {
                 {Math.round(figure.score)}
               </div>
               <div className="mt-1 flex items-center justify-end gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-chop-muted">
-                  {figure.mentions} rep
-                </span>
-                <Move delta={figure.delta} />
+                {dropped ? (
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-spiteCrimson">
+                    dropped
+                  </span>
+                ) : (
+                  <>
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-chop-muted">
+                      {figure.mentions} rep
+                    </span>
+                    <Move delta={figure.delta} />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -83,6 +107,13 @@ export function QueueCard({ figure }: { figure: Figure }) {
           <p className="mt-3 font-mono text-[11px] leading-relaxed text-chop-muted">
             {figure.reason}
           </p>
+
+          {dropped && (
+            <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.25em] text-spiteCrimson">
+              blade fell {new Date(figure.droppedAt as string).toUTCString().slice(5, 16)} · counter frozen at{" "}
+              {Math.round(figure.score)}
+            </p>
+          )}
 
           {figure.items.length > 0 && (
             <ul className="mt-3 space-y-2 border-t border-chop-border/60 pt-3">

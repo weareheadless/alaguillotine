@@ -62,6 +62,8 @@ export interface Figure {
   delta: number | null;
   /** When Ada first put them in the queue. */
   addedAt?: string;
+  /** When the blade fell. Null while they are still standing. */
+  droppedAt?: string | null;
 }
 
 export interface HateState {
@@ -76,6 +78,9 @@ export interface HateState {
 }
 
 export const HATE_REFRESH_MS = 12 * 60 * 60 * 1000;
+
+/** The blade falls at this counter and does not come back up. */
+export const DROP_THRESHOLD = 90;
 
 export function emptyHate(): HateState {
   return {

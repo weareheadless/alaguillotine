@@ -83,7 +83,7 @@ export async function writeHate(db: D1, row: HateRow): Promise<void> {
 export async function readQueue(db: D1): Promise<Figure[]> {
   const rows = await db
     .prepare(
-      "SELECT name, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, items, source, source_url FROM queue_people ORDER BY rank ASC",
+      "SELECT name, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, dropped_at, items, source, source_url FROM queue_people ORDER BY rank ASC",
     )
     .all();
   return (rows.results ?? []).map((r) => ({
@@ -100,6 +100,7 @@ export async function readQueue(db: D1): Promise<Figure[]> {
     prevRank: r.prev_rank == null ? null : Number(r.prev_rank),
     delta: r.prev_rank == null ? null : Number(r.prev_rank) - Number(r.rank),
     addedAt: String(r.added_at),
+    droppedAt: r.dropped_at == null ? null : String(r.dropped_at),
   }));
 }
 
@@ -107,8 +108,8 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
   for (const p of people) {
     await db
       .prepare(
-        `INSERT INTO queue_people (id, name, slug, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, items, source, source_url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO queue_people (id, name, slug, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, dropped_at, items, source, source_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(slug) DO UPDATE SET
            role = excluded.role,
            country = excluded.country,
@@ -118,6 +119,7 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
            prev_rank = queue_people.rank,
            rank = excluded.rank,
            last_seen_at = excluded.last_seen_at,
+           dropped_at = COALESCE(queue_people.dropped_at, excluded.dropped_at),
            items = excluded.items,
            source = excluded.source,
            source_url = excluded.source_url`,
@@ -135,10 +137,28 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
         p.prevRank,
         p.addedAt ?? new Date().toISOString(),
         new Date().toISOString(),
+        p.droppedAt ?? null,
         JSON.stringify(p.items),
         p.source,
         p.sourceUrl,
       )
       .run();
   }
+}
+
+/**
+ * The drop.
+ *
+ * A counter at or above the threshold means the blade has fallen: it is written
+ * once and never cleared, so a person who was dropped stays dropped even if the
+ * news moves on.
+ */
+export async function evaluateDrops(db: D1, threshold: number): Promise<number> {
+  const result = (await db
+    .prepare(
+      "UPDATE queue_people SET dropped_at = ? WHERE dropped_at IS NULL AND score >= ?",
+    )
+    .bind(new Date().toISOString(), threshold)
+    .run()) as { meta?: { changes?: number } };
+  return result?.meta?.changes ?? 0;
 }
