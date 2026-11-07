@@ -119,15 +119,16 @@ export function NewsReel({ messages }: { messages: string[] }) {
     const tick = () => {
       if (!alive) return;
       setFrame(messages[Math.floor(Math.random() * messages.length)]);
+      // Hide it almost immediately: 40-60ms, just enough to burn in.
       const off = setTimeout(() => {
         if (!alive) return;
         setFrame(null);
-        const next = setTimeout(tick, 5200 + Math.random() * 7000);
+        const next = setTimeout(tick, 6000 + Math.random() * 8000);
         timers.current.push(next);
-      }, 110 + Math.random() * 90);
+      }, 40 + Math.random() * 20);
       timers.current.push(off);
     };
-    const first = setTimeout(tick, 2200);
+    const first = setTimeout(tick, 5000 + Math.random() * 5000);
     timers.current.push(first);
     return () => {
       alive = false;
@@ -173,12 +174,14 @@ export function NewsReel({ messages }: { messages: string[] }) {
           <div className="reel-vignette pointer-events-none absolute inset-0" aria-hidden />
 
           {frame && (
-            <span
+            <div
               aria-hidden
-              className="reel-frame pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 text-center font-mono text-[11px] font-bold uppercase leading-tight tracking-[0.12em] text-sheetWhite"
+              className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-center bg-sheetWhite p-3 text-center mix-blend-exclusion"
             >
-              {frame}
-            </span>
+              <span className="text-2xl font-black uppercase leading-none tracking-tighter text-black md:text-4xl">
+                {frame}
+              </span>
+            </div>
           )}
 
           <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-2 py-1.5 font-mono text-[8px] uppercase tracking-[0.2em] text-sheetWhite/55">
