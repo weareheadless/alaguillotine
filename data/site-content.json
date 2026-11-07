@@ -5,9 +5,9 @@
     "revision": 66
   },
   "hero": {
-    "badge": "THEY SELL THE HEAD START. YOU GET THE BILL — ITEMIZED.",
-    "headline": "TWO BOARDS. TWO BLADES. ONE RACE.",
-    "subheadline": "NO METER. NO CLOCK. NO PERMISSION. Post your blade and find the person behind the pile — the number names itself, the person outlives the pile, and the work ships while the stall burns."
+    "headline": "The blade moves on its own.",
+    "subheadline": "No board. No vote. No permission. A machine reads the world every four hours, scores what it finds, and lowers the blade. You can check every number it used.",
+    "badge": "Doomsday Clock // Billionaire Edition"
   },
   "subliminalMessages": [
     "MARS IS A LIE",
@@ -114,11 +114,11 @@
     "howItWorks": "Interactive satirical class warfare. Every message inches both blades downward and votes for which candidate's board drops first. Pick a side, burn $CHOP, watch the race. Even if you post for free, your message actively burns treasury capital and funds an ongoing economic experiment in wealth redistribution.",
     "rules": "Swearing is fine. Doxxing, credible threats, and illegal content are not. Violators get shadowbanned. The blade is metaphorical. Always has been."
   },
-  "footer": "FUCKYOUELON.NET // $CHOP PROTOCOL. All messages are user-generated.",
+  "footer": "ALAGUILLOTINE.COM // The blade is a metaphor. For now.",
   "nav": [
     {
       "href": "/",
-      "label": "The Town Square"
+      "label": "The Clock"
     },
     {
       "href": "/next-in-line",
@@ -127,14 +127,6 @@
     {
       "href": "/whitepaper",
       "label": "The Manifesto"
-    },
-    {
-      "href": "/benefactors",
-      "label": "Capital Defectors"
-    },
-    {
-      "href": "/governance",
-      "label": "The Proxy War"
     },
     {
       "href": "/blog",

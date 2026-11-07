@@ -1,0 +1,108 @@
+/**
+ * Hateometer — the second instrument.
+ *
+ * Same machinery as the clock, different subject: reported war, repression and
+ * the trade that feeds both. It is not a verdict on anyone. It measures how much
+ * documented harm is being reported in whose name this week, and it shows the
+ * movement, because a leaderboard that never moves is a poster.
+ *
+ * The model mirrors src/lib/clock.ts: shrunk dimension means, weighted
+ * composite, EWMA level with a per-reading cap.
+ */
+
+import { nextLevel, shrink } from "./clock";
+
+export type HateKey = "war" | "civilian" | "repression" | "arms" | "incitement";
+
+export interface HateSpec {
+  key: HateKey;
+  label: string;
+  weight: number;
+}
+
+export const HATE_DIMENSIONS: HateSpec[] = [
+  { key: "war", label: "war", weight: 0.25 },
+  { key: "civilian", label: "civilian harm", weight: 0.25 },
+  { key: "repression", label: "repression", weight: 0.2 },
+  { key: "arms", label: "arms trade", weight: 0.15 },
+  { key: "incitement", label: "incitement", weight: 0.15 },
+];
+
+export interface HateDimension {
+  key: HateKey;
+  label: string;
+  weight: number;
+  score: number;
+  evidence: number;
+}
+
+export interface Figure {
+  name: string;
+  role: string;
+  country: string;
+  /** 0–100. Shrunk mean of the harm score of the reports naming them. */
+  score: number;
+  /** Distinct reports naming them this pass. */
+  mentions: number;
+  reason: string;
+  source: string;
+  sourceUrl: string;
+  rank: number;
+  prevRank: number | null;
+  delta: number | null;
+}
+
+export interface HateState {
+  level: number;
+  composite: number;
+  pressure: number;
+  dimensions: HateDimension[];
+  figures: Figure[];
+  computedAt: string | null;
+  nextRunAt: string | null;
+  stale: boolean;
+}
+
+export const HATE_REFRESH_MS = 12 * 60 * 60 * 1000;
+
+export function emptyHate(): HateState {
+  return {
+    level: 15,
+    composite: 0,
+    pressure: 0,
+    dimensions: HATE_DIMENSIONS.map((d) => ({
+      key: d.key,
+      label: d.label,
+      weight: d.weight,
+      score: 50,
+      evidence: 0,
+    })),
+    figures: [],
+    computedAt: null,
+    nextRunAt: null,
+    stale: true,
+  };
+}
+
+/** Rank figures by score, then by mentions, and attach movement vs the last pass. */
+export function rankFigures(
+  next: Omit<Figure, "rank" | "prevRank" | "delta">[],
+  previous: Figure[],
+): Figure[] {
+  const prevRank = new Map(previous.map((f) => [f.name.toLowerCase(), f.rank]));
+  return next
+    .slice()
+    .sort((a, b) => b.score - a.score || b.mentions - a.mentions)
+    .map((f, i) => {
+      const rank = i + 1;
+      const was = prevRank.get(f.name.toLowerCase()) ?? null;
+      return {
+        ...f,
+        rank,
+        prevRank: was,
+        delta: was === null ? null : was - rank,
+      };
+    });
+}
+
+export { nextLevel, shrink };

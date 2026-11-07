@@ -205,9 +205,10 @@ export const DEFAULT_CONTENT: SiteContent = {
     revision: 0,
   },
   hero: {
-    headline: "PISSED OFF AT ELON? GET IN LINE.",
-    subheadline: "// Post your beef for free. Every message inches the blade closer to judgment.",
-    badge: "NO ACCOUNT. NO WALLET. NO PRISON.",
+    headline: "The blade moves on its own.",
+    subheadline:
+      "No board. No vote. No permission. A machine reads the world every four hours, scores what it finds, and lowers the blade. You can check every number it used.",
+    badge: "Doomsday Clock // Billionaire Edition",
   },
   subliminalMessages: [
     "MARS IS A LIE",
@@ -293,13 +294,11 @@ export const DEFAULT_CONTENT: SiteContent = {
     rules:
       "Swearing is fine. Doxxing, credible threats, and illegal content are not. Violators get shadowbanned. The blade is metaphorical. Always has been.",
   },
-  footer: "FUCKYOUELON.NET // $CHOP PROTOCOL. All messages are user-generated.",
+  footer: "ALAGUILLOTINE.COM // The blade is a metaphor. For now.",
   nav: [
-    { href: "/", label: "The Town Square" },
+    { href: "/", label: "The Clock" },
     { href: "/next-in-line", label: "Next in Line" },
     { href: "/whitepaper", label: "The Manifesto" },
-    { href: "/benefactors", label: "Capital Defectors" },
-    { href: "/governance", label: "The Proxy War" },
     { href: "/blog", label: "Dispatches" },
   ],
   demoMessages: {
