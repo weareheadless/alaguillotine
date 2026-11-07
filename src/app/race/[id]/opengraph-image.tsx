@@ -2,7 +2,7 @@ import { ogAlt, ogContentType, ogRuntime, ogSize, renderRaceResultImage } from "
 
 export const size = ogSize;
 export const contentType = ogContentType;
-export const runtime = ogRuntime;
+export const runtime = "nodejs";
 export const alt = ogAlt;
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {

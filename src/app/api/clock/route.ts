@@ -1,77 +1,56 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import {
   bladePct,
-  composite as recomputeComposite,
   emptyClock,
   formatCountdown,
   secondsToMidnight,
-  type AdaVoice,
   type ClockState,
-  type Dimension,
-  type RageItem,
 } from "@/lib/clock";
+import { getDb, isStale, readClock } from "@/lib/clock-store";
 
 export const revalidate = 0;
-
-const CLOCK_PATH = path.join(process.cwd(), "data", "clock.json");
 
 /**
  * GET /api/clock — the current reading.
  *
- * The stored file holds the model inputs (level, composite, dimensions, items).
- * Every derived number is recomputed here from those inputs, so the dial can
- * never disagree with the data it claims to come from.
+ * The row holds the model inputs. Every displayed number is recomputed here
+ * from them, so the dial can never disagree with the data behind it.
  */
 export async function GET() {
   try {
-    const raw = await readFile(CLOCK_PATH, "utf8");
-    const parsed = JSON.parse(raw) as {
-      level?: number;
-      composite?: number;
-      dimensions?: Dimension[];
-      items?: RageItem[];
-      voice?: AdaVoice;
-      computedAt?: string | null;
-      nextRunAt?: string | null;
-      queryCount?: number;
-    };
+    const db = await getDb();
+    if (!db) {
+      return Response.json(emptyClock(), {
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
 
-    const items = Array.isArray(parsed.items) ? parsed.items : [];
-    const dimensions = Array.isArray(parsed.dimensions) ? parsed.dimensions : [];
+    const row = await readClock(db);
+    if (!row) {
+      return Response.json(emptyClock(), {
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
 
-    const level = typeof parsed.level === "number" ? parsed.level : 50;
-    const comp =
-      typeof parsed.composite === "number"
-        ? parsed.composite
-        : dimensions.length
-          ? recomputeComposite(dimensions)
-          : 0;
-
-    const computedAt = parsed.computedAt ?? null;
-    const stale =
-      !computedAt || Date.now() - Date.parse(computedAt) > 24 * 60 * 60 * 1000;
-
-    const seconds = secondsToMidnight(level);
-
+    const seconds = secondsToMidnight(row.level);
     const state: ClockState = {
-      level: Math.round(level * 100) / 100,
-      composite: Math.round(comp * 100) / 100,
-      pressure: Math.round((comp - level) * 100) / 100,
-      dimensions,
+      level: row.level,
+      composite: row.composite,
+      pressure: Math.round((row.composite - row.level) * 100) / 100,
+      dimensions: row.dimensions,
       secondsToMidnight: seconds,
       tMinus: formatCountdown(seconds),
-      bladePct: bladePct(level),
-      items,
-      voice: parsed.voice ?? emptyClock().voice,
-      computedAt,
-      nextRunAt: parsed.nextRunAt ?? null,
-      queryCount: parsed.queryCount ?? 0,
-      stale,
+      bladePct: bladePct(row.level),
+      items: row.items,
+      voice: row.voice,
+      computedAt: row.computedAt,
+      nextRunAt: new Date(Date.parse(row.computedAt) + 4 * 60 * 60 * 1000).toISOString(),
+      queryCount: 8,
+      stale: isStale(row.computedAt),
     };
 
     return Response.json(state, { headers: { "Cache-Control": "no-store" } });
-  } catch {
+  } catch (error) {
+    console.error("clock_read_failed", error instanceof Error ? error.message : "unknown");
     return Response.json(emptyClock(), {
       headers: { "Cache-Control": "no-store" },
     });

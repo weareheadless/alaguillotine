@@ -47,3 +47,8 @@ data/clock.json
 data/clock.json.tmp
 data/hateometer.json
 data/hateometer.json.tmp
+
+# build output
+.open-next/
+.next/
+.wrangler/
