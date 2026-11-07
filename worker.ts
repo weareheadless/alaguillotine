@@ -43,7 +43,7 @@ export default {
     // One scrape, four hours apart. The page fakes the liveness, not the bill.
     const paths =
       event.cron === "30 */12 * * *"
-        ? ["/api/clock/refresh", "/api/hateometer/refresh", "/api/posts/refresh", "/api/manifesto/refresh"]
+        ? ["/api/clock/refresh", "/api/hateometer/refresh", "/api/posts/refresh", "/api/manifesto/refresh", "/api/backfill"]
         : ["/api/clock/refresh"];
 
     for (const path of paths) {

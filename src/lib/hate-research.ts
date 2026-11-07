@@ -1,4 +1,5 @@
 import { fetchLemmyCandidates } from './lemmy'
+import { STANDING } from './standing'
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, shrink } from "./clock";
 import type { ClockConfig } from "./clock-research";
 import { HATE_DIMENSIONS, rankFigures, type Figure, type HateDimension, type HateKey } from "./hateometer";
@@ -26,6 +27,11 @@ const QUERIES = [
   { topic: "orders", q: "minister announces crackdown security forces" },
   { topic: "orders", q: "prime minister defends arms sale parliament" },
   { topic: "orders", q: "defence minister approves weapons deal" },
+  // Independent press, pinned by site: the wire is the thing being audited.
+  { topic: "independent", q: "site:theintercept.com OR site:democracynow.org arms israel" },
+  { topic: "independent", q: "site:middleeasteye.net OR site:972mag.com gaza casualties" },
+  { topic: "independent", q: "site:jacobin.com OR site:truthout.org billionaires influence" },
+  { topic: "independent", q: "site:propublica.org OR site:theintercept.com surveillance contracts" },
 ];
 
 const SYSTEM = `You are Ada, keeping the queue for a satirical installation called alaguillotine. The queue names the public figures the week's war and repression reporting keeps returning to. Each one gets a counter and a blade. It is not a verdict and not a legal finding — it is how much documented harm is being reported in whose name.
@@ -36,7 +42,7 @@ RULES — hard:
 3. Quip: ONE line, max 140 chars, contemptuous and funny, aimed at the pattern or the institution. No calls to violence, no dehumanising language, nothing about anyone's body, family, ethnicity or religion.
 4. File each item under: war, civilian, repression, arms, incitement.
 5. harm 0-100: 90-100 mass civilian harm documented; 70-89 significant lethal violence or systematic repression; 50-69 structural harm or the machinery feeding it; 30-49 tension without documented harm; 0-29 noise.
-6. You choose who belongs in the line. The reporting is not the only thing you know: if a person is a documented, widely reported author of mass harm and today's feed simply missed them, name them anyway and set "basis" to the record you are drawing on. Up to five of those per pass. The feed is the news; you are the memory. Include anyone whose decisions, companies or orders cause mass harm: heads of state and ministers, military and security chiefs, arms and defence executives, and the billionaires, funders and lobbyists whose money and platforms make it possible. Exclude only private individuals, and anyone the text presents purely as a victim, witness or critic.
+6. You choose who belongs in the line. The standingRecord is your memory: every person on it is already documented and MUST appear in your output, scored, with basis set to the record line — unless this pass contains evidence that clears them. The feed is the news; the record is the site. The reporting is not the only thing you know: if a person is a documented, widely reported author of mass harm and today's feed simply missed them, name them anyway and set "basis" to the record you are drawing on. Up to five of those per pass. The feed is the news; you are the memory. Include anyone whose decisions, companies or orders cause mass harm: heads of state and ministers, military and security chiefs, arms and defence executives, and the billionaires, funders and lobbyists whose money and platforms make it possible. Exclude only private individuals, and anyone the text presents purely as a victim, witness or critic.
 7. Every figure cites item_indices. No figure without items.
 8. Name everyone the reporting supports, up to 20. A thin list is a wasted pass — the queue is the point of the site.
 9. score is YOUR judgement, 0-100, of how much this person deserves the blade. No formula overrules you and nothing is averaged. Only people, never a company — when the reporting names a company, name the people who run it or own it (a defence contractor means its chief executive and its largest shareholders). Scores must differ from each other — if everyone lands on 50 you have not decided. Use the whole range: 90+ for someone who ordered or bankrolled mass death, 70s for systematic cruelty with a body count, 50s for extraction and impunity, 30s for complicity.
@@ -126,6 +132,7 @@ export async function runHatePass(
           role: "user",
           content: JSON.stringify({
             queue: roster,
+            standingRecord: STANDING,
             results: pool.slice(0, 40).map((c, index) => ({
               index,
               topic: c.topic,

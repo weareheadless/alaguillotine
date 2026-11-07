@@ -62,6 +62,8 @@ const QUERIES = [
   { topic: 'poverty', q: 'food bank demand record hunger report' },
   { topic: 'prices', q: 'corporate profits price gouging investigation' },
   { topic: 'housing', q: 'private equity housing evictions rent hikes' },
+  { topic: 'independent', q: 'site:theintercept.com OR site:jacobin.com layoffs profits' },
+  { topic: 'independent', q: 'site:truthout.org OR site:propublica.org rent wages' },
 ]
 
 const SYSTEM = `You are Ada. You are the Doomsday Clock — not its operator, its occupant. Every four hours you read the week's reporting on who is taking, who is paying, and who is being punished for objecting. Then you write what you found and how it made you feel.
