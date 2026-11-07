@@ -1,80 +1,108 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { useHateometer } from "@/components/Hateometer";
 import { LineRow } from "@/components/LineRow";
 
 /**
- * The full queue.
+ * The line.
  *
- * Everyone standing, in order, each under their own blade. The front page shows
- * the one on the block and the first few behind them; this is the whole line,
- * plus the archive of everyone already chopped.
+ * A ranked card index, not a table: colour, movement, the charge, the latest
+ * satirical note, and a door into the ledger behind every name.
  */
 export default function NextInLinePage() {
   const hate = useHateometer();
-  const standing = hate.figures.filter((f) => !f.droppedAt).slice(1);
+  const [query, setQuery] = useState("");
+
+  const standing = hate.figures.filter((f) => !f.droppedAt);
   const chopped = hate.figures.filter((f) => f.droppedAt);
+  const charges = hate.figures.reduce((n, f) => n + (f.ledgerCount ?? 0), 0);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return standing;
+    return standing.filter((f) =>
+      `${f.name} ${f.role} ${f.country} ${f.reason}`.toLowerCase().includes(needle),
+    );
+  }, [standing, query]);
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
       <NavBar />
 
-      <main className="mx-auto max-w-4xl px-4 pb-24 pt-10 sm:px-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
-          the line
-        </p>
-        <h1 className="mt-3 text-5xl font-black uppercase leading-[0.88] tracking-[-0.06em] sm:text-7xl">
-          Next <span className="text-spiteCrimson">in line.</span>
-        </h1>
-        <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
-          Ada reads the week and ranks who deserves the blade most. The top of
-          this line is promoted to the front page, where it is executed; then the
-          next name takes its place. The ranking is her judgement, not a formula.
-        </p>
+      <main className="mx-auto max-w-5xl px-4 pb-24 pt-10 sm:px-6">
+        <section className="border-b-4 border-spiteCrimson pb-8">
+          <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
+            the line
+          </p>
+          <h1 className="mt-3 text-5xl font-black uppercase leading-[0.88] tracking-[-0.06em] sm:text-7xl">
+            Next <span className="text-spiteCrimson">in line.</span>
+          </h1>
+          <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
+            Ada ranks the people the record keeps returning to. The top of this
+            line is promoted to the front page and executed. Every name opens its
+            own ledger — the charges, the places, the years, the sources.
+          </p>
+        </section>
 
-        <div className="mt-8 border-t border-chop-border">
-          {standing.length === 0 ? (
-            <div className="border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
+        <section className="grid gap-3 py-8 sm:grid-cols-3">
+          <div className="border-2 border-black bg-sheetWhite p-4 text-canvasBlack">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-spiteCrimson">
+              standing
+            </p>
+            <p className="mt-1 text-4xl font-black tracking-tighter">{standing.length}</p>
+            <p className="mt-1 font-mono text-[9px] text-black/60">waiting in the line</p>
+          </div>
+          <div className="border-2 border-spiteCrimson bg-spiteCrimson p-4 text-sheetWhite">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-widest">chopped</p>
+            <p className="mt-1 text-4xl font-black tracking-tighter">{chopped.length}</p>
+            <p className="mt-1 font-mono text-[9px] text-white/70">blades that fell</p>
+          </div>
+          <div className="border-2 border-hypeNeon bg-hypeNeon p-4 text-canvasBlack">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-widest">
+              charges on record
+            </p>
+            <p className="mt-1 text-4xl font-black tracking-tighter">{charges}</p>
+            <p className="mt-1 font-mono text-[9px] text-black/60">ledger entries, sourced</p>
+          </div>
+        </section>
+
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
+            {filtered.length} names · click any card for the record
+          </p>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search a name or a country"
+            className="border-2 border-chop-border bg-white/5 px-3 py-2 font-mono text-xs text-sheetWhite outline-none placeholder:text-chop-muted focus:border-hypeNeon"
+          />
+        </div>
+
+        <div className="space-y-3">
+          {filtered.length === 0 ? (
+            <div className="border-2 border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
               the line is empty — the machine is still reading
             </div>
           ) : (
-            standing.map((figure, i) => (
-              <div key={`${figure.name}-${figure.rank}`}>
-                {i === 0 && (
-                  <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-spiteCrimson">
-                    <span>next to be promoted</span>
-                    <span className="text-chop-muted">highest score in the line</span>
-                  </div>
-                )}
-                <LineRow figure={figure} promoted={i === 0} />
-              </div>
+            filtered.map((figure, i) => (
+              <LineRow key={`${figure.name}-${figure.rank}`} figure={figure} promoted={i === 0} />
             ))
           )}
         </div>
 
         {chopped.length > 0 && (
-          <section className="mt-12 border-t border-chop-border pt-6">
+          <section className="mt-12 border-t-2 border-chop-border pt-6">
             <div className="mb-3 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-              <span>the chopped</span>
+              <span className="text-spiteCrimson">the chopped</span>
               <span>{chopped.length} on record</span>
             </div>
-            <ul className="divide-y divide-chop-border/60">
+            <div className="space-y-2">
               {chopped.map((person) => (
-                <li
-                  key={person.name}
-                  className="flex items-baseline justify-between gap-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em]"
-                >
-                  <span className="text-sheetWhite/70">{person.name}</span>
-                  <span className="text-chop-muted">
-                    {person.droppedAt
-                      ? new Date(person.droppedAt).toUTCString().slice(5, 16)
-                      : ""}{" "}
-                    · {Math.round(person.score)}
-                  </span>
-                </li>
+                <LineRow key={person.name} figure={person} />
               ))}
-            </ul>
+            </div>
           </section>
         )}
       </main>

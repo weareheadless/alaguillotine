@@ -64,6 +64,8 @@ export interface Figure {
   addedAt?: string;
   /** When the blade fell. Null while they are still standing. */
   droppedAt?: string | null;
+  /** How many ledger entries are on record for this name. */
+  ledgerCount?: number;
 }
 
 export interface HateState {

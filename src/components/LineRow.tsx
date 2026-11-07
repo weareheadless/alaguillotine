@@ -4,73 +4,98 @@ import Link from "next/link";
 import type { Figure } from "../lib/hateometer";
 
 /**
- * A row in the line.
+ * One name in the line.
  *
- * No blade. Nobody in the line is in a guillotine — the guillotine is the
- * homepage, where the executions happen. Here there is only a name, what they
- * are accused of, and the score that decides whether they get promoted.
+ * A card, not a table row: the score, the charge, the satirical note, and an
+ * unmissable door into the ledger. The whole card is the link — there is no
+ * doubt that there is something behind the name.
  */
 
-function Move({ delta }: { delta: number | null }) {
-  if (delta === null) {
-    return <span className="font-mono text-[9px] uppercase tracking-widest text-hypeNeon">new</span>;
-  }
-  if (delta === 0) return <span className="font-mono text-[9px] text-chop-muted">—</span>;
-  const up = delta > 0;
-  return (
-    <span className={`font-mono text-[10px] tabular-nums ${up ? "text-spiteCrimson" : "text-hypeNeon"}`}>
-      {up ? "▲" : "▼"}
-      {Math.abs(delta)}
-    </span>
-  );
-}
+const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boolean }) {
+  const charges = figure.ledgerCount ?? 0;
+  const latest = figure.items[0];
+
   return (
-    <article
-      className={`border-b border-chop-border/60 px-1 py-4 transition-colors hover:bg-chop-card/50 ${
-        promoted ? "border-l-2 border-l-spiteCrimson bg-spiteCrimson/[0.05] pl-3" : ""
+    <Link
+      href={`/person/${slug(figure.name)}`}
+      className={`group block border-2 bg-white/[0.03] p-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:bg-white/[0.06] ${
+        promoted
+          ? "border-spiteCrimson/70 shadow-[0_0_24px_rgba(225,29,72,0.12)]"
+          : "border-chop-border hover:border-spiteCrimson"
       }`}
     >
-      <div className="flex items-start gap-4">
-        <span className="mt-1 w-6 shrink-0 font-mono text-[11px] tabular-nums text-chop-muted">
+      <div className="grid gap-4 sm:grid-cols-[3.25rem_1.5fr_5rem] sm:items-start">
+        <div className="font-mono text-2xl font-black leading-none text-spiteCrimson/70">
           {String(figure.rank).padStart(2, "0")}
-        </span>
+        </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <Link href={`/person/${figure.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} className="text-[16px] font-black leading-tight text-sheetWhite hover:text-spiteCrimson">{figure.name}</Link>
-            <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted">
-              {figure.role}
-              {figure.country ? ` · ${figure.country}` : ""}
-            </span>
+            <h3 className="text-lg font-black uppercase leading-tight tracking-tight text-sheetWhite group-hover:text-spiteCrimson md:text-xl">
+              {figure.name}
+            </h3>
+            {figure.delta !== null && figure.delta !== 0 && (
+              <span
+                className={`font-mono text-[10px] tabular-nums ${
+                  figure.delta > 0 ? "text-spiteCrimson" : "text-hypeNeon"
+                }`}
+              >
+                {figure.delta > 0 ? "▲" : "▼"}
+                {Math.abs(figure.delta)}
+              </span>
+            )}
+            {figure.delta === null && (
+              <span className="animate-pulse font-mono text-[9px] uppercase tracking-widest text-hypeNeon">
+                new
+              </span>
+            )}
           </div>
 
-          <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-chop-muted">
+          <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
+            {figure.role}
+            {figure.country ? ` · ${figure.country}` : ""}
+          </p>
+
+          <p className="mt-2 font-mono text-[11px] leading-relaxed text-chop-muted">
             {figure.reason}
           </p>
 
-          {figure.items[0] && (
-            <a
-              href={figure.items[0].sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 inline-block font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
-            >
-              {figure.source} ↗
-            </a>
+          {latest && (
+            <div className="mt-2 border-l-2 border-spiteCrimson/60 pl-3">
+              <p className="truncate font-mono text-[10px] text-sheetWhite/80">{latest.headline}</p>
+              <p className="mt-0.5 font-mono text-[10px] leading-snug text-spiteCrimson/90">
+                {latest.quip}
+              </p>
+            </div>
           )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-[0.2em]">
+            <span className={charges > 0 ? "text-hypeNeon" : "text-chop-muted"}>
+              {charges > 0 ? `${charges} charge${charges === 1 ? "" : "s"} on record` : "record open"}
+            </span>
+            <span className="text-chop-muted">·</span>
+            <span className="text-sheetWhite/70 transition-colors group-hover:text-spiteCrimson">
+              open the ledger →
+            </span>
+            <span className="text-chop-muted">·</span>
+            <span className="text-chop-muted">{figure.mentions} reports</span>
+          </div>
         </div>
 
-        <div className="shrink-0 text-right">
-          <div className="font-mono text-2xl font-black leading-none tabular-nums text-spiteCrimson">
+        <div className="text-right">
+          <div className="font-mono text-3xl font-black leading-none tabular-nums text-spiteCrimson">
             {Math.round(figure.score)}
           </div>
-          <div className="mt-1 flex items-center justify-end">
-            <Move delta={figure.delta} />
+          <div className="mt-2 h-1 w-full bg-chop-border">
+            <div
+              className="h-full bg-spiteCrimson transition-[width] duration-1000 ease-out"
+              style={{ width: `${Math.min(100, Math.max(0, figure.score))}%` }}
+            />
           </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

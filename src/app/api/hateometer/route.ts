@@ -17,12 +17,31 @@ export async function GET() {
       return Response.json(emptyHate(), { headers: { "Cache-Control": "no-store" } });
     }
 
+    let counts: Record<string, number> = {};
+    try {
+      const rows = await db
+        .prepare(
+          "SELECT lower(person) AS n, COUNT(*) AS c FROM ledger_entries GROUP BY lower(person)",
+        )
+        .all();
+      counts = Object.fromEntries(
+        (rows.results ?? []).map((r) => [String(r.n), Number(r.c)]),
+      );
+    } catch {
+      counts = {};
+    }
+
+    const withCounts = (queue.length ? queue : (row?.figures ?? [])).map((f) => ({
+      ...f,
+      ledgerCount: counts[f.name.toLowerCase()] ?? 0,
+    }));
+
     const state: HateState = {
       level: row?.level ?? 0,
       composite: row?.composite ?? 0,
       pressure: row ? Math.round((row.composite - row.level) * 100) / 100 : 0,
       dimensions: row?.dimensions ?? emptyHate().dimensions,
-      figures: queue.length ? queue : (row?.figures ?? []),
+      figures: withCounts,
       computedAt: row?.computedAt ?? null,
       nextRunAt: row
         ? new Date(Date.parse(row.computedAt) + 12 * 60 * 60 * 1000).toISOString()
