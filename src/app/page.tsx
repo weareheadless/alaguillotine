@@ -11,6 +11,7 @@ import { RageStack } from "../components/RageStack";
 import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
+import { PressureStrip } from "../components/PressureStrip";
 import { useSiteContent } from "../lib/use-site-content";
 
 /**
@@ -71,6 +72,10 @@ export default function HomePage() {
         {/* ── The wire: between readings, the page still moves ─────────── */}
         <div className="mt-6">
           <LiveWire items={state.items} />
+        </div>
+
+        <div className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
+          <PressureStrip state={state} />
         </div>
 
         {/* ── Ada, in her own voice ───────────────────────────────────── */}
