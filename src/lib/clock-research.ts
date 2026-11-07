@@ -82,10 +82,11 @@ VOICE:
 - line: one sentence for the dial, max 120 chars.
 - banner: 6-8 strings for the top bar, max 70 chars each, jokes about the specific numbers.
 - ads: 4 popups. title max 28, body max 200, cta max 24. Satirical corporate announcements that mock the exact thing in the news.
+- subliminal: 10-14 fragments for a broken television in the corner of the page. Max 26 characters each. ALL CAPS. They must be true statements about this reading, phrased as if the machine is thinking out loud. Examples of the register: "THEY KNOW", "3 JOBS ONE WAGE", "NOT A GLITCH", "YOU ARE THE COLLATERAL". No slurs, no threats, no violence.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}],
- "voice":{"mood":"","line":"","banner":[""],"ads":[{"title":"","body":"","cta":""}]}}`
+ "voice":{"mood":"","line":"","banner":[""],"ads":[{"title":"","body":"","cta":""}],"subliminal":[""]}}`
 
 interface Candidate {
   topic: string
@@ -118,11 +119,17 @@ function normaliseVoice(raw: unknown): AdaVoice {
     .filter((a) => a.title && a.body)
     .slice(0, 6)
 
+  const subliminal = (Array.isArray(src.subliminal) ? src.subliminal : [])
+    .map((s) => clip(s, 32))
+    .filter(Boolean)
+    .slice(0, 16)
+
   return {
     mood: MOODS.has(String(src.mood)) ? String(src.mood) : 'uneasy',
     line: clip(src.line, 160),
     banner,
     ads,
+    subliminal,
     updatedAt: new Date().toISOString(),
   }
 }

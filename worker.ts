@@ -40,13 +40,11 @@ export default {
       console.error("clock_cron_misconfigured");
       return;
     }
-    // Hourly: the clock. Every three hours: the queue. Twice a day: a dispatch.
+    // One scrape, four hours apart. The page fakes the liveness, not the bill.
     const paths =
       event.cron === "30 */12 * * *"
         ? ["/api/clock/refresh", "/api/hateometer/refresh", "/api/posts/refresh"]
-        : event.cron === "15 */3 * * *"
-          ? ["/api/clock/refresh", "/api/hateometer/refresh"]
-          : ["/api/clock/refresh"];
+        : ["/api/clock/refresh"];
 
     for (const path of paths) {
       context.waitUntil(

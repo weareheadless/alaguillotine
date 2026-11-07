@@ -33,7 +33,7 @@ async function load(): Promise<AdaVoice | null> {
   return inflight;
 }
 
-const EMPTY: AdaVoice = { mood: "numb", line: "", banner: [], ads: [], updatedAt: null };
+const EMPTY: AdaVoice = { mood: "numb", line: "", banner: [], ads: [], subliminal: [], updatedAt: null };
 
 export function useAdaVoice(): AdaVoice {
   const [voice, setVoice] = useState<AdaVoice>(cached?.voice ?? EMPTY);

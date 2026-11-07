@@ -1,8 +1,9 @@
 {
+  "_note": "Drop clips here. src may be a local file or an absolute news-clip URL. Ada's frames come from the clock reading, not from this file.",
   "clips": [
     {
       "src": "/static/musk_is_presented_with_the_reality.mp4",
-      "caption": "the presentation",
+      "caption": "archive",
       "source": "archive"
     }
   ]

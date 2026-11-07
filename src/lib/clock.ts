@@ -73,6 +73,8 @@ export interface AdaVoice {
   banner: string[];
   /** Popups she wrote for this reading. */
   ads: { title: string; body: string; cta: string }[];
+  /** Single frames for the broken-TV corner. Short, ugly, true. */
+  subliminal: string[];
   updatedAt: string | null;
 }
 
@@ -170,7 +172,7 @@ export function emptyClock(): ClockState {
     tMinus: formatCountdown(secondsToMidnight(LEVEL_FLOOR)),
     bladePct: bladePct(LEVEL_FLOOR),
     items: [],
-    voice: { mood: "numb", line: "", banner: [], ads: [], updatedAt: null },
+    voice: { mood: "numb", line: "", banner: [], ads: [], subliminal: [], updatedAt: null },
     computedAt: null,
     nextRunAt: null,
     queryCount: 0,
