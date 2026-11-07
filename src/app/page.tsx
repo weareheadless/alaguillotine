@@ -15,10 +15,9 @@ import { useSiteContent } from "../lib/use-site-content";
 /**
  * The installation.
  *
- * One page, two instruments and a queue. The clock counts what is being taken;
- * the hateometer measures what is being done about it; the queue names the
- * people the reporting keeps returning to, each under their own blade. The
- * stack is the raw material for all three.
+ * Ada's mood, the gauge, and the blades. The queue is the page: everyone
+ * standing under their own blade, each counter built from the reports that name
+ * them. The stack underneath is the evidence.
  */
 export default function HomePage() {
   const { content } = useSiteContent();
@@ -37,7 +36,13 @@ export default function HomePage() {
 
       <NavBar />
 
-      <main className="relative z-10 pb-16 md:pb-8">
+      <NewsReel
+        messages={
+          state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
+        }
+      />
+
+      <main className="relative z-10 pb-20 md:pb-8">
         <div className="mx-auto mt-8 max-w-6xl px-4 md:px-6">
           <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
             {content.hero.badge}
@@ -45,76 +50,69 @@ export default function HomePage() {
           <h1 className="mt-3 max-w-3xl text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
             {content.hero.headline}
           </h1>
-          <p className="mt-4 max-w-2xl font-mono text-[11px] leading-relaxed text-chop-muted md:text-sm">
-            {content.hero.subheadline}
-          </p>
         </div>
 
-        {/* ── The feed: fixed in the corner, like a television nobody turned off ── */}
-        <NewsReel
-          messages={
-            state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
-          }
-        />
-
-        {/* ── The instrument ──────────────────────────────────────────── */}
-        <div className="mx-auto mt-6 grid max-w-6xl gap-4 px-4 md:px-6 lg:grid-cols-[320px_1fr]">
-          <Hateometer state={hate} />
-          <div className="flex flex-col justify-center border border-chop-border bg-chop-card/60 p-5 md:p-6">
-            <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-              the count
+        {/* ── Ada, in her own voice ───────────────────────────────────── */}
+        <section className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
+          <div className="flex flex-col gap-3 border-y-2 border-spiteCrimson bg-spiteCrimson/[0.07] px-4 py-4 md:flex-row md:items-center md:gap-6 md:px-6">
+            <div className="flex shrink-0 items-baseline gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-chop-muted">
+                ada is
+              </span>
+              <span className="font-mono text-2xl font-black uppercase tracking-tight text-spiteCrimson md:text-3xl">
+                {state.voice.mood || "reading"}
+              </span>
             </div>
-            <p className="mt-3 font-mono text-[12px] leading-relaxed text-chop-muted">
+            <p className="font-mono text-[12px] leading-relaxed text-sheetWhite md:text-[13px]">
               {state.voice.line || "No reading yet. The machine is still looking."}
             </p>
-            <div className="mt-4 flex items-center gap-3 border-t border-chop-border pt-3 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-              <span className="text-spiteCrimson">ada</span>
-              <span>·</span>
-              <span>{state.voice.mood}</span>
-              <span>·</span>
-              <span>{state.items.length} items</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── The queue ───────────────────────────────────────────────── */}
-        <section id="queue" className="mx-auto mt-12 max-w-6xl px-4 md:px-6">
-          <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
-              the queue
-            </h2>
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-              {hate.figures.length} standing · each with their own blade
-            </span>
-          </div>
-
-          <p className="mt-3 max-w-2xl font-mono text-[11px] leading-relaxed text-chop-muted">
-            Ada puts names here herself, from the reporting, and updates every
-            counter on each pass. Nobody is dropped for a quiet week — the counter
-            decays, the blade rises, the name stays.
-          </p>
-
-          <div className="mt-5 space-y-3">
-            {hate.figures.length === 0 ? (
-              <div className="border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
-                the block is empty — the machine is still reading
-              </div>
-            ) : (
-              hate.figures.map((figure) => (
-                <QueueCard key={`${figure.name}-${figure.rank}`} figure={figure} />
-              ))
-            )}
           </div>
         </section>
 
-        {/* ── The stack ───────────────────────────────────────────────── */}
+        {/* ── The gauge and the blades ────────────────────────────────── */}
+        <div className="mx-auto mt-8 grid max-w-6xl gap-6 px-4 md:px-6 lg:grid-cols-[300px_1fr]">
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <Hateometer state={hate} />
+          </div>
+
+          <section id="queue">
+            <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
+                the queue
+              </h2>
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                {hate.figures.length} standing · one blade each
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {hate.figures.length === 0 ? (
+                <div className="border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
+                  the block is empty — the machine is still reading
+                </div>
+              ) : (
+                hate.figures.map((figure) => (
+                  <QueueCard key={`${figure.name}-${figure.rank}`} figure={figure} />
+                ))
+              )}
+            </div>
+
+            <p className="mt-4 font-mono text-[10px] leading-relaxed text-chop-muted">
+              Ada puts names here herself and updates every counter on each pass.
+              Nobody is dropped for a quiet week — the counter decays, the blade
+              rises, the name stays. At 90 the blade falls and does not come back up.
+            </p>
+          </section>
+        </div>
+
+        {/* ── The evidence ────────────────────────────────────────────── */}
         <section className="mx-auto mt-12 max-w-6xl px-4 md:px-6">
           <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
             <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
               the stack
             </h2>
             <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-              what the numbers are made of
+              what the counters are made of
             </span>
           </div>
           <div className="mt-5">

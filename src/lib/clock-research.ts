@@ -149,6 +149,8 @@ function hashUrls(urls: string[]): string {
 }
 
 export interface ClockPass {
+  /** The pages this reading came from, so the reel can go looking for video. */
+  candidates: Array<{ url: string; site: string; title: string }>
   level: number
   composite: number
   dimensions: Dimension[]
@@ -270,6 +272,7 @@ export async function runClockPass(
   const level = Math.round(Math.max(LEVEL_FLOOR, Math.min(LEVEL_CEIL, stepped)) * 100) / 100
 
   return {
+    candidates: pool.slice(0, 24).map((c) => ({ url: c.url, site: c.site, title: c.title })),
     level,
     composite,
     dimensions,

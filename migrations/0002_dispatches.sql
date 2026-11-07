@@ -30,3 +30,12 @@ CREATE INDEX IF NOT EXISTS queue_rank ON queue_people (rank ASC);
 
 -- The drop. Once a counter reaches the threshold the blade falls and stays down.
 ALTER TABLE queue_people ADD COLUMN dropped_at TEXT;
+
+-- News video the search actually returned, with the page it came from.
+CREATE TABLE IF NOT EXISTS reel_clips (
+  url TEXT PRIMARY KEY,
+  caption TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT '',
+  page_url TEXT NOT NULL DEFAULT '',
+  found_at TEXT NOT NULL
+);

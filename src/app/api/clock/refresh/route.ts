@@ -1,6 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig, runClockPass } from "@/lib/clock-research";
 import { getDb, readClock, writeClock } from "@/lib/clock-store";
+import { extractReelClips } from "@/lib/reel-extract";
+import { saveReelClip } from "@/lib/reel-store";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +49,22 @@ export async function POST(request: Request) {
     }
 
     await writeClock(db, pass);
-    return Response.json({ ok: true, level: pass.level, composite: pass.composite });
+
+    // The reel: whatever video the same search turned up, if any of it plays.
+    let clips = 0;
+    try {
+      for (const clip of await extractReelClips(pass.candidates)) {
+        await saveReelClip(
+          { url: clip.url, caption: clip.caption, source: clip.source },
+          clip.pageUrl,
+        );
+        clips += 1;
+      }
+    } catch {
+      /* the reel is decoration; never fail the reading for it */
+    }
+
+    return Response.json({ ok: true, level: pass.level, composite: pass.composite, clips });
   } catch (error) {
     console.error("clock_refresh_failed", error instanceof Error ? error.message : "unknown");
     return Response.json({ error: "refresh failed" }, { status: 502 });

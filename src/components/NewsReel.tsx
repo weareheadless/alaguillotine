@@ -33,12 +33,32 @@ export function NewsReel({ messages }: { messages: string[] }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/static/reel/reel.json", { cache: "no-store" })
+
+    // News video first, static clips as the floor.
+    fetch("/api/reel", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!cancelled && Array.isArray(data?.clips) && data.clips.length) setClips(data.clips);
+        const live = Array.isArray(data?.clips) ? data.clips : [];
+        if (!cancelled && live.length) {
+          setClips(
+            live.map((c: { url: string; caption: string; source: string }) => ({
+              src: c.url,
+              caption: c.caption || c.source || "news",
+              source: c.source,
+            })),
+          );
+          return;
+        }
+        return fetch("/static/reel/reel.json", { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((fallback) => {
+            if (!cancelled && Array.isArray(fallback?.clips) && fallback.clips.length) {
+              setClips(fallback.clips);
+            }
+          });
       })
       .catch(() => {});
+
     return () => {
       cancelled = true;
     };
