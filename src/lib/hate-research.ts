@@ -1,3 +1,4 @@
+import { fetchLemmyCandidates } from './lemmy'
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, shrink } from "./clock";
 import type { ClockConfig } from "./clock-research";
 import { HATE_DIMENSIONS, rankFigures, type Figure, type HateDimension, type HateKey } from "./hateometer";
@@ -43,7 +44,7 @@ RULES — hard:
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],
- "figures":[{"name":"","role":"","country":"","reason":"one sentence, max 120 chars","item_indices":[0]}]}`;
+ "figures":[{"name":"","role":"","country":"","reason":"what they are accused of","score":0,"item_indices":[0]}]}`;
 
 interface Candidate {
   topic: string;

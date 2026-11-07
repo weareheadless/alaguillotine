@@ -2,7 +2,7 @@
 
 import { NavBar } from "@/components/NavBar";
 import { useHateometer } from "@/components/Hateometer";
-import { QueueCard } from "@/components/QueueCard";
+import { LineRow } from "@/components/LineRow";
 
 /**
  * The full queue.
@@ -33,7 +33,7 @@ export default function NextInLinePage() {
           next name takes its place. The ranking is her judgement, not a formula.
         </p>
 
-        <div className="mt-8 space-y-3">
+        <div className="mt-8 border-t border-chop-border">
           {standing.length === 0 ? (
             <div className="border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
               the line is empty — the machine is still reading
@@ -47,7 +47,7 @@ export default function NextInLinePage() {
                     <span className="text-chop-muted">highest score in the line</span>
                   </div>
                 )}
-                <QueueCard figure={figure} />
+                <LineRow figure={figure} promoted={i === 0} />
               </div>
             ))
           )}
