@@ -93,22 +93,31 @@ export default function HomePage() {
           <section id="queue">
             <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
               <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
-                executions
+                on the block
               </h2>
               <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                {chopped.length} chopped · {standing.length} waiting in the line
+                {standing.length} waiting in the line
               </span>
             </div>
 
             {atTheBlock && (
               <div className="mt-4">
-                <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-spiteCrimson">
-                  <span>at the block</span>
-                  <span className="text-chop-muted">promoted from the line</span>
+                <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
+                  <span>next to be executed</span>
+                  <span>promoted from the line</span>
                 </div>
                 <QueueCard figure={atTheBlock} />
               </div>
             )}
+
+            <div className="mt-10 flex items-baseline justify-between border-b border-chop-border pb-2">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
+                executions
+              </h2>
+              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                {chopped.length} on record
+              </span>
+            </div>
 
             {executing.length > 0 ? (
               <div className="mt-4 space-y-3">
