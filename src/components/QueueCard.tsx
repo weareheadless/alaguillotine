@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Figure } from "../lib/hateometer";
+import { slugify } from "../lib/slug";
 
 /**
  * One head, one blade.
@@ -79,7 +80,7 @@ export function QueueCard({ figure }: { figure: Figure }) {
                   {String(figure.rank).padStart(2, "0")}
                 </span>
                 <Link
-                  href={`/person/${figure.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  href={`/person/${slugify(figure.name)}`}
                   className="text-[17px] font-black leading-tight text-sheetWhite hover:text-spiteCrimson md:text-xl"
                 >
                   {figure.name}
@@ -89,6 +90,11 @@ export function QueueCard({ figure }: { figure: Figure }) {
                 {figure.role}
                 {figure.country ? ` · ${figure.country}` : ""}
               </p>
+              {(figure.timesChopped ?? 0) > 0 && (
+                <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-spiteCrimson">
+                  ✝ chopped {figure.timesChopped}× · back in the line
+                </p>
+              )}
             </div>
 
             <div className="text-right">

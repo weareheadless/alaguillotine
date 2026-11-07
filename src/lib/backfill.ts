@@ -20,6 +20,8 @@ export interface Case {
   after: string;
   before: string;
   queries: string[];
+  /** When set, every entry must be about this person. */
+  subject?: string;
 }
 
 export const CASES: Case[] = [
@@ -43,6 +45,37 @@ export const CASES: Case[] = [
     queries: ["Lebanon strike casualties report", "Lebanon pager attack investigation", "Lebanon displacement UN"] },
   { id: "iran-2025", place: "Iran", after: "2025-01-01", before: "2026-12-31",
     queries: ["Iran strikes casualties report", "Iran nuclear site attack", "Iran civilian harm UN"] },
+
+  // The standing record. These are not places; they are the people whose money
+  // and machinery the other cases run through. One case each, so the ledger
+  // carries the name and not just the country.
+  { id: "musk-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Elon Musk",
+    queries: ["Elon Musk DOGE USAID dismantling report", "Musk Starlink government contracts investigation", "Musk political donations far-right amplification report"] },
+  { id: "thiel-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Peter Thiel",
+    queries: ["Peter Thiel Palantir ICE contracts", "Thiel funding JD Vance political rise", "Palantir military targeting contracts investigation"] },
+  { id: "karp-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Alex Karp",
+    queries: ["Alex Karp Palantir Gaza targeting system", "Palantir deportation ICE contract", "Palantir NHS patient data contract"] },
+  { id: "ellison-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Larry Ellison",
+    queries: ["Larry Ellison Oracle Israel government cloud", "Ellison political donations influence", "Oracle TikTok deal Ellison"] },
+  { id: "luckey-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Palmer Luckey",
+    queries: ["Palmer Luckey Anduril border surveillance", "Anduril autonomous weapons contracts", "Anduril lobbying defence procurement"] },
+  { id: "kushner-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Jared Kushner",
+    queries: ["Jared Kushner Affinity Partners Gulf sovereign funds", "Kushner Middle East policy Gaza", "Affinity Partners investment report"] },
+  { id: "adelson-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Miriam Adelson",
+    queries: ["Miriam Adelson political donations", "Adelson Las Vegas Review-Journal ownership", "Adelson settlement annexation funding"] },
+  { id: "miller-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Stephen Miller",
+    queries: ["Stephen Miller mass deportation policy", "Miller family separation architect", "Miller denaturalisation citizenship"] },
+  { id: "sacks-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "David Sacks",
+    queries: ["David Sacks AI crypto policy conflict", "Sacks venture investments regulation", "Sacks White House adviser"] },
 ];
 
 const SYSTEM = `You are Ada, keeping the ledger of documented harm for alaguillotine.
@@ -57,6 +90,7 @@ RULES — hard:
 5. act is one sentence, max 200 chars, specific: what was done, where, when.
 6. category: war | genocide | repression | arms | extraction | impunity.
 7. confidence 0-100: 90+ for a court finding or UN determination; 70s for multiple independent investigations; 50s for credible reporting; below 40 do not include.
+8. If the case carries a subject, every entry must be about that subject and no one else. Give the subject's full public name exactly as it appears in reporting.
 
 Return JSON only:
 {"entries":[{"person":"","role":"","act":"","place":"","year":2024,"category":"war","confidence":0,"sources":["https://...","https://..."]}]}`;
@@ -116,7 +150,7 @@ export async function researchCase(config: ClockConfig, c: Case): Promise<Ledger
         { role: "system", content: SYSTEM },
         {
           role: "user",
-          content: JSON.stringify({ case: c.id, place: c.place, results: results.slice(0, 24) }),
+          content: JSON.stringify({ case: c.id, place: c.place, subject: c.subject, results: results.slice(0, 24) }),
         },
       ],
     },

@@ -1,6 +1,8 @@
+import { countLedger } from "@/lib/archive-store";
+import { slugify } from "@/lib/slug";
 import { emptyHate, type HateState } from "@/lib/hateometer";
 import { DROP_THRESHOLD } from "@/lib/hateometer";
-import { evaluateDrops, getDb, readHate, readQueue } from "@/lib/hate-store";
+import { evaluateDrops, getDb, listChops, readHate, readQueue } from "@/lib/hate-store";
 
 export const revalidate = 0;
 
@@ -18,6 +20,7 @@ export async function GET() {
     }
 
     let counts: Record<string, number> = {};
+    let countRows: Array<{ person: string; count: number }> = [];
     try {
       const rows = await db
         .prepare(
@@ -27,14 +30,28 @@ export async function GET() {
       counts = Object.fromEntries(
         (rows.results ?? []).map((r) => [String(r.n), Number(r.c)]),
       );
+      countRows = (rows.results ?? []).map((r) => ({
+        person: String(r.n),
+        count: Number(r.c),
+      }));
     } catch {
       counts = {};
     }
 
-    const withCounts = (queue.length ? queue : (row?.figures ?? [])).map((f) => ({
-      ...f,
-      ledgerCount: counts[f.name.toLowerCase()] ?? 0,
-    }));
+    const chops = await listChops(db);
+    const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
+
+    const withCounts = (queue.length ? queue : (row?.figures ?? [])).map((f) => {
+      const slug = slugify(f.name);
+      const chop = chopBySlug[slug];
+      return {
+        ...f,
+        ledgerCount:
+          countRows.length > 0 ? countLedger(countRows, f.name) : counts[f.name.toLowerCase()] ?? 0,
+        timesChopped: chop?.count ?? f.timesChopped ?? 0,
+        lastChoppedAt: chop?.lastAt ?? f.lastChoppedAt ?? null,
+      };
+    });
 
     const state: HateState = {
       level: row?.level ?? 0,
@@ -42,6 +59,7 @@ export async function GET() {
       pressure: row ? Math.round((row.composite - row.level) * 100) / 100 : 0,
       dimensions: row?.dimensions ?? emptyHate().dimensions,
       figures: withCounts,
+      chops,
       computedAt: row?.computedAt ?? null,
       nextRunAt: row
         ? new Date(Date.parse(row.computedAt) + 12 * 60 * 60 * 1000).toISOString()

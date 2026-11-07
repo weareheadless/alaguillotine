@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Figure } from "../lib/hateometer";
+import { slugify } from "../lib/slug";
 
 /**
  * One name in the line.
@@ -11,15 +12,13 @@ import type { Figure } from "../lib/hateometer";
  * doubt that there is something behind the name.
  */
 
-const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
 export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boolean }) {
   const charges = figure.ledgerCount ?? 0;
   const latest = figure.items[0];
 
   return (
     <Link
-      href={`/person/${slug(figure.name)}`}
+      href={`/person/${slugify(figure.name)}`}
       className={`group block border-2 bg-white/[0.03] p-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:bg-white/[0.06] ${
         promoted
           ? "border-spiteCrimson/70 shadow-[0_0_24px_rgba(225,29,72,0.12)]"
@@ -81,6 +80,22 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
             </span>
             <span className="text-chop-muted">·</span>
             <span className="text-chop-muted">{figure.mentions} reports</span>
+            {(figure.timesChopped ?? 0) > 0 && (
+              <>
+                <span className="text-chop-muted">·</span>
+                <span className="flex items-center gap-1 text-spiteCrimson" title={`${figure.timesChopped} chops`}>
+                  <span aria-hidden>
+                    {Array.from({ length: Math.min(figure.timesChopped ?? 0, 5) }, (_, k) => (
+                      <span key={k}>✝</span>
+                    ))}
+                  </span>
+                  {(figure.timesChopped ?? 0) > 5 ? `+${(figure.timesChopped ?? 0) - 5}` : ""}
+                  <span className="text-chop-muted">
+                    {figure.timesChopped ?? 0} chop{(figure.timesChopped ?? 0) === 1 ? "" : "s"}
+                  </span>
+                </span>
+              </>
+            )}
           </div>
         </div>
 

@@ -15,8 +15,10 @@ export default function NextInLinePage() {
   const hate = useHateometer();
   const [query, setQuery] = useState("");
 
-  const standing = hate.figures.filter((f) => !f.droppedAt);
-  const chopped = hate.figures.filter((f) => f.droppedAt);
+  // Everyone is in the line: a chop resets the counter and sends the name back
+  // up the queue, so there is no separate "chopped" list to fall off.
+  const standing = hate.figures;
+  const chops = hate.figures.reduce((n, f) => n + (f.timesChopped ?? 0), 0);
   const charges = hate.figures.reduce((n, f) => n + (f.ledgerCount ?? 0), 0);
 
   const filtered = useMemo(() => {
@@ -41,23 +43,25 @@ export default function NextInLinePage() {
           </h1>
           <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
             Ada ranks the people the record keeps returning to. The top of this
-            line is promoted to the front page and executed. Every name opens its
-            own ledger — the charges, the places, the years, the sources.
+            line is promoted to the front page and executed — then the counter
+            resets, a cross goes on the wall, and the name climbs back. Every
+            name opens its own ledger: the charges, the places, the years, the
+            sources.
           </p>
         </section>
 
         <section className="grid gap-3 py-8 sm:grid-cols-3">
           <div className="border-2 border-black bg-sheetWhite p-4 text-canvasBlack">
             <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-spiteCrimson">
-              standing
+              in the line
             </p>
             <p className="mt-1 text-4xl font-black tracking-tighter">{standing.length}</p>
-            <p className="mt-1 font-mono text-[9px] text-black/60">waiting in the line</p>
+            <p className="mt-1 font-mono text-[9px] text-black/60">names still standing</p>
           </div>
           <div className="border-2 border-spiteCrimson bg-spiteCrimson p-4 text-sheetWhite">
-            <p className="font-mono text-[9px] font-bold uppercase tracking-widest">chopped</p>
-            <p className="mt-1 text-4xl font-black tracking-tighter">{chopped.length}</p>
-            <p className="mt-1 font-mono text-[9px] text-white/70">blades that fell</p>
+            <p className="font-mono text-[9px] font-bold uppercase tracking-widest">blade falls</p>
+            <p className="mt-1 text-4xl font-black tracking-tighter">{chops}</p>
+            <p className="mt-1 font-mono text-[9px] text-white/70">crosses on the wall</p>
           </div>
           <div className="border-2 border-hypeNeon bg-hypeNeon p-4 text-canvasBlack">
             <p className="font-mono text-[9px] font-bold uppercase tracking-widest">
@@ -91,20 +95,6 @@ export default function NextInLinePage() {
             ))
           )}
         </div>
-
-        {chopped.length > 0 && (
-          <section className="mt-12 border-t-2 border-chop-border pt-6">
-            <div className="mb-3 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-              <span className="text-spiteCrimson">the chopped</span>
-              <span>{chopped.length} on record</span>
-            </div>
-            <div className="space-y-2">
-              {chopped.map((person) => (
-                <LineRow key={person.name} figure={person} />
-              ))}
-            </div>
-          </section>
-        )}
       </main>
     </div>
   );

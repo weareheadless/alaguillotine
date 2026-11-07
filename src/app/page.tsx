@@ -7,6 +7,7 @@ import { RulesBanner } from "../components/RulesBanner";
 import { useClock } from "../components/DoomsdayClock";
 import { Hateometer, useHateometer } from "../components/Hateometer";
 import { QueueCard } from "../components/QueueCard";
+import { CrossesWall } from "../components/CrossesWall";
 import { RageStack } from "../components/RageStack";
 import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel } from "../components/NewsReel";
@@ -25,16 +26,10 @@ export default function HomePage() {
   const { content } = useSiteContent();
   const { state, pulls, pull } = useClock();
   const hate = useHateometer();
-  const standing = hate.figures.filter((f) => !f.droppedAt);
-  const chopped = hate.figures.filter((f) => f.droppedAt);
-  // The executioners: the last two whose blades fell. The homepage shows the
-  // deaths, not the queue — the queue lives on /next-in-line.
-  // The homepage shows deaths, never the queue. Everyone still waiting belongs
-  // on /next-in-line, so nobody appears in two places.
-  const executing = chopped.slice(0, 2);
+  // Nobody leaves the line: a chop is a tally, and the counter resets so the
+  // name climbs back. The wall below is where the executions accumulate.
+  const standing = hate.figures;
   const atTheBlock = standing[0];
-  // The next one is brought up to the block, not left in the line.
-  const promoted = standing[0];
 
   return (
     <div className="relative min-h-screen bg-canvasBlack">
@@ -123,24 +118,14 @@ export default function HomePage() {
 
             <div className="mt-10 flex items-baseline justify-between border-b border-chop-border pb-2">
               <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
-                executions
+                the crosses
               </h2>
               <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                {chopped.length} on record
+                every name, every time
               </span>
             </div>
 
-            {executing.length > 0 ? (
-              <div className="mt-4 space-y-3">
-                {executing.map((person) => (
-                  <QueueCard key={person.name} figure={person} />
-                ))}
-              </div>
-            ) : (
-              <div className="mt-4 border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
-                no blade has fallen yet — the machine is still reading
-              </div>
-            )}
+            <CrossesWall chops={hate.chops} figures={hate.figures} />
 
           </section>
         </div>

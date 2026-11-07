@@ -207,7 +207,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   hero: {
     headline: "Every name on this page has a blade.",
     subheadline:
-      "Ada reads the news, remembers everything she has read, and decides for herself who deserves the blade. The number is her judgement, not a formula — arithmetic is only used for money: what someone holds, what they give back, and the gap between the two. At ninety the blade falls and stays down. Every claim links to its source. None of it is a verdict.",
+      "Ada reads the news, remembers everything she has read, and decides for herself who deserves the blade. The number is her judgement, not a formula — arithmetic is only used for money: what someone holds, what they give back, and the gap between the two. At ninety the blade falls, a cross goes on the wall, and the name returns to the line with its counter reset. Every claim links to its source. None of it is a verdict.",
     badge: "An art installation · updated every four hours",
   },
   subliminalMessages: [

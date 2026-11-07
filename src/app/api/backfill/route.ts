@@ -35,49 +35,66 @@ export async function POST(request: Request) {
   if (!config) return Response.json({ error: "no model key" }, { status: 500 });
 
   const wanted = new URL(request.url).searchParams.get("case");
+  const batch = Math.min(
+    5,
+    Math.max(1, Number(new URL(request.url).searchParams.get("batch") ?? 1)),
+  );
   const db = ctx.env?.D1;
 
-  let next = wanted ? CASES.find((c) => c.id === wanted) : undefined;
-  if (!next && db) {
-    for (const c of CASES) {
-      const row = await db
-        .prepare("SELECT COUNT(*) AS n FROM ledger_entries WHERE case_id = ?")
-        .bind(c.id)
-        .all();
-      if (Number(row.results?.[0]?.n ?? 0) === 0) {
-        next = c;
-        break;
+  const hasEntries = async (id: string) => {
+    if (!db) return false;
+    const row = await db
+      .prepare("SELECT COUNT(*) AS n FROM ledger_entries WHERE case_id = ?")
+      .bind(id)
+      .all();
+    return Number(row.results?.[0]?.n ?? 0) > 0;
+  };
+
+  const run: Array<{ case: string; entries: number }> = [];
+
+  for (let n = 0; n < batch; n += 1) {
+    let next = wanted ? CASES.find((c) => c.id === wanted) : undefined;
+    if (!next) {
+      for (const c of CASES) {
+        if (!(await hasEntries(c.id))) {
+          next = c;
+          break;
+        }
       }
     }
-  }
-  if (!next) return Response.json({ ok: true, done: true });
+    if (!next) break;
 
-  const entries = await researchCase(config, next);
+    const entries = await researchCase(config, next);
 
-  if (db && entries.length) {
-    for (const e of entries) {
-      await db
-        .prepare(
-          `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources`,
-        )
-        .bind(
-          `${e.caseId}:${e.person.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-          e.person,
-          e.role,
-          e.act,
-          e.place,
-          e.year,
-          e.category,
-          e.confidence,
-          JSON.stringify(e.sources),
-          e.caseId,
-          new Date().toISOString(),
-        )
-        .run();
+    if (db && entries.length) {
+      for (const e of entries) {
+        await db
+          .prepare(
+            `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources`,
+          )
+          .bind(
+            `${e.caseId}:${e.person.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            e.person,
+            e.role,
+            e.act,
+            e.place,
+            e.year,
+            e.category,
+            e.confidence,
+            JSON.stringify(e.sources),
+            e.caseId,
+            new Date().toISOString(),
+          )
+          .run();
+      }
     }
+
+    run.push({ case: next.id, entries: entries.length });
+    if (wanted) break;
   }
 
-  return Response.json({ ok: true, case: next.id, entries: entries.length });
+  if (!run.length) return Response.json({ ok: true, done: true });
+  return Response.json({ ok: true, run });
 }

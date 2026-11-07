@@ -133,6 +133,13 @@
   100% { transform: translateY(0); }
 }
 
+/* A cross being nailed up: it lands, it settles. */
+@keyframes crossDrop {
+  0% { opacity: 0; transform: translateY(-10px) scale(1.6); filter: blur(1px); }
+  60% { opacity: 1; transform: translateY(1px) scale(0.94); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ─── Hardcore IDM Video Glitches ────────────────────────────────────────── */
 @keyframes idm-stutter {
   0%, 100% { transform: scale(1) translate(0, 0) skewX(0); filter: none; }

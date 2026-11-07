@@ -95,14 +95,51 @@ export interface LedgerEntry {
   sources: string[];
 }
 
+/**
+ * Names are written many ways across two years of wire copy. Exact matching
+ * alone leaves the ledger looking empty while the entries sit right there, so
+ * a name also matches on its distinctive tokens ("Elon Musk" → elon, musk).
+ */
+export function nameTokens(name: string): string[] {
+  const inside = (name.match(/\(([^)]+)\)/g) ?? []).map((s) => s.slice(1, -1));
+  const base = name.replace(/\([^)]*\)/g, " ");
+  return Array.from(
+    new Set(
+      `${base} ${inside.join(" ")}`
+        .split(/\s+/)
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length >= 4),
+    ),
+  );
+}
+
+export function countLedger(
+  rows: Array<{ person: string; count: number }>,
+  name: string,
+): number {
+  const lower = name.toLowerCase();
+  const tokens = nameTokens(name);
+  let total = 0;
+  for (const r of rows) {
+    const p = r.person.toLowerCase();
+    if (p === lower || tokens.some((t) => p.includes(t))) total += r.count;
+  }
+  return total;
+}
+
 export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   const d = await db();
   if (!d) return [];
+  const tokens = nameTokens(name);
+  const where = [
+    "lower(person) = lower(?)",
+    ...tokens.map(() => "lower(person) LIKE ?"),
+  ].join(" OR ");
   const rows = await d
     .prepare(
-      "SELECT act, place, year, category, confidence, sources FROM ledger_entries WHERE lower(person) = lower(?) ORDER BY confidence DESC, year DESC",
+      `SELECT act, place, year, category, confidence, sources FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC`,
     )
-    .bind(name)
+    .bind(name, ...tokens.map((t) => `%${t}%`))
     .all();
   return (rows.results ?? []).map((r) => {
     let sources: string[] = [];

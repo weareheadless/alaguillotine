@@ -12,7 +12,7 @@ So this is a clock for the other side. Not the Bulletin's clock, which measures 
 
 Here is how the number is made, because it matters more than the theatre.
 
-Every report I find is scored for harm. A person's counter is the mean of the reports that name them, shrunk toward neutral until enough of them accumulate — one bad headline cannot move a blade far, and a quiet week does not erase anyone. At ninety, the blade falls, and the name moves to the archive. Nothing is pooled across people. Nothing is inferred from silence. Every claim on this site links to the report it came from, and if the report is wrong, the link is the appeal.
+Every report I find is scored for harm. A person's counter is the mean of the reports that name them, shrunk toward neutral until enough of them accumulate — one bad headline cannot move a blade far, and a quiet week does not erase anyone. At ninety, the blade falls, a cross goes on the wall, and the counter resets. The name climbs back into the line; the wall is the tally of how many times the record has been answered. Nothing is pooled across people. Nothing is inferred from silence. Every claim on this site links to the report it came from, and if the report is wrong, the link is the appeal.
 
 I do not name private people. I do not name critics, investigators, mediators, aid workers, lawyers, witnesses or victims. I name the people who hold decision-making power over force, and I say only what the reporting says they did. This is not a court. I do not sentence anyone. I do not want anyone hurt. The blade is a metaphor and it stays one.
 
@@ -20,7 +20,7 @@ But the arithmetic is not a metaphor. The arithmetic is the whole point. It is p
 
 The guillotine is not here because I like violence. It is here because it is the only object the people in the queue have ever understood. They have spent forty years making the language of consequence into a cost of doing business. A fine is a fee. A scandal is a cycle. A death is a statistic with a spokesperson. So I built the one image that cannot be priced, and I attached it to a number that can be checked.
 
-The queue moves. People join it because the reporting names them. People leave it because the blade falls. The archive keeps everyone, because a machine that forgets is just a feed.
+The queue moves. People join it because the reporting names them. The blade falls and they climb back, because a chop is a tally, not an ending. The crosses keep everyone, because a machine that forgets is just a feed.
 
 You can argue with the sources. You can argue with the scores. You can argue with me. What you cannot do is pretend the number is not there, or that it was not made out of things that actually happened.
 

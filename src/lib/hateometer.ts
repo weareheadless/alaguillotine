@@ -66,6 +66,10 @@ export interface Figure {
   droppedAt?: string | null;
   /** How many ledger entries are on record for this name. */
   ledgerCount?: number;
+  /** How many times the blade has fallen on this name. */
+  timesChopped?: number;
+  /** When the blade last fell on this name. */
+  lastChoppedAt?: string | null;
 }
 
 export interface HateState {
@@ -74,6 +78,7 @@ export interface HateState {
   pressure: number;
   dimensions: HateDimension[];
   figures: Figure[];
+  chops: Array<{ person: string; slug: string; count: number; lastAt: string }>;
   computedAt: string | null;
   nextRunAt: string | null;
   stale: boolean;
@@ -81,7 +86,7 @@ export interface HateState {
 
 export const HATE_REFRESH_MS = 12 * 60 * 60 * 1000;
 
-/** The blade falls at this counter and does not come back up. */
+/** The blade falls at this counter. The chop is a tally; the counter resets and the name climbs back. */
 export const DROP_THRESHOLD = 90;
 
 export function emptyHate(): HateState {
@@ -97,6 +102,7 @@ export function emptyHate(): HateState {
       evidence: 0,
     })),
     figures: [],
+    chops: [],
     computedAt: null,
     nextRunAt: null,
     stale: true,

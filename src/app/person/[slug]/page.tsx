@@ -18,7 +18,8 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   if (!person) notFound();
 
   const ledger = await getLedgerFor(person.name);
-  const dropped = Boolean(person.droppedAt);
+  const chopped = (person.timesChopped ?? 0) > 0;
+  const crosses = Math.min(person.timesChopped ?? 0, 40);
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-24 pt-12">
@@ -44,16 +45,31 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
             {Math.round(person.score)}
           </div>
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-            {dropped ? "chopped" : `rank ${person.rank}`}
+            rank {person.rank}
           </div>
         </div>
       </div>
 
-      {dropped && person.droppedAt && (
-        <p className="mt-4 border-l-2 border-spiteCrimson pl-3 font-mono text-[10px] uppercase tracking-[0.2em] text-spiteCrimson">
-          blade fell {new Date(person.droppedAt).toUTCString().slice(5, 16)} · counter frozen at{" "}
-          {Math.round(person.score)}
-        </p>
+      {chopped && (
+        <div className="mt-4 border-l-2 border-spiteCrimson pl-3">
+          <div className="flex flex-wrap gap-x-0.5 text-[15px] leading-none text-spiteCrimson">
+            {Array.from({ length: crosses }, (_, i) => (
+              <span key={i}>✝</span>
+            ))}
+            {(person.timesChopped ?? 0) > crosses && (
+              <span className="ml-1 font-mono text-[10px] text-chop-muted">
+                +{(person.timesChopped ?? 0) - crosses}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-spiteCrimson">
+            chopped {person.timesChopped} time{person.timesChopped === 1 ? "" : "s"}
+            {person.lastChoppedAt
+              ? ` · last ${new Date(person.lastChoppedAt).toUTCString().slice(5, 16)}`
+              : ""}{" "}
+            · back in the line
+          </p>
+        </div>
       )}
 
       <p className="mt-6 font-mono text-[12px] leading-relaxed text-chop-muted">{person.reason}</p>
