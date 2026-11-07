@@ -3,6 +3,7 @@ import { clockConfig, runClockPass } from "@/lib/clock-research";
 import { getDb, readClock, writeClock } from "@/lib/clock-store";
 import { findReelClips } from "@/lib/youtube";
 import { saveReelClip } from "@/lib/reel-store";
+import { archiveItems } from "@/lib/archive-store";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
     }
 
     await writeClock(db, pass);
+    await archiveItems(pass.items);
 
     // The reel: whatever video the same search turned up, if any of it plays.
     const clips = await refreshReel(context.env ?? {});

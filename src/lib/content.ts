@@ -207,7 +207,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   hero: {
     headline: "Every name on this page has a blade.",
     subheadline:
-      "Ada reads the news — who is taking, who is paying, who is being punished for objecting — scores every report, and puts names in the queue. Each counter is the mean of the reports that name that person, shrunk toward neutral until the evidence piles up. At ninety the blade falls and stays down. Every number links to its source. None of it is a verdict.",
+      "Ada reads the news, remembers everything she has read, and decides for herself who deserves the blade. The number is her judgement, not a formula — arithmetic is only used for money: what someone holds, what they give back, and the gap between the two. At ninety the blade falls and stays down. Every claim links to its source. None of it is a verdict.",
     badge: "An art installation · updated every four hours",
   },
   subliminalMessages: [
@@ -300,6 +300,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     { href: "/next-in-line", label: "Next in Line" },
     { href: "/whitepaper", label: "The Manifesto" },
     { href: "/blog", label: "Dispatches" },
+    { href: "/archive", label: "The Archive" },
   ],
   demoMessages: {
     authors: [

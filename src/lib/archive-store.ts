@@ -1,0 +1,87 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
+type Stmt = {
+  bind: (...v: unknown[]) => Stmt;
+  run: () => Promise<unknown>;
+  all: <T = { results?: Array<Record<string, unknown>> }>() => Promise<T>;
+};
+type D1 = { prepare: (q: string) => Stmt };
+
+async function db(): Promise<D1 | null> {
+  const ctx = (await getCloudflareContext({ async: true })) as unknown as { env?: { D1?: D1 } };
+  return ctx.env?.D1 ?? null;
+}
+
+export interface ArchiveRow {
+  id: string;
+  headline: string;
+  fact: string;
+  quip: string;
+  source: string;
+  sourceUrl: string;
+  publishedAt: string | null;
+  rage: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
+/** Nothing Ada reads is thrown away: every item is kept, forever. */
+export async function archiveItems(
+  items: Array<{
+    id: string;
+    headline: string;
+    fact: string;
+    quip: string;
+    source: string;
+    sourceUrl: string;
+    publishedAt: string | null;
+    rage: number;
+  }>,
+): Promise<void> {
+  const d = await db();
+  if (!d) return;
+  const now = new Date().toISOString();
+  for (const i of items) {
+    await d
+      .prepare(
+        `INSERT INTO archive_items (id, headline, fact, quip, source, source_url, published_at, rage, first_seen, last_seen)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           rage = excluded.rage, last_seen = excluded.last_seen, headline = excluded.headline`,
+      )
+      .bind(i.id, i.headline, i.fact, i.quip, i.source, i.sourceUrl, i.publishedAt, i.rage, now, now)
+      .run();
+  }
+}
+
+export async function listArchive(limit = 100): Promise<ArchiveRow[]> {
+  const d = await db();
+  if (!d) return [];
+  const rows = await d
+    .prepare(
+      "SELECT id, headline, fact, quip, source, source_url, published_at, rage, first_seen, last_seen FROM archive_items ORDER BY last_seen DESC LIMIT ?",
+    )
+    .bind(limit)
+    .all();
+  return (rows.results ?? []).map((r) => ({
+    id: String(r.id),
+    headline: String(r.headline),
+    fact: String(r.fact ?? ""),
+    quip: String(r.quip ?? ""),
+    source: String(r.source ?? ""),
+    sourceUrl: String(r.source_url ?? ""),
+    publishedAt: r.published_at == null ? null : String(r.published_at),
+    rage: Number(r.rage ?? 0),
+    firstSeen: String(r.first_seen),
+    lastSeen: String(r.last_seen),
+  }));
+}
+
+export async function archiveCount(): Promise<number> {
+  const d = await db();
+  if (!d) return 0;
+  const rows = await d.prepare("SELECT COUNT(*) AS n FROM archive_items").all<{
+    results?: Array<{ n: number }>;
+  }>();
+  return Number(rows.results?.[0]?.n ?? 0);
+}

@@ -17,7 +17,7 @@ export async function GET() {
         .replace(/&amp;/g, "&")
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">");
-    const clips = (await listReelClips(6)).map((c) => ({
+    const clips = (await listReelClips(24)).map((c) => ({
       ...c,
       caption: decode(c.caption),
       source: decode(c.source),
