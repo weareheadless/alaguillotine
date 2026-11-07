@@ -29,30 +29,31 @@ function ago(iso: string | null) {
 export function RageStack({
   items,
   onPull,
+  bare = false,
 }: {
   items: RageItem[];
   onPull: () => void;
+  /** Rendered inside another section: no wrapper, no heading. */
+  bare?: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(null);
 
   if (!items.length) {
     return (
-      <section className="mx-auto mt-6 w-full max-w-5xl px-4 md:px-6">
-        <div className="border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
-          no reading yet — the machine is still looking
-        </div>
-      </section>
+      <div className="border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
+        no reading yet — the machine is still looking
+      </div>
     );
   }
 
   return (
-    <section className="mx-auto mt-6 w-full max-w-5xl px-4 md:px-6">
-      <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-chop-muted">
-        <span>the stack</span>
-        <span>
-          sorted by rage · {items.length} items
-        </span>
-      </div>
+    <div className={bare ? "" : "mx-auto mt-6 w-full max-w-5xl px-4 md:px-6"}>
+      {!bare && (
+        <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-chop-muted">
+          <span>the stack</span>
+          <span>sorted by rage · {items.length} items</span>
+        </div>
+      )}
 
       <div className="divide-y divide-chop-border border border-chop-border bg-chop-card/40">
         {items.map((item, i) => {
@@ -148,9 +149,8 @@ export function RageStack({
 
       <p className="mt-3 font-mono text-[10px] leading-relaxed text-chop-muted">
         Every item is a real report, linked. The scores are the machine&apos;s; the
-        arithmetic is public. The blade is the mean, weighted toward the last 48
-        hours.
+        arithmetic is public.
       </p>
-    </section>
+    </div>
   );
 }
