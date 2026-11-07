@@ -121,15 +121,6 @@ export default function HomePage() {
 
             {executing.length > 0 ? (
               <div className="mt-4 space-y-3">
-                {promoted && (
-                  <div>
-                    <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-hypeNeon">
-                      <span>on the block</span>
-                      <span className="text-chop-muted">promoted from the line</span>
-                    </div>
-                    <QueueCard figure={promoted} />
-                  </div>
-                )}
                 {executing.map((person) => (
                   <QueueCard key={person.name} figure={person} />
                 ))}
