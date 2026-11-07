@@ -85,3 +85,39 @@ export async function archiveCount(): Promise<number> {
   }>();
   return Number(rows.results?.[0]?.n ?? 0);
 }
+
+export interface LedgerEntry {
+  act: string;
+  place: string;
+  year: number;
+  category: string;
+  confidence: number;
+  sources: string[];
+}
+
+export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
+  const d = await db();
+  if (!d) return [];
+  const rows = await d
+    .prepare(
+      "SELECT act, place, year, category, confidence, sources FROM ledger_entries WHERE lower(person) = lower(?) ORDER BY confidence DESC, year DESC",
+    )
+    .bind(name)
+    .all();
+  return (rows.results ?? []).map((r) => {
+    let sources: string[] = [];
+    try {
+      sources = JSON.parse(String(r.sources ?? "[]")) as string[];
+    } catch {
+      sources = [];
+    }
+    return {
+      act: String(r.act ?? ""),
+      place: String(r.place ?? ""),
+      year: Number(r.year ?? 0),
+      category: String(r.category ?? ""),
+      confidence: Number(r.confidence ?? 0),
+      sources,
+    };
+  });
+}

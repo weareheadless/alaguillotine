@@ -162,3 +162,31 @@ export async function evaluateDrops(db: D1, threshold: number): Promise<number> 
     .run()) as { meta?: { changes?: number } };
   return result?.meta?.changes ?? 0;
 }
+
+export async function getPersonBySlug(slug: string): Promise<Figure | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const r = await db
+    .prepare(
+      "SELECT name, role, country, reason, score, mentions, rank, prev_rank, added_at, dropped_at, items, source, source_url FROM queue_people WHERE slug = ?",
+    )
+    .bind(slug)
+    .first<Record<string, unknown>>();
+  if (!r) return null;
+  return {
+    name: String(r.name),
+    role: String(r.role ?? ""),
+    country: String(r.country ?? ""),
+    score: Number(r.score),
+    mentions: Number(r.mentions),
+    reason: String(r.reason ?? ""),
+    source: String(r.source ?? ""),
+    sourceUrl: String(r.source_url ?? ""),
+    items: parse<Figure["items"]>(r.items, []),
+    rank: Number(r.rank),
+    prevRank: r.prev_rank == null ? null : Number(r.prev_rank),
+    delta: null,
+    addedAt: String(r.added_at),
+    droppedAt: r.dropped_at == null ? null : String(r.dropped_at),
+  };
+}

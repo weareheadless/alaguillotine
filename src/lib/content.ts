@@ -300,7 +300,6 @@ export const DEFAULT_CONTENT: SiteContent = {
     { href: "/next-in-line", label: "Next in Line" },
     { href: "/whitepaper", label: "The Manifesto" },
     { href: "/blog", label: "Dispatches" },
-    { href: "/archive", label: "The Archive" },
   ],
   demoMessages: {
     authors: [

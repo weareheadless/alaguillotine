@@ -131,10 +131,6 @@
     {
       "href": "/blog",
       "label": "Dispatches"
-    },
-    {
-      "href": "/archive",
-      "label": "The Archive"
     }
   ],
   "demoMessages": {

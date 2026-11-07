@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Figure } from "../lib/hateometer";
 
 /**
@@ -38,7 +39,7 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2">
-            <h3 className="text-[16px] font-black leading-tight text-sheetWhite">{figure.name}</h3>
+            <Link href={`/person/${figure.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} className="text-[16px] font-black leading-tight text-sheetWhite hover:text-spiteCrimson">{figure.name}</Link>
             <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted">
               {figure.role}
               {figure.country ? ` · ${figure.country}` : ""}

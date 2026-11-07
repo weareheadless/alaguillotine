@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Figure } from "../lib/hateometer";
 
 /**
@@ -77,9 +78,12 @@ export function QueueCard({ figure }: { figure: Figure }) {
                 <span className="font-mono text-[10px] tabular-nums text-chop-muted">
                   {String(figure.rank).padStart(2, "0")}
                 </span>
-                <h3 className="text-[17px] font-black leading-tight text-sheetWhite md:text-xl">
+                <Link
+                  href={`/person/${figure.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  className="text-[17px] font-black leading-tight text-sheetWhite hover:text-spiteCrimson md:text-xl"
+                >
                   {figure.name}
-                </h3>
+                </Link>
               </div>
               <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
                 {figure.role}
