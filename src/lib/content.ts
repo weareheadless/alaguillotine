@@ -205,10 +205,10 @@ export const DEFAULT_CONTENT: SiteContent = {
     revision: 0,
   },
   hero: {
-    headline: "The blade moves on its own.",
+    headline: "Every name on this page has a blade.",
     subheadline:
-      "No board. No vote. No permission. A machine reads the world every four hours, scores what it finds, and lowers the blade. You can check every number it used.",
-    badge: "Doomsday Clock // Billionaire Edition",
+      "Ada reads the news — who is taking, who is paying, who is being punished for objecting — scores every report, and puts names in the queue. Each counter is the mean of the reports that name that person, shrunk toward neutral until the evidence piles up. At ninety the blade falls and stays down. Every number links to its source. None of it is a verdict.",
+    badge: "An art installation · updated every four hours",
   },
   subliminalMessages: [
     "MARS IS A LIE",
