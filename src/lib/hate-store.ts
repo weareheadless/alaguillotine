@@ -140,6 +140,16 @@ export async function getPersonBySlug(slug: string): Promise<Figure | null> {
 
   const figure = rowToFigure(row);
 
+  // The stored rank is from the last research pass; a chop moves the line, so
+  // show the rank the name holds right now.
+  try {
+    const queue = await readQueue(db);
+    const live = queue.find((p) => p.name.toLowerCase() === figure.name.toLowerCase());
+    if (live) figure.rank = live.rank;
+  } catch {
+    /* keep the stored rank */
+  }
+
   try {
     const chops = await db
       .prepare(

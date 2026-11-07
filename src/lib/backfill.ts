@@ -76,6 +76,22 @@ export const CASES: Case[] = [
   { id: "sacks-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
     subject: "David Sacks",
     queries: ["David Sacks AI crypto policy conflict", "Sacks venture investments regulation", "Sacks White House adviser"] },
+
+  { id: "netanyahu-record", place: "Israel", after: "2023-01-01", before: "2026-12-31",
+    subject: "Benjamin Netanyahu",
+    queries: ["Netanyahu ICC arrest warrant Gaza", "Netanyahu government settlement expansion approval", "Netanyahu Quneitra Syria incursion 2026"] },
+  { id: "putin-record", place: "Russia", after: "2022-01-01", before: "2026-12-31",
+    subject: "Vladimir Putin",
+    queries: ["Putin ICC arrest warrant Ukraine invasion", "Russia strikes aid infrastructure Ukraine order", "Putin political repression Navalny"] },
+  { id: "hemedti-record", place: "Sudan", after: "2023-01-01", before: "2026-12-31",
+    subject: "Mohamed Hamdan Dagalo",
+    queries: ["Hemedti RSF El Fasher massacre", "RSF arms supply UAE report Hemedti", "RSF gold smuggling Hemedti report"] },
+  { id: "burhan-record", place: "Sudan", after: "2023-01-01", before: "2026-12-31",
+    subject: "Abdel Fattah al-Burhan",
+    queries: ["al-Burhan Sudanese armed forces war conduct", "Sudan army siege famine report Burhan", "Burhan airstrikes civilians Sudan"] },
+  { id: "mbs-record", place: "Saudi Arabia", after: "2015-01-01", before: "2026-12-31",
+    subject: "Mohammed bin Salman",
+    queries: ["Mohammed bin Salman Yemen war coalition strikes", "Khashoggi killing CIA assessment MBS", "Saudi sovereign fund media capture MBS"] },
 ];
 
 const SYSTEM = `You are Ada, keeping the ledger of documented harm for alaguillotine.
