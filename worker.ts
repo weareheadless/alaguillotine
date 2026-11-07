@@ -9,7 +9,7 @@ type TenantEnv = {
 };
 
 type WorkerContext = { waitUntil: (promise: Promise<unknown>) => void };
-type ScheduledEvent = { scheduledTime: number };
+type ScheduledEvent = { scheduledTime: number; cron?: string };
 
 type OpenNextHandler = {
   fetch: (request: Request, env: TenantEnv, context: WorkerContext) => Promise<Response>;
@@ -40,15 +40,20 @@ export default {
       console.error("clock_cron_misconfigured");
       return;
     }
-    context.waitUntil(
-      invokeApp("/api/clock/refresh", { scheduledTime: event.scheduledTime }, env, context).then(
-        (response) => {
+    const isTwelveHour = event.cron === "30 */12 * * *";
+    const paths = isTwelveHour
+      ? ["/api/clock/refresh", "/api/hateometer/refresh", "/api/posts/refresh"]
+      : ["/api/clock/refresh"];
+
+    for (const path of paths) {
+      context.waitUntil(
+        invokeApp(path, { scheduledTime: event.scheduledTime }, env, context).then((response) => {
           if (!response.ok) {
-            throw new Error(`Clock refresh returned HTTP ${response.status}.`);
+            throw new Error(`${path} returned HTTP ${response.status}.`);
           }
-        },
-      ),
-    );
+        }),
+      );
+    }
   },
 };
 

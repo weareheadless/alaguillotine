@@ -47,9 +47,21 @@ export interface Figure {
   reason: string;
   source: string;
   sourceUrl: string;
+  /** The reports that put them here, newest first. */
+  items: Array<{
+    headline: string;
+    fact: string;
+    quip: string;
+    source: string;
+    sourceUrl: string;
+    publishedAt: string | null;
+    harm: number;
+  }>;
   rank: number;
   prevRank: number | null;
   delta: number | null;
+  /** When Ada first put them in the queue. */
+  addedAt?: string;
 }
 
 export interface HateState {
