@@ -1035,3 +1035,15 @@ body::after {
 .mini-blade-frame {
   filter: drop-shadow(0 0 4px rgba(244, 244, 245, 0.12));
 }
+
+/* ─── The wire: one headline at a time, always moving ───────────────────── */
+.wire-in {
+  animation: wire-in 420ms ease-out both;
+}
+@keyframes wire-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wire-in { animation: none; }
+}

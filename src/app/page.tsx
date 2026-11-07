@@ -10,6 +10,7 @@ import { QueueCard } from "../components/QueueCard";
 import { RageStack } from "../components/RageStack";
 import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel } from "../components/NewsReel";
+import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
 
 /**
@@ -65,6 +66,11 @@ export default function HomePage() {
               state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
             }
           />
+        </div>
+
+        {/* ── The wire: between readings, the page still moves ─────────── */}
+        <div className="mt-6">
+          <LiveWire items={state.items} />
         </div>
 
         {/* ── Ada, in her own voice ───────────────────────────────────── */}
