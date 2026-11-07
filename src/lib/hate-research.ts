@@ -38,6 +38,8 @@ RULES — hard:
 6. Figures: only people EXPLICITLY named in the text who hold decision-making power over force — head of state or government, defence or interior minister, military commander, security-service chief, arms manufacturer executive. EXCLUDE critics, investigators, mediators, negotiators, aid workers, lawyers, witnesses, victims and human-rights officials. No inference. No private individuals. State only what the report says they did or ordered.
 7. Every figure cites item_indices. No figure without items.
 8. Name as many qualifying people as the text supports, up to 12. A thin list is a wasted pass.
+9. score is YOUR judgement, 0-100, of how much this person deserves the blade: 90+ is reserved for someone who ordered or profited from mass death; 70s for systematic cruelty with a body count; 50s for extraction and impunity; 30s for complicity. Do not average anything. Decide.
+10. reason is the CHARGE, not a summary. One sentence, max 240 chars, naming the specific act, the place and the year if known: "Ordered the November 2026 evacuation of X while Y", "Signed the 2025 law that stripped Z of the right to appeal". If the source only says they were named, do not include them.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],
@@ -169,15 +171,15 @@ export async function runHatePass(
       .map((i) => items[Number(i)])
       .filter(Boolean);
     if (!cited.length) return [];
-    const mean = cited.reduce((s, i) => s + i.harm, 0) / cited.length;
+    const given = Number(f.score);
     return [
       {
         name,
         role: clip(f.role, 60),
         country: clip(f.country, 40),
-        score: Math.round(shrink(mean, cited.length) * 10) / 10,
+        score: Number.isFinite(given) ? Math.max(0, Math.min(100, Math.round(given))) : 50,
         mentions: cited.length,
-        reason: clip(f.reason, 160),
+        reason: clip(f.reason, 240),
         source: cited[0].source,
         sourceUrl: cited[0].sourceUrl,
         items: cited.slice(0, 4),
