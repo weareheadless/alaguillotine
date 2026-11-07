@@ -12,6 +12,8 @@ export interface ReelClip {
   url: string;
   caption: string;
   source: string;
+  /** "youtube" renders an embed; "file" renders a video element. */
+  kind: string;
 }
 
 async function getDb(): Promise<D1 | null> {
@@ -25,13 +27,14 @@ export async function listReelClips(limit = 8): Promise<ReelClip[]> {
   const db = await getDb();
   if (!db) return [];
   const rows = await db
-    .prepare("SELECT url, caption, source FROM reel_clips ORDER BY found_at DESC LIMIT ?")
+    .prepare("SELECT url, caption, source, kind FROM reel_clips ORDER BY found_at DESC LIMIT ?")
     .bind(limit)
     .all();
   return (rows.results ?? []).map((r) => ({
     url: String(r.url),
     caption: String(r.caption ?? ""),
     source: String(r.source ?? ""),
+    kind: String(r.kind ?? "file"),
   }));
 }
 
@@ -40,10 +43,10 @@ export async function saveReelClip(clip: ReelClip, pageUrl: string): Promise<voi
   if (!db) return;
   await db
     .prepare(
-      `INSERT INTO reel_clips (url, caption, source, page_url, found_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO reel_clips (url, caption, source, page_url, found_at, kind)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(url) DO UPDATE SET caption = excluded.caption, found_at = excluded.found_at`,
     )
-    .bind(clip.url, clip.caption, clip.source, pageUrl, new Date().toISOString())
+    .bind(clip.url, clip.caption, clip.source, pageUrl, new Date().toISOString(), clip.kind)
     .run();
 }

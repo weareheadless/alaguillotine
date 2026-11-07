@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig, runClockPass } from "@/lib/clock-research";
 import { getDb, readClock, writeClock } from "@/lib/clock-store";
-import { extractReelClips } from "@/lib/reel-extract";
+import { findReelClip } from "@/lib/youtube";
 import { saveReelClip } from "@/lib/reel-store";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +13,26 @@ export const dynamic = "force-dynamic";
  * to the browser. If the model fails, the previous reading stands: the clock
  * never falls back to zero because a request timed out.
  */
+async function refreshReel(env: { YOUTUBE_API_KEY?: string }): Promise<number> {
+  if (!env.YOUTUBE_API_KEY) return 0;
+  try {
+    const video = await findReelClip(env.YOUTUBE_API_KEY);
+    if (!video) return 0;
+    await saveReelClip(
+      { url: video.videoId, caption: video.title, source: video.channel, kind: "youtube" },
+      `https://www.youtube.com/watch?v=${video.videoId}`,
+    );
+    return 1;
+  } catch {
+    return 0;
+  }
+}
+
 export async function POST(request: Request) {
   const context = (await getCloudflareContext({ async: true })) as unknown as {
     env?: {
       CRON_SECRET?: string;
+      YOUTUBE_API_KEY?: string;
       DEEPSEEK_API_KEY?: string;
       SITE_AGENT_LLM_API_KEY?: string;
       CLOCK_API_BASE?: string;
@@ -45,24 +61,14 @@ export async function POST(request: Request) {
     // Same results as last time: keep the scores, only advance the timestamp.
     if (previous && previous.sourceHash === pass.sourceHash) {
       await writeClock(db, { ...previous, computedAt: pass.computedAt });
-      return Response.json({ ok: true, unchanged: true, level: previous.level });
+      const clips = await refreshReel(context.env ?? {});
+      return Response.json({ ok: true, unchanged: true, level: previous.level, clips });
     }
 
     await writeClock(db, pass);
 
     // The reel: whatever video the same search turned up, if any of it plays.
-    let clips = 0;
-    try {
-      for (const clip of await extractReelClips(pass.candidates)) {
-        await saveReelClip(
-          { url: clip.url, caption: clip.caption, source: clip.source },
-          clip.pageUrl,
-        );
-        clips += 1;
-      }
-    } catch {
-      /* the reel is decoration; never fail the reading for it */
-    }
+    const clips = await refreshReel(context.env ?? {});
 
     return Response.json({ ok: true, level: pass.level, composite: pass.composite, clips });
   } catch (error) {

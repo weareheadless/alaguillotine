@@ -17,6 +17,7 @@ interface Clip {
   src: string;
   caption: string;
   source?: string;
+  kind?: "file" | "youtube";
 }
 
 const FALLBACK: Clip[] = [
@@ -41,10 +42,11 @@ export function NewsReel({ messages }: { messages: string[] }) {
         const live = Array.isArray(data?.clips) ? data.clips : [];
         if (!cancelled && live.length) {
           setClips(
-            live.map((c: { url: string; caption: string; source: string }) => ({
+            live.map((c: { url: string; caption: string; source: string; kind: string }) => ({
               src: c.url,
               caption: c.caption || c.source || "news",
               source: c.source,
+              kind: c.kind === "youtube" ? "youtube" : "file",
             })),
           );
           return;
@@ -73,7 +75,7 @@ export function NewsReel({ messages }: { messages: string[] }) {
   // The stutter: pause, jump back a few frames, tear the picture, resume.
   useEffect(() => {
     const el = video.current;
-    if (!el) return;
+    if (!el || clip.kind === "youtube") return;
     let alive = true;
 
     const schedule = () => {
@@ -140,17 +142,28 @@ export function NewsReel({ messages }: { messages: string[] }) {
     >
       <div className={`reel-set ${torn ? "reel-torn" : ""}`}>
         <div className="reel-glass">
-          <video
-            key={clip.src}
-            ref={video}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="reel-video absolute inset-0 h-full w-full object-cover"
-          >
-            <source src={clip.src} type="video/mp4" />
-          </video>
+          {clip.kind === "youtube" ? (
+            <iframe
+              key={clip.src}
+              title={clip.caption}
+              src={`https://www.youtube-nocookie.com/embed/${clip.src}?autoplay=1&mute=1&loop=1&playlist=${clip.src}&controls=0&modestbranding=1&playsinline=1&rel=0`}
+              allow="autoplay; encrypted-media; picture-in-picture"
+              className="reel-video absolute inset-0 h-full w-full"
+              frameBorder="0"
+            />
+          ) : (
+            <video
+              key={clip.src}
+              ref={video}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="reel-video absolute inset-0 h-full w-full object-cover"
+            >
+              <source src={clip.src} type="video/mp4" />
+            </video>
+          )}
 
           <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
           <div className="reel-vignette pointer-events-none absolute inset-0" aria-hidden />
