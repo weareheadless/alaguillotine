@@ -25,8 +25,10 @@ export default function HomePage() {
   const hate = useHateometer();
   const standing = hate.figures.filter((f) => !f.droppedAt);
   const chopped = hate.figures.filter((f) => f.droppedAt);
-  const onTheBlock = standing[0];
-  const waiting = standing.slice(1);
+  // The executioners: the last two whose blades fell. The homepage shows the
+  // deaths, not the queue — the queue lives on /next-in-line.
+  const executing = chopped.slice(0, 2);
+  const promoted = standing.slice(0, 2);
 
   return (
     <div className="relative min-h-screen bg-canvasBlack">
@@ -87,70 +89,44 @@ export default function HomePage() {
           <section id="queue">
             <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
               <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
-                the queue
+                executions
               </h2>
               <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                {hate.figures.length} standing · one blade each
+                {chopped.length} chopped · {standing.length} waiting
               </span>
             </div>
 
-            {onTheBlock ? (
-              <div className="mt-4">
-                <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-spiteCrimson">
-                  <span>on the block</span>
-                  <span className="text-chop-muted">next to be chopped</span>
-                </div>
-                <QueueCard figure={onTheBlock} />
+            {executing.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {executing.map((person) => (
+                  <QueueCard key={person.name} figure={person} />
+                ))}
               </div>
             ) : (
               <div className="mt-4 border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
-                the block is empty — the machine is still reading
+                no blade has fallen yet — the machine is still reading
               </div>
             )}
 
-            {waiting.length > 0 && (
-              <div className="mt-6">
-                <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-                  <span>next in line</span>
-                  <a href="/next-in-line" className="underline decoration-chop-border underline-offset-4 hover:text-sheetWhite">
-                    the full queue
-                  </a>
-                </div>
-                <div className="space-y-2">
-                  {waiting.slice(0, 4).map((figure) => (
+            <div className="mt-8 border-t border-chop-border pt-4">
+              <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
+                <span>promoted from the line</span>
+                <a href="/next-in-line" className="underline decoration-chop-border underline-offset-4 hover:text-sheetWhite">
+                  the full line
+                </a>
+              </div>
+              <div className="space-y-2">
+                {promoted.length === 0 ? (
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
+                    the line is empty
+                  </p>
+                ) : (
+                  promoted.map((figure) => (
                     <QueueCard key={`${figure.name}-${figure.rank}`} figure={figure} />
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
-            )}
-
-            {chopped.length > 0 && (
-              <div className="mt-8 border-t border-chop-border pt-4">
-                <div className="mb-3 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-                  <span>the chopped</span>
-                  <span>{chopped.length} on record</span>
-                </div>
-                <ul className="divide-y divide-chop-border/60">
-                  {chopped.map((person) => (
-                    <li key={person.name} className="flex items-baseline justify-between gap-3 py-2 font-mono text-[10px] uppercase tracking-[0.15em]">
-                      <span className="text-sheetWhite/70">{person.name}</span>
-                      <span className="text-chop-muted">
-                        {person.droppedAt
-                          ? new Date(person.droppedAt).toUTCString().slice(5, 16)
-                          : ""}{" "}
-                        · {Math.round(person.score)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <p className="mt-4 font-mono text-[10px] leading-relaxed text-chop-muted">
-              Ada puts names here herself and updates every counter on each pass.
-              Nobody is dropped for a quiet week — the counter decays, the blade
-              rises, the name stays. At 90 the blade falls and does not come back up.
-            </p>
+            </div>
           </section>
         </div>
 

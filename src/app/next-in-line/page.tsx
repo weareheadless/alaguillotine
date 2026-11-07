@@ -28,10 +28,9 @@ export default function NextInLinePage() {
           Next <span className="text-spiteCrimson">in line.</span>
         </h1>
         <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
-          Ada keeps this order. Every counter is the mean harm of the reports that
-          name the person, shrunk toward neutral until the evidence accumulates.
-          When one reaches ninety the blade falls on the front page and the next
-          name steps up.
+          Ada reads the week and ranks who deserves the blade most. The top of
+          this line is promoted to the front page, where it is executed; then the
+          next name takes its place. The ranking is her judgement, not a formula.
         </p>
 
         <div className="mt-8 space-y-3">
@@ -40,8 +39,16 @@ export default function NextInLinePage() {
               the line is empty — the machine is still reading
             </div>
           ) : (
-            standing.map((figure) => (
-              <QueueCard key={`${figure.name}-${figure.rank}`} figure={figure} />
+            standing.map((figure, i) => (
+              <div key={`${figure.name}-${figure.rank}`}>
+                {i === 0 && (
+                  <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-spiteCrimson">
+                    <span>next to be promoted</span>
+                    <span className="text-chop-muted">highest score in the line</span>
+                  </div>
+                )}
+                <QueueCard figure={figure} />
+              </div>
             ))
           )}
         </div>
