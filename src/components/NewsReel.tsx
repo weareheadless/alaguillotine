@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * The broken television.
+ * The television.
  *
- * A small screen in the corner of the installation showing news footage that
- * stutters, tears and occasionally forgets where it is. Ada writes the single
- * frames that cut through it — short, true, and gone before you are sure.
- *
- * Clips come from /static/reel/reel.json. Each entry may be a local file or a
- * remote news clip URL.
+ * A queue of news clips from the last pass, playing one after another with the
+ * picture stuttering and tearing like a set that has been on too long. Sound is
+ * off until you ask for it — browsers will not autoplay with audio, and neither
+ * will this.
  */
 
 interface Clip {
@@ -21,12 +19,15 @@ interface Clip {
 }
 
 const FALLBACK: Clip[] = [
-  { src: "/static/musk_is_presented_with_the_reality.mp4", caption: "archive" },
+  { src: "/static/musk_is_presented_with_the_reality.mp4", caption: "archive", kind: "file" },
 ];
+
+const ROTATE_MS = 18_000;
 
 export function NewsReel({ messages }: { messages: string[] }) {
   const [clips, setClips] = useState<Clip[]>(FALLBACK);
   const [index, setIndex] = useState(0);
+  const [sound, setSound] = useState(false);
   const [frame, setFrame] = useState<string | null>(null);
   const [torn, setTorn] = useState(false);
   const video = useRef<HTMLVideoElement | null>(null);
@@ -35,7 +36,6 @@ export function NewsReel({ messages }: { messages: string[] }) {
   useEffect(() => {
     let cancelled = false;
 
-    // News video first, static clips as the floor.
     fetch("/api/reel", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -68,11 +68,13 @@ export function NewsReel({ messages }: { messages: string[] }) {
 
   useEffect(() => {
     if (clips.length < 2) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % clips.length), 22_000);
+    const id = setInterval(() => setIndex((i) => (i + 1) % clips.length), ROTATE_MS);
     return () => clearInterval(id);
   }, [clips.length]);
 
-  // The stutter: pause, jump back a few frames, tear the picture, resume.
+  const clip = clips[index] ?? FALLBACK[0];
+
+  // Stutter: pause, jump back, tear, resume. File clips only.
   useEffect(() => {
     const el = video.current;
     if (!el || clip.kind === "youtube") return;
@@ -80,13 +82,11 @@ export function NewsReel({ messages }: { messages: string[] }) {
 
     const schedule = () => {
       if (!alive) return;
-      const delay = 1200 + Math.random() * 4200;
       const t = setTimeout(() => {
         if (!alive || !el) return;
         try {
           el.pause();
-          const jitter = 0.04 + Math.random() * 0.18;
-          el.currentTime = Math.max(0, el.currentTime - jitter);
+          el.currentTime = Math.max(0, el.currentTime - (0.04 + Math.random() * 0.18));
           setTorn(true);
           setTimeout(() => {
             if (!alive) return;
@@ -97,7 +97,7 @@ export function NewsReel({ messages }: { messages: string[] }) {
           /* ignore */
         }
         schedule();
-      }, delay);
+      }, 1200 + Math.random() * 4200);
       timers.current.push(t);
     };
 
@@ -107,7 +107,7 @@ export function NewsReel({ messages }: { messages: string[] }) {
       timers.current.forEach(clearTimeout);
       timers.current = [];
     };
-  }, [index]);
+  }, [index, clip.kind]);
 
   // The single frame.
   useEffect(() => {
@@ -116,15 +116,15 @@ export function NewsReel({ messages }: { messages: string[] }) {
     const tick = () => {
       if (!alive) return;
       setFrame(messages[Math.floor(Math.random() * messages.length)]);
-      const t = setTimeout(() => {
+      const off = setTimeout(() => {
         if (!alive) return;
         setFrame(null);
         const next = setTimeout(tick, 5200 + Math.random() * 7000);
         timers.current.push(next);
-      }, 90 + Math.random() * 90);
-      timers.current.push(t);
+      }, 110 + Math.random() * 90);
+      timers.current.push(off);
     };
-    const first = setTimeout(tick, 2400);
+    const first = setTimeout(tick, 2200);
     timers.current.push(first);
     return () => {
       alive = false;
@@ -133,20 +133,18 @@ export function NewsReel({ messages }: { messages: string[] }) {
     };
   }, [messages]);
 
-  const clip = clips[index] ?? FALLBACK[0];
+  const embed = (id: string, withSound: boolean) =>
+    `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${withSound ? 0 : 1}&loop=1&playlist=${id}&controls=0&modestbranding=1&playsinline=1&rel=0`;
 
   return (
-    <aside
-      aria-label="news feed"
-      className="pointer-events-none fixed bottom-4 right-4 z-30 hidden w-[196px] select-none sm:block md:w-[232px]"
-    >
+    <figure className="relative">
       <div className={`reel-set ${torn ? "reel-torn" : ""}`}>
         <div className="reel-glass">
           {clip.kind === "youtube" ? (
             <iframe
-              key={clip.src}
+              key={`${clip.src}-${sound}`}
               title={clip.caption}
-              src={`https://www.youtube-nocookie.com/embed/${clip.src}?autoplay=1&mute=1&loop=1&playlist=${clip.src}&controls=0&modestbranding=1&playsinline=1&rel=0`}
+              src={embed(clip.src, sound)}
               allow="autoplay; encrypted-media; picture-in-picture"
               className="reel-video absolute inset-0 h-full w-full"
               frameBorder="0"
@@ -156,7 +154,7 @@ export function NewsReel({ messages }: { messages: string[] }) {
               key={clip.src}
               ref={video}
               autoPlay
-              muted
+              muted={!sound}
               loop
               playsInline
               className="reel-video absolute inset-0 h-full w-full object-cover"
@@ -171,18 +169,29 @@ export function NewsReel({ messages }: { messages: string[] }) {
           {frame && (
             <span
               aria-hidden
-              className="reel-frame absolute inset-x-1 top-1/2 -translate-y-1/2 text-center font-mono text-[9px] font-bold uppercase leading-tight tracking-[0.12em] text-sheetWhite"
+              className="reel-frame pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 text-center font-mono text-[11px] font-bold uppercase leading-tight tracking-[0.12em] text-sheetWhite"
             >
               {frame}
             </span>
           )}
 
-          <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 px-1.5 py-1 font-mono text-[7px] uppercase tracking-[0.2em] text-sheetWhite/45">
+          <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 px-2 py-1.5 font-mono text-[8px] uppercase tracking-[0.2em] text-sheetWhite/55">
             <span className="h-1 w-1 animate-pulse bg-spiteCrimson" />
             <span className="truncate">{clip.caption}</span>
+            <span className="ml-auto shrink-0 tabular-nums text-sheetWhite/35">
+              {String(index + 1).padStart(2, "0")}/{String(clips.length).padStart(2, "0")}
+            </span>
           </div>
         </div>
       </div>
-    </aside>
+
+      <button
+        type="button"
+        onClick={() => setSound((s) => !s)}
+        className="absolute -bottom-3 right-2 z-10 border border-chop-border bg-canvasBlack px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.2em] text-chop-muted hover:border-spiteCrimson hover:text-spiteCrimson"
+      >
+        {sound ? "sound on" : "sound off"}
+      </button>
+    </figure>
   );
 }

@@ -40,23 +40,25 @@ export default function HomePage() {
 
       <NavBar />
 
-      <NewsReel
-        messages={
-          state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
-        }
-      />
-
       <main className="relative z-10 pb-20 md:pb-8">
-        <div className="mx-auto mt-8 max-w-6xl px-4 md:px-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
-            {content.hero.badge}
-          </p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
-            {content.hero.headline}
-          </h1>
-          <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted md:text-[13px]">
-            {content.hero.subheadline}
-          </p>
+        <div className="mx-auto mt-8 grid max-w-6xl items-start gap-6 px-4 md:px-6 lg:grid-cols-[1fr_420px]">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
+              {content.hero.badge}
+            </p>
+            <h1 className="mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
+              {content.hero.headline}
+            </h1>
+            <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted md:text-[13px]">
+              {content.hero.subheadline}
+            </p>
+          </div>
+
+          <NewsReel
+            messages={
+              state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
+            }
+          />
         </div>
 
         {/* ── Ada, in her own voice ───────────────────────────────────── */}

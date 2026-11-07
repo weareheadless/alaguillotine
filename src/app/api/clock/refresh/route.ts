@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig, runClockPass } from "@/lib/clock-research";
 import { getDb, readClock, writeClock } from "@/lib/clock-store";
-import { findReelClip } from "@/lib/youtube";
+import { findReelClips } from "@/lib/youtube";
 import { saveReelClip } from "@/lib/reel-store";
 
 export const dynamic = "force-dynamic";
@@ -16,13 +16,14 @@ export const dynamic = "force-dynamic";
 async function refreshReel(env: { YOUTUBE_API_KEY?: string }): Promise<number> {
   if (!env.YOUTUBE_API_KEY) return 0;
   try {
-    const video = await findReelClip(env.YOUTUBE_API_KEY);
-    if (!video) return 0;
-    await saveReelClip(
-      { url: video.videoId, caption: video.title, source: video.channel, kind: "youtube" },
-      `https://www.youtube.com/watch?v=${video.videoId}`,
-    );
-    return 1;
+    const clips = await findReelClips(env.YOUTUBE_API_KEY);
+    for (const clip of clips) {
+      await saveReelClip(
+        { url: clip.videoId, caption: clip.title, source: clip.channel, kind: "youtube" },
+        `https://www.youtube.com/watch?v=${clip.videoId}`,
+      );
+    }
+    return clips.length;
   } catch {
     return 0;
   }

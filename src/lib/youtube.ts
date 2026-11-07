@@ -13,6 +13,12 @@ const QUERIES = [
   "Sky News protest clashes",
   "Reuters protest crackdown",
   "AP News press conference",
+  "Channel 4 News cost of living",
+  "Guardian News eviction housing",
+  "Al Jazeera crackdown arrests",
+  "DW News protest Europe",
+  "CBS News strike workers",
+  "NBC News billionaires congress",
 ];
 
 const API = "https://www.googleapis.com/youtube/v3/search";
@@ -32,6 +38,15 @@ interface SearchItem {
     publishedAt?: string;
     liveBroadcastContent?: string;
   };
+}
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 }
 
 function isMostlyLatin(text: string): boolean {
@@ -69,7 +84,7 @@ async function search(query: string, key: string): Promise<YoutubeClip[]> {
     return [
       {
         videoId: id,
-        title: snippet.title.slice(0, 90),
+        title: decodeEntities(snippet.title).slice(0, 90),
         channel: (snippet.channelTitle ?? "unknown").slice(0, 60),
         publishedAt: snippet.publishedAt ?? new Date().toISOString(),
       },
@@ -77,11 +92,23 @@ async function search(query: string, key: string): Promise<YoutubeClip[]> {
   });
 }
 
-/** Newest clip from the first query that returns anything. */
-export async function findReelClip(key: string): Promise<YoutubeClip | null> {
+/**
+ * A stream, not a clip: the newest result from each query, deduped. Twelve
+ * searches is twelve chances at footage, and the television rotates through all
+ * of it.
+ */
+export async function findReelClips(key: string): Promise<YoutubeClip[]> {
+  const seen = new Set<string>();
+  const clips: YoutubeClip[] = [];
+
   for (const query of QUERIES) {
-    const results = await search(query, key);
-    if (results.length) return results[0];
+    for (const clip of await search(query, key)) {
+      if (seen.has(clip.videoId)) continue;
+      seen.add(clip.videoId);
+      clips.push(clip);
+      if (clips.length >= 10) return clips;
+    }
   }
-  return null;
+
+  return clips;
 }

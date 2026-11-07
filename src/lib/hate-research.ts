@@ -17,6 +17,14 @@ const QUERIES = [
   { topic: "crackdown", q: "protesters arrested crackdown emergency powers" },
   { topic: "justice", q: "war crimes arrest warrant investigation" },
   { topic: "displacement", q: "displaced famine siege humanitarian crisis" },
+  { topic: "sanctions", q: "sanctions oligarch assets frozen" },
+  { topic: "coup", q: "military coup junta seizes power" },
+  { topic: "border", q: "border shelling civilians killed" },
+  { topic: "surveillance", q: "police chief surveillance powers emergency law" },
+  { topic: "orders", q: "president orders military response operation" },
+  { topic: "orders", q: "minister announces crackdown security forces" },
+  { topic: "orders", q: "prime minister defends arms sale parliament" },
+  { topic: "orders", q: "defence minister approves weapons deal" },
 ];
 
 const SYSTEM = `You are Ada, keeping the queue for a satirical installation called alaguillotine. The queue names the public figures the week's war and repression reporting keeps returning to. Each one gets a counter and a blade. It is not a verdict and not a legal finding — it is how much documented harm is being reported in whose name.
@@ -29,6 +37,7 @@ RULES — hard:
 5. harm 0-100: 90-100 mass civilian harm documented; 70-89 significant lethal violence or systematic repression; 50-69 structural harm or the machinery feeding it; 30-49 tension without documented harm; 0-29 noise.
 6. Figures: only people EXPLICITLY named in the text who hold decision-making power over force — head of state or government, defence or interior minister, military commander, security-service chief, arms manufacturer executive. EXCLUDE critics, investigators, mediators, negotiators, aid workers, lawyers, witnesses, victims and human-rights officials. No inference. No private individuals. State only what the report says they did or ordered.
 7. Every figure cites item_indices. No figure without items.
+8. Name as many qualifying people as the text supports, up to 12. A thin list is a wasted pass.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],
