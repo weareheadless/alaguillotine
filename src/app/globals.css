@@ -992,20 +992,20 @@ body::after {
   animation: reel-tear 120ms steps(2) 1;
 }
 .reel-video {
-  filter: grayscale(0.7) contrast(1.3) brightness(0.5) saturate(0.7);
+  filter: grayscale(0.35) contrast(1.12) brightness(0.92) saturate(0.95);
 }
 .reel-scanlines {
   background-image: repeating-linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.45) 0px,
-    rgba(0, 0, 0, 0.45) 1px,
+    rgba(0, 0, 0, 0.28) 0px,
+    rgba(0, 0, 0, 0.28) 1px,
     transparent 1px,
     transparent 3px
   );
   mix-blend-mode: multiply;
 }
 .reel-vignette {
-  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.85) 100%);
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, 0.55) 100%);
 }
 .reel-frame {
   opacity: 0.55;
@@ -1026,4 +1026,12 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .reel-glass { animation: none; }
   .reel-torn { animation: none; }
+}
+
+/* ─── The blade is the point: make it read from across the room ─────────── */
+.mini-blade {
+  filter: drop-shadow(0 0 6px rgba(225, 29, 72, 0.45)) drop-shadow(0 0 18px rgba(225, 29, 72, 0.18));
+}
+.mini-blade-frame {
+  filter: drop-shadow(0 0 4px rgba(244, 244, 245, 0.12));
 }

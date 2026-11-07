@@ -11,25 +11,64 @@ import type { Figure } from "../lib/hateometer";
  */
 
 function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
-  const travel = dropped ? 46 : (Math.min(97, Math.max(3, score)) / 100) * 46;
+  const travel = dropped ? 58 : (Math.min(97, Math.max(3, score)) / 100) * 58;
+
   return (
-    <svg viewBox="0 0 64 92" className="h-24 w-16 shrink-0" aria-hidden>
-      <rect x="6" y="4" width="52" height="5" fill="#18181B" stroke="#27272A" />
-      <rect x="8" y="4" width="4" height="84" fill="#141416" stroke="#27272A" />
-      <rect x="52" y="4" width="4" height="84" fill="#141416" stroke="#27272A" />
-      <line x1="32" y1="9" x2="32" y2={14 + travel} stroke="#3F3F46" strokeWidth="1" strokeDasharray="2 2" />
+    <svg viewBox="0 0 80 116" className="h-36 w-[104px] shrink-0 md:h-48 md:w-36" aria-hidden>
+      <defs>
+        <linearGradient id="miniSteel" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#F4F4F5" />
+          <stop offset="40%" stopColor="#D4D4D8" />
+          <stop offset="60%" stopColor="#71717A" />
+          <stop offset="100%" stopColor="#3F3F46" />
+        </linearGradient>
+      </defs>
+
+      {/* glow behind the machine */}
+      <ellipse cx="40" cy="52" rx="34" ry="50" fill="#E11D48" opacity="0.16" />
+
+      {/* frame */}
+      <rect x="4" y="3" width="72" height="8" fill="#3F3F46" stroke="#71717A" strokeWidth="1.2" />
+      <rect x="5" y="3" width="8" height="108" fill="#27272A" stroke="#71717A" strokeWidth="1.2" />
+      <rect x="67" y="3" width="8" height="108" fill="#27272A" stroke="#71717A" strokeWidth="1.2" />
+
+      {/* rope */}
+      <line
+        x1="40"
+        y1="10"
+        x2="40"
+        y2={18 + travel}
+        stroke="#52525B"
+        strokeWidth="1.2"
+        strokeDasharray="2 2"
+      />
+
+      {/* blade */}
       <g
-        className={dropped ? "blade-drop" : undefined}
+        className="mini-blade"
         style={{
           transform: `translateY(${travel}px)`,
           transition: "transform 1.2s cubic-bezier(.22,1,.36,1)",
         }}
       >
-        <rect x="12" y="14" width="40" height="6" fill="#A1A1AA" />
-        <path d="M12 20 L52 20 L32 29 Z" fill="#7F1D1D" />
-        <line x1="12" y1="20" x2="52" y2="20" stroke="#F4F4F5" strokeWidth="1" opacity="0.8" />
+        <rect x="13" y="18" width="54" height="10" fill="url(#miniSteel)" />
+        <path d="M13 28 L67 28 L40 42 Z" fill="#BE123C" />
+        <path d="M13 28 L67 28 L40 42 Z" fill="url(#miniSteel)" opacity="0.45" />
+        <line x1="13" y1="28" x2="67" y2="28" stroke="#FFFFFF" strokeWidth="1.8" />
+        <line x1="13" y1="18" x2="67" y2="18" stroke="#E4E4E7" strokeWidth="0.8" opacity="0.8" />
       </g>
-      <line x1="12" y1="66" x2="52" y2="66" stroke="#E11D48" strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
+
+      {/* the line */}
+      <line
+        x1="13"
+        y1="84"
+        x2="67"
+        y2="84"
+        stroke="#E11D48"
+        strokeWidth="1.5"
+        strokeDasharray="5 3"
+        opacity="0.65"
+      />
     </svg>
   );
 }

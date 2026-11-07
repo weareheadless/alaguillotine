@@ -10,7 +10,18 @@ export const revalidate = 0;
  */
 export async function GET() {
   try {
-    const clips = await listReelClips(6);
+    const decode = (v: string) =>
+      v
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">");
+    const clips = (await listReelClips(6)).map((c) => ({
+      ...c,
+      caption: decode(c.caption),
+      source: decode(c.source),
+    }));
     return Response.json(
       { clips },
       { headers: { "Cache-Control": "no-store" } },

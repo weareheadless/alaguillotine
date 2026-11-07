@@ -133,8 +133,11 @@ export function NewsReel({ messages }: { messages: string[] }) {
     };
   }, [messages]);
 
-  const embed = (id: string, withSound: boolean) =>
-    `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${withSound ? 0 : 1}&loop=1&playlist=${id}&controls=0&modestbranding=1&playsinline=1&rel=0`;
+  const embed = (id: string, withSound: boolean) => {
+    const origin =
+      typeof window === "undefined" ? "" : `&origin=${encodeURIComponent(window.location.origin)}`;
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${withSound ? 0 : 1}&loop=1&playlist=${id}&controls=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=0${origin}`;
+  };
 
   return (
     <figure className="relative">
