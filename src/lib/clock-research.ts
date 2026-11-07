@@ -1,3 +1,4 @@
+import { fetchLemmyCandidates } from './lemmy'
 import {
   ALPHA,
   DIMENSIONS,
@@ -167,7 +168,21 @@ export async function runClockPass(
   const after = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10)
   const candidates: Candidate[] = []
 
-  for (const { topic, q } of QUERIES) {
+  // Federated communities first: they are the newsroom now.
+  for (const post of await fetchLemmyCandidates()) {
+    candidates.push({
+      topic: post.topic,
+      title: post.title,
+      url: post.url,
+      site: post.site,
+      date: post.date,
+      summary: post.summary,
+      authority: post.authority,
+    })
+  }
+
+  // The wire only fills the gaps.
+  for (const { topic, q } of candidates.length >= 12 ? [] : QUERIES) {
     const data = await post<{ results?: Array<Record<string, unknown>> }>(
       `${config.searchBase}/v1/tools/search`,
       { query: `${q} lang:en after:${after}`, count: 5, need_content: false },
