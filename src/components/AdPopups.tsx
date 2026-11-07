@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { fetchTopBounties } from "../app/actions/feed";
 import type { FeedMessage } from "../lib/types";
 import { useSiteContent } from "../lib/use-site-content";
+import { useAdaVoice } from "../lib/use-ada-voice";
 import type { AdContent } from "../lib/content";
 
 export function AdPopups() {
@@ -40,6 +41,9 @@ export function AdPopups() {
     };
   }, []);
 
+  const ada = useAdaVoice();
+  const ads = ada.ads.length ? ada.ads : content.ads;
+
   const triggerNextAd = useCallback((history: number[], currentBounties: FeedMessage[]) => {
     // 50% chance to show a user-paid bounty if we have any
     if (currentBounties.length > 0 && Math.random() > 0.5) {
@@ -48,13 +52,13 @@ export function AdPopups() {
       setCurrentAd({ isSystem: false, data: randomBounty });
     } else {
       // Pick a system ad we haven't seen recently
-      const available = content.ads.map((_, i) => i).filter(i => !history.includes(i));
-      const nextPool = available.length > 0 ? available : content.ads.map((_, i) => i);
+      const available = ads.map((_, i) => i).filter(i => !history.includes(i));
+      const nextPool = available.length > 0 ? available : ads.map((_, i) => i);
       const nextAdIdx = nextPool[Math.floor(Math.random() * nextPool.length)];
-      setCurrentAd({ isSystem: true, data: content.ads[nextAdIdx] });
+      setCurrentAd({ isSystem: true, data: ads[nextAdIdx] });
       setAdHistory(prev => [...prev.slice(-2), nextAdIdx]);
     }
-  }, [content.ads]);
+  }, [ads]);
 
   useEffect(() => {
     // Start first ad after a short delay

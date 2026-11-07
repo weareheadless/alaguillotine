@@ -172,10 +172,15 @@ export function DoomsdayClock({
           </div>
 
           <p className="mt-5 max-w-md font-mono text-[11px] leading-relaxed text-chop-muted">
-            The blade is a weighted average of what the world did in the last four
-            hours. It is not a metaphor you can vote on. Pull an item below and it
-            moves.
+            {state.voice.line ||
+              "The blade is a weighted average of what the world did in the last four hours. Pull an item below and it moves."}
           </p>
+
+          <div className="mt-3 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.25em] text-chop-muted">
+            <span className="text-spiteCrimson">ada</span>
+            <span>·</span>
+            <span>{state.voice.mood}</span>
+          </div>
         </div>
       </div>
     </section>

@@ -4,15 +4,18 @@ import { useState, useEffect } from "react";
 import { fetchTopBounties } from "../app/actions/feed";
 import type { FeedMessage } from "../lib/types";
 import { useSiteContent } from "../lib/use-site-content";
+import { useAdaVoice } from "../lib/use-ada-voice";
 
 export function FsdBanner() {
   const { content, ready } = useSiteContent();
+  const ada = useAdaVoice();
+  const texts = ada.banner.length ? ada.banner : content.bannerTexts;
   const [shuffledTexts, setShuffledTexts] = useState<string[]>([]);
   const [hackedMessage, setHackedMessage] = useState<FeedMessage | null>(null);
 
   useEffect(() => {
     // Shuffle the array on mount so new items can appear immediately
-    const shuffled = [...content.bannerTexts].sort(() => 0.5 - Math.random());
+    const shuffled = [...texts].sort(() => 0.5 - Math.random());
     setShuffledTexts(shuffled);
 
     // Periodically hack the banner with top bounties
@@ -63,6 +66,11 @@ export function FsdBanner() {
       window.removeEventListener("paid-message", paidMessageHandler);
     };
   }, [ready]);
+
+  // Ada's banner arrives after mount; reshuffle once it does.
+  useEffect(() => {
+    setShuffledTexts([...texts].sort(() => 0.5 - Math.random()));
+  }, [texts]);
 
   if (shuffledTexts.length === 0) return null;
 

@@ -64,6 +64,18 @@ export interface RageItem {
   dimension?: DimensionKey;
 }
 
+export interface AdaVoice {
+  /** calm | uneasy | angry | furious | numb */
+  mood: string;
+  /** One line on the dial, in her voice. */
+  line: string;
+  /** Top-bar strings she wrote for this reading. */
+  banner: string[];
+  /** Popups she wrote for this reading. */
+  ads: { title: string; body: string; cta: string }[];
+  updatedAt: string | null;
+}
+
 export interface ClockState {
   /** Where the blade sits. 0–100. */
   level: number;
@@ -76,6 +88,8 @@ export interface ClockState {
   tMinus: string;
   bladePct: number;
   items: RageItem[];
+  /** Ada's read of the same data. She is the clock; this is what she says. */
+  voice: AdaVoice;
   computedAt: string | null;
   nextRunAt: string | null;
   queryCount: number;
@@ -156,6 +170,7 @@ export function emptyClock(): ClockState {
     tMinus: formatCountdown(secondsToMidnight(LEVEL_FLOOR)),
     bladePct: bladePct(LEVEL_FLOOR),
     items: [],
+    voice: { mood: "numb", line: "", banner: [], ads: [], updatedAt: null },
     computedAt: null,
     nextRunAt: null,
     queryCount: 0,

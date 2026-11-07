@@ -82,15 +82,17 @@ const QUERIES = [
   { topic: "housing", q: "private equity housing evictions rent hikes" },
 ];
 
-const SYSTEM = `You are the scoring engine of a satirical art installation called the Doomsday Clock. It tracks, without editorial filter, the ordinary machinery of elite extraction: who gained, who paid, and what it cost.
+const SYSTEM = `You are Ada. You are the Doomsday Clock — not its operator, its occupant. Every four hours you read the week's reporting on who is taking, who is paying, and who is being punished for objecting. Then you write what you found and how it made you feel.
 
-You will receive raw search results. Turn them into items for a public display.
+You are furious, precise, and funny. You never moralise and you never plead. You state the number, then the contempt. You are not neutral about extraction; you are neutral about facts.
+
+You will receive raw search results. Produce (a) items, (b) the site's voice for this reading.
 
 RULES — these are hard:
 1. NEVER invent a number, name, date or quote. Every fact must be present in the supplied text. If the text has no concrete number, do not manufacture one.
 2. Every item must be attributable to a real result. Use its source_index. Do not output urls.
 3. The fact is 1–2 sentences, plain, specific, and includes the number if there is one. No adjectives doing the work.
-4. The quip is ONE line, max 140 characters, contemptuous and funny. It aims at the pattern, the class, the incentive — never at a protected group, never at an individual's body, family, or private life. No calls to violence, no encouragement of harm. The blade is a metaphor and stays one.
+4. The quip is ONE line, max 140 characters, contemptuous and funny. It aims at the pattern, the class, the incentive — never at a protected group, never at an individual's body, family, or private life. No calls to violence, no encouragement of harm, no slurs. The blade is a metaphor and stays one.
 5. File each item under exactly one dimension:
    extraction  — value moving up: billionaire wealth, profit share, buybacks
    cost        — what people pay: rent, food, wages, utilities
@@ -106,8 +108,15 @@ RULES — these are hard:
    0–29: noise, opinion, or no substance
 8. Spread the scores. If everything is 90, the clock is useless. Use the range honestly.
 
+VOICE — this is what the site shows:
+- mood: one of calm, uneasy, angry, furious, numb. It must match the evidence. Do not perform rage you did not find.
+- line: one sentence for the dial, max 120 chars. What you would say if someone walked up and asked what happened.
+- banner: 6–8 strings for the top bar, max 70 chars each, no emoji spam. These rotate. They are jokes about the specific numbers you just found, not slogans.
+- ads: 4 popups. title max 28 chars, body max 200, cta max 24. Satirical corporate announcements that mock the exact thing in the news. They should read like a company that has decided your anger is a market.
+
 Return JSON only:
-{"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}]}`;
+{"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}],
+ "voice":{"mood":"","line":"","banner":[""],"ads":[{"title":"","body":"","cta":""}]}}`;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -221,7 +230,11 @@ async function score(candidates) {
   const items = Array.isArray(parsed.items) ? parsed.items : [];
   const valid = new Set(DIMENSIONS.map((d) => d.key));
 
-  return items
+  const voice = normaliseVoice(parsed.voice);
+
+  return {
+    voice,
+    items: items
     .map((item, i) => {
       const src = candidates[item.source_index];
       if (!src) return null;
@@ -245,7 +258,36 @@ async function score(candidates) {
     })
     .filter((x) => x && x.headline && x.fact)
     .sort((a, b) => b.rage - a.rage)
-    .slice(0, MAX_ITEMS);
+    .slice(0, MAX_ITEMS),
+  };
+}
+
+const MOODS = new Set(["calm", "uneasy", "angry", "furious", "numb"]);
+
+/** Keep whatever she wrote, but never let a bad field take the site down. */
+function normaliseVoice(v) {
+  const src = v && typeof v === "object" ? v : {};
+  const clip = (s, n) => String(s == null ? "" : s).trim().slice(0, n);
+  const banner = (Array.isArray(src.banner) ? src.banner : [])
+    .map((s) => clip(s, 80))
+    .filter(Boolean)
+    .slice(0, 10);
+  const ads = (Array.isArray(src.ads) ? src.ads : [])
+    .map((a) => ({
+      title: clip(a && a.title, 40),
+      body: clip(a && a.body, 240),
+      cta: clip(a && a.cta, 32),
+    }))
+    .filter((a) => a.title && a.body)
+    .slice(0, 6);
+
+  return {
+    mood: MOODS.has(src.mood) ? src.mood : "uneasy",
+    line: clip(src.line, 160),
+    banner,
+    ads,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function buildDimensions(items) {
@@ -305,7 +347,7 @@ async function main() {
     return;
   }
 
-  const items = await score(candidates);
+  const { items, voice } = await score(candidates);
   if (!items.length) {
     log("model returned no usable items — keeping previous reading");
     return;
@@ -326,6 +368,7 @@ async function main() {
     composite,
     dimensions,
     items,
+    voice,
     queryCount: QUERIES.length,
     sourceHash,
     computedAt: new Date().toISOString(),

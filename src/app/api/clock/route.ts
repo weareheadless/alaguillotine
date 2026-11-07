@@ -6,6 +6,7 @@ import {
   emptyClock,
   formatCountdown,
   secondsToMidnight,
+  type AdaVoice,
   type ClockState,
   type Dimension,
   type RageItem,
@@ -30,6 +31,7 @@ export async function GET() {
       composite?: number;
       dimensions?: Dimension[];
       items?: RageItem[];
+      voice?: AdaVoice;
       computedAt?: string | null;
       nextRunAt?: string | null;
       queryCount?: number;
@@ -61,6 +63,7 @@ export async function GET() {
       tMinus: formatCountdown(seconds),
       bladePct: bladePct(level),
       items,
+      voice: parsed.voice ?? emptyClock().voice,
       computedAt,
       nextRunAt: parsed.nextRunAt ?? null,
       queryCount: parsed.queryCount ?? 0,
