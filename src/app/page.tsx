@@ -27,8 +27,9 @@ export default function HomePage() {
   const chopped = hate.figures.filter((f) => f.droppedAt);
   // The executioners: the last two whose blades fell. The homepage shows the
   // deaths, not the queue — the queue lives on /next-in-line.
+  // The homepage shows deaths, never the queue. Everyone still waiting belongs
+  // on /next-in-line, so nobody appears in two places.
   const executing = chopped.slice(0, 2);
-  const promoted = standing.slice(0, 2);
 
   return (
     <div className="relative min-h-screen bg-canvasBlack">
@@ -92,7 +93,7 @@ export default function HomePage() {
                 executions
               </h2>
               <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                {chopped.length} chopped · {standing.length} waiting
+                {chopped.length} chopped · {standing.length} waiting in the line
               </span>
             </div>
 
@@ -108,25 +109,6 @@ export default function HomePage() {
               </div>
             )}
 
-            <div className="mt-8 border-t border-chop-border pt-4">
-              <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-                <span>promoted from the line</span>
-                <a href="/next-in-line" className="underline decoration-chop-border underline-offset-4 hover:text-sheetWhite">
-                  the full line
-                </a>
-              </div>
-              <div className="space-y-2">
-                {promoted.length === 0 ? (
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
-                    the line is empty
-                  </p>
-                ) : (
-                  promoted.map((figure) => (
-                    <QueueCard key={`${figure.name}-${figure.rank}`} figure={figure} />
-                  ))
-                )}
-              </div>
-            </div>
           </section>
         </div>
 

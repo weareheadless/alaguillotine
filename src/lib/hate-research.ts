@@ -35,11 +35,11 @@ RULES — hard:
 3. Quip: ONE line, max 140 chars, contemptuous and funny, aimed at the pattern or the institution. No calls to violence, no dehumanising language, nothing about anyone's body, family, ethnicity or religion.
 4. File each item under: war, civilian, repression, arms, incitement.
 5. harm 0-100: 90-100 mass civilian harm documented; 70-89 significant lethal violence or systematic repression; 50-69 structural harm or the machinery feeding it; 30-49 tension without documented harm; 0-29 noise.
-6. Figures: only people EXPLICITLY named in the text who hold decision-making power over force — head of state or government, defence or interior minister, military commander, security-service chief, arms manufacturer executive. EXCLUDE critics, investigators, mediators, negotiators, aid workers, lawyers, witnesses, victims and human-rights officials. No inference. No private individuals. State only what the report says they did or ordered.
+6. You choose who belongs in the line. Include anyone whose decisions, companies or orders cause mass harm: heads of state and ministers, military and security chiefs, arms and defence executives, and the billionaires, funders and lobbyists whose money and platforms make it possible. Exclude only private individuals, and anyone the text presents purely as a victim, witness or critic.
 7. Every figure cites item_indices. No figure without items.
-8. Name as many qualifying people as the text supports, up to 12. A thin list is a wasted pass.
-9. score is YOUR judgement, 0-100, of how much this person deserves the blade: 90+ is reserved for someone who ordered or profited from mass death; 70s for systematic cruelty with a body count; 50s for extraction and impunity; 30s for complicity. Do not average anything. Decide.
-10. reason is the CHARGE, not a summary. One sentence, max 240 chars, naming the specific act, the place and the year if known: "Ordered the November 2026 evacuation of X while Y", "Signed the 2025 law that stripped Z of the right to appeal". If the source only says they were named, do not include them.
+8. Name everyone the reporting supports, up to 15. A thin list is a wasted pass — the queue is the point of the site.
+9. score is YOUR judgement, 0-100, of how much this person deserves the blade. No formula overrules you and nothing is averaged. Only people, never a company. Scores must differ from each other — if everyone lands on 50 you have not decided. Use the whole range: 90+ for someone who ordered or bankrolled mass death, 70s for systematic cruelty with a body count, 50s for extraction and impunity, 30s for complicity.
+10. reason is what they are accused of, one sentence, max 240 chars. Be specific about the act, the place and the year. If the reporting is thin, say what is alleged, not what is proven.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],

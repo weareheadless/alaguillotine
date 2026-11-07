@@ -8,17 +8,24 @@
  * The Lemmy API is public and needs no key.
  */
 
-const INSTANCE = "https://lemmy.world";
+interface Source {
+  instance: string;
+  name: string;
+}
 
-const COMMUNITIES = [
-  "world",
-  "fuck_ai",
-  "politics",
-  "latestagecapitalism",
-  "aboringdystopia",
-  "enshittification",
-  "enoughmuskspam",
-  "eattherich",
+// Two instances, so no single server decides what Ada reads.
+const COMMUNITIES: Source[] = [
+  { instance: "https://lemmy.world", name: "world" },
+  { instance: "https://lemmy.world", name: "fuck_ai" },
+  { instance: "https://lemmy.world", name: "politics" },
+  { instance: "https://lemmy.world", name: "latestagecapitalism" },
+  { instance: "https://lemmy.world", name: "aboringdystopia" },
+  { instance: "https://lemmy.world", name: "enshittification" },
+  { instance: "https://lemmy.world", name: "enoughmuskspam" },
+  { instance: "https://lemmy.world", name: "eattherich" },
+  { instance: "https://lemmy.ml", name: "worldnews" },
+  { instance: "https://lemmy.ml", name: "nottheonion" },
+  { instance: "https://lemmy.ml", name: "unions" },
 ];
 
 export interface LemmyPost {
@@ -44,12 +51,12 @@ interface ApiPost {
 
 const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 
-async function fetchCommunity(name: string): Promise<LemmyPost[]> {
+async function fetchCommunity({ instance, name }: Source): Promise<LemmyPost[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
     const res = await fetch(
-      `${INSTANCE}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=TopDay&limit=12`,
+      `${instance}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=TopDay&limit=12`,
       { signal: controller.signal, headers: { accept: "application/json" } },
     );
     if (!res.ok) return [];
@@ -65,7 +72,7 @@ async function fetchCommunity(name: string): Promise<LemmyPost[]> {
           topic: name,
           title: clip(post.name, 180),
           url: clip(post.url || post.ap_id, 500),
-          site: `c/${name}`,
+          site: `c/${name}@${new URL(instance).hostname}`,
           date: post.published ?? null,
           summary: clip(post.body || post.name, 900),
           authority: Math.min(4, 1 + Math.floor(score / 50)),
