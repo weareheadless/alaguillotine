@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig } from "@/lib/clock-research";
 import { CASES, researchCase } from "@/lib/backfill";
+import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,14 @@ export async function POST(request: Request) {
 
   const run: Array<{ case: string; entries: number }> = [];
 
+  // One row per act, not per person per case: the id has to differ when the
+  // same name carries several charges.
+  const actHash = (s: string) => {
+    let h = 5381;
+    for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+  };
+
   for (let n = 0; n < batch; n += 1) {
     let next = wanted ? CASES.find((c) => c.id === wanted) : undefined;
     if (!next) {
@@ -75,7 +84,7 @@ export async function POST(request: Request) {
              ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources`,
           )
           .bind(
-            `${e.caseId}:${e.person.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            `${e.caseId}:${slugify(e.person)}:${actHash(e.act)}`,
             e.person,
             e.role,
             e.act,

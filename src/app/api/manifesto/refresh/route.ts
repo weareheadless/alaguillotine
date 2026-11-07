@@ -38,8 +38,8 @@ export async function POST(request: Request) {
 
   const db = await getDb();
   const queue = db ? await readQueue(db) : [];
-  const standing = queue.filter((p) => !p.droppedAt).slice(0, 12);
-  const chopped = queue.filter((p) => p.droppedAt).slice(0, 12);
+  const standing = queue.slice(0, 12);
+  const chopped = queue.filter((p) => (p.timesChopped ?? 0) > 0).slice(0, 12);
 
   const res = await fetch(`${config.chatBase}/chat/completions`, {
     method: "POST",

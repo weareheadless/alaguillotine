@@ -90,7 +90,7 @@ RULES — hard:
 5. act is one sentence, max 200 chars, specific: what was done, where, when.
 6. category: war | genocide | repression | arms | extraction | impunity.
 7. confidence 0-100: 90+ for a court finding or UN determination; 70s for multiple independent investigations; 50s for credible reporting; below 40 do not include.
-8. If the case carries a subject, every entry must be about that subject and no one else. Give the subject's full public name exactly as it appears in reporting.
+8. If the case carries a subject, every entry must be about that subject and no one else. Give the subject's full public name exactly as it appears in reporting. An act carried out by a company counts as the subject's when they are its chief executive, founder or controlling owner — say so in the act ("Oracle, under Ellison, ...").
 
 Return JSON only:
 {"entries":[{"person":"","role":"","act":"","place":"","year":2024,"category":"war","confidence":0,"sources":["https://...","https://..."]}]}`;

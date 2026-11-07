@@ -55,22 +55,16 @@ function Move({ delta }: { delta: number | null }) {
 }
 
 export function QueueCard({ figure }: { figure: Figure }) {
-  const dropped = Boolean(figure.droppedAt);
-
   return (
-    <article
-      className={`group relative border bg-chop-card/40 transition-colors hover:bg-chop-card ${
-        dropped ? "border-spiteCrimson/70 bg-spiteCrimson/[0.06]" : "border-chop-border"
-      }`}
-    >
+    <article className="group relative border border-chop-border bg-chop-card/40 transition-colors hover:bg-chop-card">
       <div
         className="absolute left-0 top-0 h-full bg-spiteCrimson"
-        style={{ width: dropped ? 4 : 2 }}
+        style={{ width: 2 }}
         aria-hidden
       />
 
       <div className="flex gap-4 p-4 md:gap-6 md:p-5">
-        <MiniBlade score={figure.score} dropped={dropped} />
+        <MiniBlade score={figure.score} dropped={false} />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
@@ -102,18 +96,10 @@ export function QueueCard({ figure }: { figure: Figure }) {
                 {Math.round(figure.score)}
               </div>
               <div className="mt-1 flex items-center justify-end gap-2">
-                {dropped ? (
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-spiteCrimson">
-                    dropped
-                  </span>
-                ) : (
-                  <>
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-chop-muted">
-                      {figure.mentions} rep
-                    </span>
-                    <Move delta={figure.delta} />
-                  </>
-                )}
+                <span className="font-mono text-[9px] uppercase tracking-widest text-chop-muted">
+                  {figure.mentions} rep
+                </span>
+                <Move delta={figure.delta} />
               </div>
             </div>
           </div>
@@ -121,13 +107,6 @@ export function QueueCard({ figure }: { figure: Figure }) {
           <p className="mt-3 font-mono text-[11px] leading-relaxed text-chop-muted">
             {figure.reason}
           </p>
-
-          {dropped && (
-            <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.25em] text-spiteCrimson">
-              blade fell {new Date(figure.droppedAt as string).toUTCString().slice(5, 16)} · counter frozen at{" "}
-              {Math.round(figure.score)}
-            </p>
-          )}
 
           {figure.items.length > 0 && (
             <ul className="mt-3 space-y-2 border-t border-chop-border/60 pt-3">
