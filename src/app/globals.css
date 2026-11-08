@@ -1087,8 +1087,9 @@ body::after {
   animation: wire-in 420ms ease-out both;
 }
 @keyframes wire-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  /* No opacity here: a paused or throttled tab must still show the wire. */
+  from { transform: translateY(6px); }
+  to   { transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .wire-in { animation: none; }

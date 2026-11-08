@@ -38,12 +38,17 @@ export function LiveWire({ items }: { items: RageItem[] }) {
           wire
         </span>
 
-        <div key={item.id} className="min-w-0 flex-1 overflow-hidden">
-          <p className="wire-in truncate font-mono text-[11px] text-sheetWhite">
+        <div key={item.id} className="wire-in min-w-0 flex-1 overflow-hidden">
+          <p className="truncate font-mono text-[11px] text-sheetWhite">
             <span className="text-chop-muted">{item.source}</span>
             <span className="mx-2 text-chop-muted">·</span>
             {item.headline}
           </p>
+          {item.quip ? (
+            <p className="truncate font-mono text-[10px] leading-tight text-spiteCrimson/90">
+              {item.quip}
+            </p>
+          ) : null}
         </div>
 
         <span className="hidden shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted sm:inline">

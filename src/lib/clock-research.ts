@@ -137,6 +137,10 @@ export function normaliseVoice(raw: unknown): AdaVoice {
   return {
     mood: MOODS.has(String(src.mood)) ? String(src.mood) : 'uneasy',
     line: clip(src.line, 160),
+    // She may rewrite the front page, but only when she chooses to: an empty
+    // headline leaves the standing copy in place.
+    headline: clip(src.headline, 70).toUpperCase(),
+    subheadline: clip(src.subheadline, 300),
     banner,
     ads,
     subliminal,

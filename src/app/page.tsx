@@ -27,6 +27,10 @@ import { useSiteContent } from "../lib/use-site-content";
 export default function HomePage() {
   const { content } = useSiteContent();
   const { state, pulls, pull } = useClock();
+  // Ada rewrites the front page when she has something to say; otherwise the
+  // standing copy holds.
+  const heroHeadline = state.voice.headline || content.hero.headline;
+  const heroSubheadline = state.voice.subheadline || content.hero.subheadline;
   const { state: hate, pull: pullHate } = useHateometer();
   const [dropping, setDropping] = useState<string | null>(null);
   // Nobody leaves the line: a chop is a tally, and the counter resets so the
@@ -71,10 +75,10 @@ export default function HomePage() {
               {content.hero.badge}
             </p>
             <h1 className="mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
-              {content.hero.headline}
+              {heroHeadline}
             </h1>
             <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted md:text-[13px]">
-              {content.hero.subheadline}
+              {heroSubheadline}
             </p>
           </div>
 

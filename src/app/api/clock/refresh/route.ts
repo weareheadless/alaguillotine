@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig, normaliseVoice, runClockPass, type ClockPass } from "@/lib/clock-research";
-import { getDb, readClock, writeClock } from "@/lib/clock-store";
+import { getDb, readClock, rememberAds, writeClock } from "@/lib/clock-store";
 import { findReelClips } from "@/lib/youtube";
 import { saveReelClip } from "@/lib/reel-store";
 import { archiveItems } from "@/lib/archive-store";
@@ -118,6 +118,25 @@ export async function POST(request: Request) {
     const previous = await readClock(db);
     const pass = await runClockPass(config, previous?.level ?? null);
     await applyAdaVoice(context.env ?? {}, pass);
+
+    // She rewrites the front page when she has something to say. On the
+    // readings where she does not, the last headline she wrote stands.
+    if (pass.voice) {
+      if (!pass.voice.headline && previous?.voice.headline) {
+        pass.voice.headline = previous.voice.headline;
+      }
+      if (!pass.voice.subheadline && previous?.voice.subheadline) {
+        pass.voice.subheadline = previous.voice.subheadline;
+      }
+    }
+
+    // The popups accumulate across readings, so the stack has a week of them
+    // to draw from instead of the four she wrote this time.
+    try {
+      await rememberAds(db, pass.voice?.ads ?? []);
+    } catch {
+      /* the pool table may not exist yet */
+    }
 
     // Same results as last time: keep the scores, but refresh Ada's voice so
     // the mood and the jokes still move with her.

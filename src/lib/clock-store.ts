@@ -97,6 +97,51 @@ export async function writeClock(db: D1, row: ClockRow): Promise<void> {
     .run()
 }
 
+/**
+ * The popup pool.
+ *
+ * Each reading writes four or five ads; keeping only the latest set makes the
+ * page repeat itself within a day. The pool keeps a week of them, deduped by
+ * their text, so the stack can draw on a wider vocabulary of interruptions.
+ */
+const adId = (ad: { title: string; body: string }) => {
+  const s = `${ad.title}|${ad.body}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  let h = 5381
+  for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  return `ad:${(h >>> 0).toString(36)}`
+}
+
+export async function rememberAds(db: D1, ads: AdaVoice['ads']): Promise<void> {
+  if (!ads.length) return
+  const now = new Date().toISOString()
+  for (const ad of ads) {
+    await db
+      .prepare(
+        `INSERT INTO voice_ads (id, title, body, cta, created_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET created_at = excluded.created_at`,
+      )
+      .bind(adId(ad), ad.title, ad.body, ad.cta, now)
+      .run()
+  }
+  const cutoff = new Date(Date.now() - 7 * 86_400_000).toISOString()
+  await db.prepare('DELETE FROM voice_ads WHERE created_at < ?').bind(cutoff).run()
+}
+
+export async function readAdPool(db: D1, limit = 80): Promise<AdaVoice['ads']> {
+  const rows = await db
+    .prepare('SELECT title, body, cta FROM voice_ads ORDER BY created_at DESC LIMIT ?')
+    .bind(limit)
+    .all()
+  return (rows.results ?? [])
+    .map((r) => ({
+      title: String(r.title ?? ''),
+      body: String(r.body ?? ''),
+      cta: String(r.cta ?? ''),
+    }))
+    .filter((a) => a.title && a.body)
+}
+
 export function isStale(computedAt: string, now = Date.now()): boolean {
   return now - Date.parse(computedAt) > 24 * 60 * 60 * 1000
 }

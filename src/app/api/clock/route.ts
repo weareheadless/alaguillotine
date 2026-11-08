@@ -5,7 +5,7 @@ import {
   secondsToMidnight,
   type ClockState,
 } from "@/lib/clock";
-import { getDb, isStale, readClock } from "@/lib/clock-store";
+import { getDb, isStale, readAdPool, readClock } from "@/lib/clock-store";
 
 export const revalidate = 0;
 
@@ -31,6 +31,16 @@ export async function GET() {
       });
     }
 
+    // The latest reading's ads are only part of the stack; the pool holds a
+    // week of them.
+    let ads = row.voice.ads;
+    try {
+      const pool = await readAdPool(db);
+      if (pool.length) ads = pool;
+    } catch {
+      /* the pool table may not exist yet */
+    }
+
     const seconds = secondsToMidnight(row.level);
     const state: ClockState = {
       level: row.level,
@@ -41,7 +51,7 @@ export async function GET() {
       tMinus: formatCountdown(seconds),
       bladePct: bladePct(row.level),
       items: row.items,
-      voice: row.voice,
+      voice: { ...row.voice, ads },
       computedAt: row.computedAt,
       nextRunAt: new Date(Date.parse(row.computedAt) + 4 * 60 * 60 * 1000).toISOString(),
       queryCount: 8,

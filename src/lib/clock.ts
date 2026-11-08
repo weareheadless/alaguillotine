@@ -69,6 +69,10 @@ export interface AdaVoice {
   mood: string;
   /** One line on the dial, in her voice. */
   line: string;
+  /** Optional rewrite of the page's main headline, when she has something to say. */
+  headline?: string;
+  /** Optional paragraph under that headline. */
+  subheadline?: string;
   /** Top-bar strings she wrote for this reading. */
   banner: string[];
   /** Popups she wrote for this reading. */
