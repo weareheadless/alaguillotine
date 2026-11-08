@@ -17,17 +17,78 @@ interface Clip {
   kind?: "file" | "youtube";
 }
 
+/**
+ * A cut-in: the archive frame, on screen long enough to read, with the words
+ * that came with it and a link to the reporting. Not a hidden frame — the
+ * timing is random, the content is not.
+ */
+export interface CutIn {
+  src: string;
+  quote: string;
+  who: string;
+  href: string;
+}
+
 const FALLBACK: Clip[] = [
   { src: "/static/musk_is_presented_with_the_reality.mp4", caption: "archive", kind: "file" },
 ];
 
-export function NewsReel({ messages }: { messages: string[] }) {
+export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutIn }) {
   const [clips, setClips] = useState<Clip[]>(FALLBACK);
   const [index, setIndex] = useState(0);
   const [sound, setSound] = useState(false);
   const [frame, setFrame] = useState<string | null>(null);
   const [torn, setTorn] = useState(false);
+  const [cut, setCut] = useState(false);
+  const [cutBroken, setCutBroken] = useState(false);
+  const [reduced, setReduced] = useState(false);
   const video = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // Fetch the frame before the first cut so it does not arrive blank.
+  useEffect(() => {
+    if (!cutIn) return;
+    const img = new Image();
+    img.onerror = () => setCutBroken(true);
+    img.src = cutIn.src;
+  }, [cutIn]);
+
+  // The cut-in keeps its own clock: not at the start, never the same length
+  // twice, and sometimes it sits out a whole cycle.
+  useEffect(() => {
+    if (!cutIn || cutBroken || reduced) return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const schedule = (delay: number) => {
+      timer = setTimeout(() => {
+        if (!alive) return;
+        setCut(true);
+        timer = setTimeout(() => {
+          if (!alive) return;
+          setCut(false);
+          const skip = Math.random() < 0.3;
+          schedule(
+            skip ? 120_000 + Math.random() * 120_000 : 25_000 + Math.random() * 45_000,
+          );
+        }, 1200 + Math.random() * 2200);
+      }, delay);
+    };
+
+    schedule(14_000 + Math.random() * 36_000);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [cutIn, cutBroken, reduced]);
 
   useEffect(() => {
     let cancelled = false;
@@ -209,6 +270,38 @@ export function NewsReel({ messages }: { messages: string[] }) {
               <span className="text-2xl font-black uppercase leading-none tracking-tighter text-black md:text-4xl">
                 {frame}
               </span>
+            </div>
+          )}
+
+          {cut && cutIn && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-[70] overflow-hidden bg-black"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={cutIn.src}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={() => setCutBroken(true)}
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent px-3 pb-6 pt-10">
+                <p className="text-[13px] font-black uppercase leading-none tracking-tight text-sheetWhite md:text-base">
+                  &ldquo;{cutIn.quote}&rdquo;
+                </p>
+                <p className="mt-1.5 font-mono text-[8px] uppercase tracking-[0.18em] text-sheetWhite/65">
+                  {cutIn.who}
+                  {" · "}
+                  <a
+                    href={cutIn.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="pointer-events-auto underline decoration-sheetWhite/40 hover:text-hypeNeon"
+                  >
+                    the reporting ↗
+                  </a>
+                </p>
+              </div>
             </div>
           )}
 

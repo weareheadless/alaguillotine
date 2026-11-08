@@ -16,9 +16,21 @@ import type { Figure } from "../lib/hateometer";
 import { CrossesWall } from "../components/CrossesWall";
 import { RageStack } from "../components/RageStack";
 import { SubliminalVideo } from "../components/SubliminalVideo";
-import { NewsReel } from "../components/NewsReel";
+import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
+
+/**
+ * The archive cut-in. The gesture and the words are both on the record, so the
+ * frame is shown with the words he said next to it — the viewer gets the
+ * argument, not a planted impression.
+ */
+const CUT_IN: CutIn = {
+  src: "/static/musknazi.gif",
+  quote: "My heart goes out to you",
+  who: "Elon Musk · 20 Jan 2025 · Capital One Arena",
+  href: "https://apnews.com/article/musk-gesture-salute-antisemitism-0070dae53c7a73397b104ae645877535",
+};
 
 /**
  * The installation.
@@ -124,6 +136,7 @@ export default function HomePage() {
           </div>
 
           <NewsReel
+            cutIn={CUT_IN}
             messages={
               state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
             }
