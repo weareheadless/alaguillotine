@@ -1,4 +1,4 @@
-import { countLedger } from "@/lib/archive-store";
+import { countLedger, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { slugify } from "@/lib/slug";
 import { emptyHate, type HateState } from "@/lib/hateometer";
 import { DROP_THRESHOLD } from "@/lib/hateometer";
@@ -40,14 +40,17 @@ export async function GET() {
 
     const chops = await listChops(db);
     const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
+    const summaries = await readLedgerSummaries();
 
     const withCounts = (queue.length ? queue : (row?.figures ?? [])).map((f) => {
       const slug = slugify(f.name);
       const chop = chopBySlug[slug];
+      const summary = ledgerSummaryFor(summaries, f.name);
       return {
         ...f,
         ledgerCount:
           countRows.length > 0 ? countLedger(countRows, f.name) : counts[f.name.toLowerCase()] ?? 0,
+        topCharges: summary?.top ?? [],
         timesChopped: chop?.count ?? f.timesChopped ?? 0,
         lastChoppedAt: chop?.lastAt ?? f.lastChoppedAt ?? null,
       };

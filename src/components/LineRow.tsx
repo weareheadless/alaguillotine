@@ -109,6 +109,11 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
               style={{ width: `${Math.min(100, Math.max(0, figure.score))}%` }}
             />
           </div>
+          {(figure.recordBonus ?? 0) > 0 && (
+            <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
+              +{Math.round(figure.recordBonus ?? 0)} record
+            </div>
+          )}
         </div>
       </div>
     </Link>

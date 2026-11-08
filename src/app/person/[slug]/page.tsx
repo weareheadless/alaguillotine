@@ -47,6 +47,11 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
             rank {person.rank}
           </div>
+          {(person.recordBonus ?? 0) > 0 && (
+            <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
+              +{Math.round(person.recordBonus ?? 0)} from the record
+            </div>
+          )}
         </div>
       </div>
 

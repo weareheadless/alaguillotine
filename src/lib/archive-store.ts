@@ -158,3 +158,102 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
     };
   });
 }
+
+/**
+ * The record, summarised for the scorer.
+ *
+ * A person's score should not forget three years of documented acts because
+ * this week's feed was quiet. The summary is what the research pass sees, and
+ * the bonus is what the queue adds back on top of Ada's reading.
+ */
+export interface LedgerSummary {
+  count: number;
+  avgConfidence: number;
+  maxConfidence: number;
+  recent: number;
+  top: Array<{
+    act: string;
+    place: string;
+    year: number;
+    category: string;
+    confidence: number;
+  }>;
+}
+
+export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>> {
+  const d = await db();
+  if (!d) return new Map();
+  const rows = await d
+    .prepare(
+      "SELECT lower(person) AS n, act, place, year, category, confidence FROM ledger_entries ORDER BY confidence DESC, year DESC",
+    )
+    .bind()
+    .all();
+
+  const map = new Map<string, LedgerSummary>();
+  const cutoff = new Date().getFullYear() - 1;
+
+  for (const r of rows.results ?? []) {
+    const key = String(r.n ?? "");
+    if (!key) continue;
+    const conf = Number(r.confidence ?? 0);
+    const s =
+      map.get(key) ??
+      ({ count: 0, avgConfidence: 0, maxConfidence: 0, recent: 0, top: [] } as LedgerSummary);
+
+    s.count += 1;
+    s.avgConfidence += conf;
+    s.maxConfidence = Math.max(s.maxConfidence, conf);
+    if (Number(r.year ?? 0) >= cutoff) s.recent += 1;
+    if (s.top.length < 3) {
+      s.top.push({
+        act: String(r.act ?? ""),
+        place: String(r.place ?? ""),
+        year: Number(r.year ?? 0),
+        category: String(r.category ?? ""),
+        confidence: conf,
+      });
+    }
+    map.set(key, s);
+  }
+
+  for (const s of map.values()) {
+    s.avgConfidence = s.count ? s.avgConfidence / s.count : 0;
+  }
+  return map;
+}
+
+/**
+ * The record bonus.
+ *
+ * Two points per documented charge, plus a little for confidence, capped at 22.
+ * A substantial record also sets a floor, so a quiet week cannot erase it. The
+ * bonus is deliberately smaller than a news cycle: the record raises the score,
+ * it does not replace the reporting.
+ */
+export function recordAdjustment(s: LedgerSummary | undefined): { bonus: number; floor: number } {
+  if (!s || s.count === 0) return { bonus: 0, floor: 0 };
+  const bonus = Math.min(22, Math.round((2 * s.count + 0.06 * s.avgConfidence) * 10) / 10);
+  const floor =
+    s.count >= 5
+      ? Math.min(85, Math.round((28 + 2.6 * s.count + 0.12 * s.avgConfidence) * 10) / 10)
+      : 0;
+  return { bonus, floor };
+}
+
+/** Look up a name's record, falling back to its distinctive tokens. */
+export function ledgerSummaryFor(
+  summaries: Map<string, LedgerSummary>,
+  name: string,
+): LedgerSummary | undefined {
+  const exact = summaries.get(name.toLowerCase());
+  if (exact) return exact;
+  const tokens = nameTokens(name);
+  let best: LedgerSummary | undefined;
+  for (const [key, s] of summaries) {
+    if (tokens.some((t) => key.includes(t))) {
+      if (!best || s.count > best.count) best = s;
+    }
+  }
+  return best;
+}

@@ -46,4 +46,6 @@ export const STANDING: Array<{ name: string; role: string; country: string; basi
     basis: "Chief executive of ADNOC and president of COP28, where he oversaw the summit while the UAE expanded oil and gas production." },
   { name: "Vicki Hollub", role: "CEO, Occidental Petroleum", country: "United States",
     basis: "Chief executive of Occidental Petroleum; expanded oil production while promoting carbon capture as a climate solution." },
+  { name: "Michael Tuchin", role: "Board chair, AIPAC", country: "United States",
+    basis: "AIPAC's board chair since 2025; hosted a private fundraiser for an Illinois House candidate at his law office, part of AIPAC's donor-bundling operation." },
 ];

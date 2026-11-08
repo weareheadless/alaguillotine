@@ -81,7 +81,7 @@ export async function writeHate(db: D1, row: HateRow): Promise<void> {
 }
 
 const FIGURE_COLUMNS =
-  "name, slug, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, dropped_at, items, source, source_url, times_chopped";
+  "name, slug, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, dropped_at, items, source, source_url, times_chopped, record_bonus";
 
 function rowToFigure(r: Record<string, unknown>): Figure {
   return {
@@ -101,6 +101,7 @@ function rowToFigure(r: Record<string, unknown>): Figure {
     // A chop is a tally, not an exit: nobody is ever off the line.
     droppedAt: null,
     timesChopped: Number(r.times_chopped ?? 0),
+    recordBonus: Number(r.record_bonus ?? 0),
   };
 }
 
@@ -170,8 +171,8 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
   for (const p of people) {
     await db
       .prepare(
-        `INSERT INTO queue_people (id, name, slug, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, dropped_at, items, source, source_url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO queue_people (id, name, slug, role, country, reason, score, mentions, rank, prev_rank, added_at, last_seen_at, dropped_at, items, source, source_url, record_bonus)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(slug) DO UPDATE SET
            role = excluded.role,
            country = excluded.country,
@@ -191,7 +192,8 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
            dropped_at = COALESCE(queue_people.dropped_at, excluded.dropped_at),
            items = excluded.items,
            source = excluded.source,
-           source_url = excluded.source_url`,
+           source_url = excluded.source_url,
+           record_bonus = excluded.record_bonus`,
       )
       .bind(
         slugify(p.name),
@@ -210,6 +212,7 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
         JSON.stringify(p.items),
         p.source,
         p.sourceUrl,
+        p.recordBonus ?? 0,
       )
       .run();
   }

@@ -1,6 +1,7 @@
 import { fetchLemmyCandidates } from './lemmy'
 import { STANDING } from './standing'
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, shrink } from "./clock";
+import type { LedgerSummary } from "./archive-store";
 import type { ClockConfig } from "./clock-research";
 import { HATE_DIMENSIONS, rankFigures, type Figure, type HateDimension, type HateKey } from "./hateometer";
 
@@ -48,6 +49,7 @@ RULES — hard:
 9. score is YOUR judgement, 0-100, of how much this person deserves the blade. No formula overrules you and nothing is averaged. Only people, never a company — when the reporting names a company, name the people who run it or own it (a defence contractor means its chief executive and its largest shareholders). Scores must differ from each other — if everyone lands on 50 you have not decided. Use the whole range: 90+ for someone who ordered or bankrolled mass death, 70s for systematic cruelty with a body count, 50s for extraction and impunity, 30s for complicity.
 10. The line must include the owners as well as the officials. If the reporting names a billionaire, an executive, a funder or a lobbyist whose money or platform causes the harm, they belong here with their own charge — the people who pay are as responsible as the people who sign.
 11. reason is what they are accused of, one sentence, max 240 chars. Be specific about the act, the place and the year. If the reporting is thin, say what is alleged, not what is proven.
+12. ledger is the long record: documented acts with a year and a confidence. Weigh it. A person with several high-confidence entries should score higher than this week's headlines alone would suggest. Do not invent beyond the ledger lines; a thin record should score lower, not be padded.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],
@@ -88,6 +90,7 @@ export async function runHatePass(
   config: ClockConfig,
   previousLevel: number | null,
   previousFigures: Figure[],
+  ledger?: Map<string, LedgerSummary>,
 ): Promise<HatePass> {
   const roster = previousFigures.map((f) => f.name).slice(0, 40)
   const after = new Date(Date.now() - 4 * 86_400_000).toISOString().slice(0, 10);
@@ -133,6 +136,10 @@ export async function runHatePass(
           content: JSON.stringify({
             queue: roster,
             standingRecord: STANDING,
+            ledger: previousFigures.slice(0, 40).map((f) => ({
+              name: f.name,
+              record: ledger?.get(f.name.toLowerCase())?.top ?? [],
+            })),
             results: pool.slice(0, 40).map((c, index) => ({
               index,
               topic: c.topic,

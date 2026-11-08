@@ -68,6 +68,16 @@ export interface Figure {
   ledgerCount?: number;
   /** How many times the blade has fallen on this name. */
   timesChopped?: number;
+  /** Points added to the score by the ledger on record. */
+  recordBonus?: number;
+  /** The highest-confidence charges on record, for the block brief. */
+  topCharges?: Array<{
+    act: string;
+    place: string;
+    year: number;
+    category: string;
+    confidence: number;
+  }>;
   /** When the blade last fell on this name. */
   lastChoppedAt?: string | null;
 }

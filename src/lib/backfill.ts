@@ -164,6 +164,21 @@ const PERSON_CASES: Case[] = [
   { id: "mbs-record", place: "Saudi Arabia", after: "2015-01-01", before: "2026-12-31",
     subject: "Mohammed bin Salman",
     queries: ["Mohammed bin Salman Yemen war coalition strikes", "Khashoggi killing CIA assessment MBS", "Saudi sovereign fund media capture MBS"] },
+  { id: "brandt-record", place: "United States", after: "2024-01-01", before: "2026-12-31",
+    subject: "Elliot Brandt",
+    queries: ["Elliot Brandt AIPAC spending", "AIPAC United Democracy Project spending 2026", "AIPAC endorsements contributions candidates"] },
+  { id: "tuchin-record", place: "United States", after: "2024-01-01", before: "2026-12-31",
+    subject: "Michael Tuchin",
+    queries: ["Michael Tuchin AIPAC fundraiser", "AIPAC board chair Tuchin", "Tuchin AIPAC donations candidates"] },
+  { id: "woods-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Darren Woods",
+    queries: ["Darren Woods Exxon climate deception", "Exxon lobbying climate legislation", "Exxon heat deaths lawsuit"] },
+  { id: "jaber-record", place: "United Arab Emirates", after: "2023-01-01", before: "2026-12-31",
+    subject: "Sultan Al Jaber",
+    queries: ["Sultan Al Jaber COP28 oil deals", "ADNOC expansion Al Jaber", "Al Jaber climate conflict of interest"] },
+  { id: "hollub-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
+    subject: "Vicki Hollub",
+    queries: ["Vicki Hollub Occidental carbon capture", "Occidental oil expansion Hollub", "Occidental lobbying climate"] },
 ];
 
 /**

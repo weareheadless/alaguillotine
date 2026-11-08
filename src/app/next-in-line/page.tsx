@@ -45,8 +45,9 @@ export default function NextInLinePage() {
             Ada ranks the people the record keeps returning to. The top of this
             line is promoted to the front page and executed — then the counter
             resets, a cross goes on the wall, and the name climbs back. Every
-            name opens its own ledger: the charges, the places, the years, the
-            sources.
+            score is Ada&apos;s reading of the week plus a bonus for the charges
+            already on record. Every name opens its own ledger: the charges, the
+            places, the years, the sources.
           </p>
         </section>
 
@@ -71,6 +72,10 @@ export default function NextInLinePage() {
             <p className="mt-1 font-mono text-[9px] text-black/60">ledger entries, sourced</p>
           </div>
         </section>
+
+        <p className="-mt-4 mb-4 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
+          score = ada&apos;s reading of the week + up to 22 points for the ledger on record
+        </p>
 
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
