@@ -710,7 +710,7 @@ body::after {
 /* ─── Lunette (head restraint) — Yoke with head opening ──────────────────── */
 .guillotine-lunette {
   position: absolute;
-  top: 55%;
+  top: 78%;
   left: 8%;
   right: 8%;
   height: 14%;
@@ -769,19 +769,19 @@ body::after {
 /* ─── Head — Stuck in the hole, scared pale face ──────────────────────────── */
 .guillotine-head {
   position: absolute;
-  top: 55%;
+  top: 78%;
   left: 50%;
   transform: translateX(-50%);
-  width: 44px;
-  height: 48px;
+  width: 38px;
+  height: 42px;
   /* Clear pupils (black dot) inside white sclera + terrified mouth on skin */
   background:
     /* Left eye — pupil (black) inside white */
-    radial-gradient(circle at 11px 18px, #1a1a1a 1.8px, #f0f0f0 2.4px, transparent 4.8px),
+    radial-gradient(circle at 10px 16px, #1a1a1a 1.6px, #f0f0f0 2.2px, transparent 4.4px),
     /* Right eye */
-    radial-gradient(circle at 30px 18px, #1a1a1a 1.8px, #f0f0f0 2.4px, transparent 4.8px),
+    radial-gradient(circle at 27px 16px, #1a1a1a 1.6px, #f0f0f0 2.2px, transparent 4.4px),
     /* Mouth — tiny terrified O */
-    radial-gradient(circle at 21px 33px, #2a1010 2.4px, transparent 3px),
+    radial-gradient(circle at 18px 28px, #2a1010 2.1px, transparent 2.6px),
     /* Skin base */
     #d4c5a9;
   border-radius: 50% 50% 45% 45%;

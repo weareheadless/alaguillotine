@@ -42,15 +42,15 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
   // The drawing is 440 units tall; the scale fills the card.
   const scale = Math.max(0.4, Math.min(0.95, size.h / 440));
   // The blade hovers above the neck and slams to the base. The neck is at
-  // 55% of the frame; the blade's bottom edge meets it at a score of 100.
+  // 78% of the frame; the blade's bottom edge meets it at a score of 100.
   const scorePct = Math.min(100, Math.max(0, score));
-  const restOffset = 8 + Math.max(0, scorePct - 70) * (11 / 30);
+  const restOffset = 10 + scorePct * 0.32;
   const offset = dropped ? 57 : restOffset;
 
-  // Drawing units: the head starts at 55% (242) and falls past the base to the
-  // bottom of the frame, so it bounces on the card's bottom border. It rolls a
-  // few head-lengths, not the whole card, then comes to rest.
-  const drop = 150;
+  // Drawing units: the head starts at 78% (343) and falls to the bottom of the
+  // frame, so it bounces on the card's bottom border. It rolls a few
+  // head-lengths, not the whole card, then comes to rest.
+  const drop = 55;
   const roll = Math.min(560, Math.max(200, (size.w - 48) / scale - 100));
 
   useGSAP(
@@ -62,9 +62,9 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
         return;
       }
 
-      // The head is 44 units across; rotation is tied to distance travelled,
+      // The head is 40 units across; rotation is tied to distance travelled,
       // so it rolls instead of sliding.
-      const spin = (roll / (Math.PI * 44)) * 360;
+      const spin = (roll / (Math.PI * 40)) * 360;
 
       gsap.set(el, {
         xPercent: -50,
@@ -79,10 +79,10 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
       // The blade lands first, then gravity takes the head to the floor.
       tl.to(el, { y: drop, duration: 0.30, ease: "power2.in" }, 0.16);
       // First bounce.
-      tl.to(el, { y: drop - 42, duration: 0.20, ease: "power1.out" }, 0.46);
+      tl.to(el, { y: drop - 18, duration: 0.20, ease: "power1.out" }, 0.46);
       tl.to(el, { y: drop, duration: 0.14, ease: "power1.in" }, 0.66);
       // Second, smaller bounce.
-      tl.to(el, { y: drop - 15, duration: 0.13, ease: "power1.out" }, 0.80);
+      tl.to(el, { y: drop - 6, duration: 0.13, ease: "power1.out" }, 0.80);
       tl.to(el, { y: drop, duration: 0.11, ease: "power1.in" }, 0.93);
       // The roll: distance and rotation in one tween, so it rolls rather than
       // slides. It comes to rest on the floor and stays there.
