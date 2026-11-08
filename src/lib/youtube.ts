@@ -19,7 +19,27 @@ const QUERIES = [
   "DW News protest Europe",
   "CBS News strike workers",
   "NBC News billionaires congress",
+  "BBC News immigration detention",
+  "Sky News court corruption trial",
+  "Reuters climate flood disaster",
+  "AP News surveillance privacy",
+  "Al Jazeera famine aid convoy",
+  "DW News far right rally",
+  "Channel 4 News NHS crisis",
+  "Guardian News rent strike",
+  "Reuters war refugees border",
+  "AP News police raid protest",
 ];
+
+/** Draw a different ten each pass so the stream is not the same ten searches. */
+function pickQueries(n: number): string[] {
+  const pool = [...QUERIES];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, n);
+}
 
 const API = "https://www.googleapis.com/youtube/v3/search";
 
@@ -101,12 +121,12 @@ export async function findReelClips(key: string): Promise<YoutubeClip[]> {
   const seen = new Set<string>();
   const clips: YoutubeClip[] = [];
 
-  for (const query of QUERIES) {
+  for (const query of pickQueries(10)) {
     for (const clip of await search(query, key)) {
       if (seen.has(clip.videoId)) continue;
       seen.add(clip.videoId);
       clips.push(clip);
-      if (clips.length >= 10) return clips;
+      if (clips.length >= 12) return clips;
     }
   }
 

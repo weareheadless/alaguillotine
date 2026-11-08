@@ -2,10 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { emptyHate, type HateState } from "../lib/hateometer";
+import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, SHRINK_M } from "../lib/clock";
 
 /**
- * The second instrument: an arc gauge, not a blade. The clock counts what is
- * being taken; this measures what is being done about it, by force.
+ * The second instrument: an arc gauge, not a blade.
+ *
+ * The clock counts what is being taken. This measures how unstable the ground
+ * under it has become — war, civilian harm, repression, arms, incitement. The
+ * arithmetic is on the instrument, not in a whitepaper: weights, evidence and
+ * the exact step are all visible, because a number nobody can recompute is a
+ * decoration.
  */
 
 export function useHateometer() {
@@ -46,6 +52,7 @@ export function Hateometer({ state }: { state: HateState }) {
   }, []);
 
   const angle = mounted ? needleAngle(state.level) : -90;
+  const evidence = state.dimensions.reduce((n, d) => n + d.evidence, 0);
 
   return (
     <section className="border border-chop-border bg-chop-card/60 p-5">
@@ -55,6 +62,9 @@ export function Hateometer({ state }: { state: HateState }) {
           {state.stale ? "no reading" : "live"}
         </span>
       </div>
+      <p className="mt-1 font-mono text-[8px] uppercase tracking-[0.22em] text-chop-muted/70">
+        an instability index · {evidence} report{evidence === 1 ? "" : "s"} this pass
+      </p>
 
       <div className="relative mt-4 flex justify-center">
         <svg viewBox="0 0 240 140" className="w-full max-w-[280px]" role="img" aria-label={`Hateometer ${state.level}`}>
@@ -102,11 +112,14 @@ export function Hateometer({ state }: { state: HateState }) {
         </div>
       </div>
 
-      <div className="mt-5 space-y-2">
+      <div className="mt-5 space-y-3">
         {state.dimensions.map((d) => (
           <div key={d.key}>
-            <div className="flex justify-between font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted">
-              <span>{d.label}</span>
+            <div className="flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted">
+              <span>
+                {d.label}{" "}
+                <span className="text-chop-muted/60">×{d.weight.toFixed(2)}</span>
+              </span>
               <span className="tabular-nums text-sheetWhite">{Math.round(d.score)}</span>
             </div>
             <div className="mt-1 h-1 bg-chop-border">
@@ -115,14 +128,58 @@ export function Hateometer({ state }: { state: HateState }) {
                 style={{ width: `${d.score}%` }}
               />
             </div>
+            <div className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.15em] text-chop-muted/60">
+              {d.evidence} report{d.evidence === 1 ? "" : "s"}
+            </div>
           </div>
         ))}
       </div>
 
-      <p className="mt-4 font-mono text-[10px] leading-relaxed text-chop-muted">
-        Weighted average of what is being reported, shrunk toward neutral until the
-        evidence accumulates. Same maths as the clock, opposite subject.
-      </p>
+      <details className="group mt-5 border-t border-chop-border pt-3">
+        <summary className="cursor-pointer list-none font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted hover:text-sheetWhite">
+          how this number is made <span className="text-spiteCrimson group-open:hidden">+</span>
+          <span className="hidden text-spiteCrimson group-open:inline">−</span>
+        </summary>
+
+        <div className="mt-3 space-y-2 font-mono text-[9px] leading-relaxed text-chop-muted">
+          <p>
+            <span className="text-sheetWhite">1.</span> Each report is scored 0–100 and filed
+            under one dimension.
+          </p>
+          <p>
+            <span className="text-sheetWhite">2.</span> A dimension is the mean of its reports,
+            pulled toward 50 until the evidence accumulates:{" "}
+            <span className="text-sheetWhite">
+              (n·mean + {SHRINK_M}·50) / (n + {SHRINK_M})
+            </span>
+            .
+          </p>
+          <p>
+            <span className="text-sheetWhite">3.</span> Composite = Σ weight × dimension. This
+            pass:{" "}
+            <span className="text-sheetWhite tabular-nums">
+              {state.composite.toFixed(1)}
+            </span>
+            .
+          </p>
+          <p>
+            <span className="text-sheetWhite">4.</span> The reading moves{" "}
+            {Math.round(ALPHA * 100)}% of the way to the composite, at most {MAX_STEP} points per
+            pass, held between {LEVEL_FLOOR} and {LEVEL_CEIL}. This pass:{" "}
+            <span className="text-sheetWhite tabular-nums">{state.level.toFixed(1)}</span>
+            {" "}
+            <span className={state.pressure >= 0 ? "text-spiteCrimson" : "text-hypeNeon"}>
+              ({state.pressure >= 0 ? "+" : ""}
+              {state.pressure.toFixed(1)})
+            </span>
+            .
+          </p>
+          <p className="pt-1 text-chop-muted/70">
+            Same maths as the clock, opposite subject. It measures instability in the reporting,
+            not guilt — the blade is Ada&apos;s judgement, and this is only the weather.
+          </p>
+        </div>
+      </details>
     </section>
   );
 }

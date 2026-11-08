@@ -23,7 +23,7 @@ async function getDb(): Promise<D1 | null> {
   return context.env?.D1 ?? null;
 }
 
-export async function listReelClips(limit = 8): Promise<ReelClip[]> {
+export async function listReelClips(limit = 120): Promise<ReelClip[]> {
   const db = await getDb();
   if (!db) return [];
   const rows = await db

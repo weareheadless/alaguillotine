@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * The television.
  *
- * A queue of news clips from the last pass, playing one after another with the
- * picture stuttering and tearing like a set that has been on too long. Sound is
- * off until you ask for it — browsers will not autoplay with audio, and neither
- * will this.
+ * A pool of news clips accumulated across passes, played like a set nobody is
+ * watching: sometimes it holds a shot, sometimes it cuts away after two seconds
+ * because the hand on the dial is bored. Sound is off until you ask for it.
  */
 
 interface Clip {
@@ -22,8 +21,6 @@ const FALLBACK: Clip[] = [
   { src: "/static/musk_is_presented_with_the_reality.mp4", caption: "archive", kind: "file" },
 ];
 
-const ROTATE_MS = 18_000;
-
 export function NewsReel({ messages }: { messages: string[] }) {
   const [clips, setClips] = useState<Clip[]>(FALLBACK);
   const [index, setIndex] = useState(0);
@@ -31,7 +28,6 @@ export function NewsReel({ messages }: { messages: string[] }) {
   const [frame, setFrame] = useState<string | null>(null);
   const [torn, setTorn] = useState(false);
   const video = useRef<HTMLVideoElement | null>(null);
-  const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,10 +65,39 @@ export function NewsReel({ messages }: { messages: string[] }) {
     };
   }, []);
 
+  // Channel surfing: hold a shot, or cut away almost immediately. The next clip
+  // is drawn at random, never the one already playing.
   useEffect(() => {
     if (clips.length < 2) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % clips.length), ROTATE_MS);
-    return () => clearInterval(id);
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    let glitch: ReturnType<typeof setTimeout>;
+
+    const step = () => {
+      const cut = Math.random() < 0.38;
+      const hold = cut ? 2400 + Math.random() * 2400 : 11_000 + Math.random() * 9000;
+      timer = setTimeout(() => {
+        if (!alive) return;
+        setTorn(true);
+        glitch = setTimeout(() => {
+          if (alive) setTorn(false);
+        }, 90 + Math.random() * 130);
+        setIndex((i) => {
+          if (clips.length < 2) return i;
+          let n = Math.floor(Math.random() * clips.length);
+          if (n === i) n = (n + 1) % clips.length;
+          return n;
+        });
+        step();
+      }, hold);
+    };
+
+    step();
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+      clearTimeout(glitch);
+    };
   }, [clips.length]);
 
   const clip = clips[index] ?? FALLBACK[0];
@@ -82,6 +107,7 @@ export function NewsReel({ messages }: { messages: string[] }) {
     const el = video.current;
     if (!el || clip.kind === "youtube") return;
     let alive = true;
+    const local: Array<ReturnType<typeof setTimeout>> = [];
 
     const schedule = () => {
       if (!alive) return;
@@ -91,24 +117,24 @@ export function NewsReel({ messages }: { messages: string[] }) {
           el.pause();
           el.currentTime = Math.max(0, el.currentTime - (0.04 + Math.random() * 0.18));
           setTorn(true);
-          setTimeout(() => {
+          const back = setTimeout(() => {
             if (!alive) return;
             el.play().catch(() => {});
             setTorn(false);
           }, 70 + Math.random() * 120);
+          local.push(back);
         } catch {
           /* ignore */
         }
         schedule();
       }, 1200 + Math.random() * 4200);
-      timers.current.push(t);
+      local.push(t);
     };
 
     schedule();
     return () => {
       alive = false;
-      timers.current.forEach(clearTimeout);
-      timers.current = [];
+      local.forEach(clearTimeout);
     };
   }, [index, clip.kind]);
 
@@ -116,32 +142,34 @@ export function NewsReel({ messages }: { messages: string[] }) {
   useEffect(() => {
     if (!messages.length) return;
     let alive = true;
+    const local: Array<ReturnType<typeof setTimeout>> = [];
+
     const tick = () => {
       if (!alive) return;
       setFrame(messages[Math.floor(Math.random() * messages.length)]);
-      // Hide it almost immediately: 40-60ms, just enough to burn in.
+      // Hide it almost immediately: 40-65ms, just enough to burn in.
       const off = setTimeout(() => {
         if (!alive) return;
         setFrame(null);
-        const next = setTimeout(tick, 6000 + Math.random() * 8000);
-        timers.current.push(next);
-      }, 40 + Math.random() * 20);
-      timers.current.push(off);
+        const next = setTimeout(tick, 5000 + Math.random() * 7000);
+        local.push(next);
+      }, 40 + Math.random() * 25);
+      local.push(off);
     };
-    const first = setTimeout(tick, 5000 + Math.random() * 5000);
-    timers.current.push(first);
+
+    const first = setTimeout(tick, 4500 + Math.random() * 4500);
+    local.push(first);
     return () => {
       alive = false;
-      timers.current.forEach(clearTimeout);
-      timers.current = [];
+      local.forEach(clearTimeout);
     };
   }, [messages]);
 
-  const embed = (id: string, withSound: boolean) => {
+  const embed = useCallback((id: string, withSound: boolean) => {
     const origin =
       typeof window === "undefined" ? "" : `&origin=${encodeURIComponent(window.location.origin)}`;
     return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${withSound ? 0 : 1}&loop=1&playlist=${id}&controls=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=0${origin}`;
-  };
+  }, []);
 
   return (
     <figure className="relative">

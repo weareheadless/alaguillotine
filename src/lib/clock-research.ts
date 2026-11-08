@@ -85,7 +85,7 @@ VOICE:
 - line: one sentence for the dial, max 120 chars.
 - banner: 6-8 strings for the top bar, max 70 chars each, jokes about the specific numbers.
 - ads: 4 popups. title max 28, body max 200, cta max 24. Satirical corporate announcements that mock the exact thing in the news.
-- subliminal: 10-14 fragments for a broken television in the corner of the page. Max 26 characters each. ALL CAPS. They must be true statements about this reading, phrased as if the machine is thinking out loud. Examples of the register: "THEY KNOW", "3 JOBS ONE WAGE", "NOT A GLITCH", "YOU ARE THE COLLATERAL". No slurs, no threats, no violence.
+- subliminal: 12-16 fragments for a broken television in the corner of the page. Max 28 characters each. ALL CAPS. Abrasive and accusatory: say it to the reader's face, second person where possible. They must be true statements about this reading, not slogans. Register: "THEY ARE NOT AFRAID OF YOU", "YOU ARE THE COLLATERAL", "YOUR RENT IS A BOND", "NOBODY IS COMING", "THEY COUNT YOU AS WEATHER". No slurs, no threats of violence, no calls to action.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}],

@@ -92,7 +92,7 @@ export default function HomePage() {
 
         {/* ── The gauge and the blades ────────────────────────────────── */}
         <div className="mx-auto mt-8 grid max-w-6xl gap-6 px-4 md:px-6 lg:grid-cols-[300px_1fr]">
-          <div className="lg:sticky lg:top-6 lg:self-start">
+          <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
             <Hateometer state={hate} />
           </div>
 
