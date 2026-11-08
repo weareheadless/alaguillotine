@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FsdBanner } from "../components/FsdBanner";
 import { AdPopups } from "../components/AdPopups";
 import { NavBar } from "../components/NavBar";
@@ -182,6 +183,44 @@ export default function HomePage() {
 
           </section>
         </div>
+
+        {/* ── The front door ──────────────────────────────────────────── */}
+        <section className="mx-auto mt-12 max-w-6xl px-4 md:px-6">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Link
+              href="/submit"
+              className="group border-2 border-black bg-spiteCrimson p-5 text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none"
+            >
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-white/70 group-hover:text-hypeNeon/70">
+                the line is open
+              </p>
+              <h2 className="mt-2 text-2xl font-black uppercase leading-none tracking-tighter md:text-3xl">
+                Propose a name →
+              </h2>
+              <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/75 group-hover:text-chop-muted">
+                Free, no account, no email. Ada reads every proposal and answers
+                with a real reason — even when the reason is that they are not
+                evil enough.
+              </p>
+            </Link>
+            <Link
+              href="/resistance"
+              className="group border-2 border-black bg-hypeNeon p-5 text-canvasBlack shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-sheetWhite active:translate-x-1 active:translate-y-1 active:shadow-none"
+            >
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-black/60">
+                the part that is not a joke
+              </p>
+              <h2 className="mt-2 text-2xl font-black uppercase leading-none tracking-tighter md:text-3xl">
+                The Resistance →
+              </h2>
+              <p className="mt-2 font-mono text-[11px] leading-relaxed text-black/70">
+                A forum with no email, a public fund, and a meme with a wallet
+                attached. Food, legal aid, medical aid, shelter — decided in the
+                open, paid with receipts.
+              </p>
+            </Link>
+          </div>
+        </section>
 
         {/* ── The evidence ────────────────────────────────────────────── */}
         <section className="mx-auto mt-12 max-w-6xl px-4 md:px-6">

@@ -278,10 +278,14 @@ export function AuthButtons() {
     );
   }
 
-  // "idle" state — show the Join button
+  // The resistance lives in the forum, not in a local account: the forum takes
+  // no email, a human approves every signup, and one login works across every
+  // thread and every fund proposal.
   return (
-    <button
-      onClick={() => setMode("form")}
+    <a
+      href="https://forum.alaguillotine.com"
+      target="_blank"
+      rel="noreferrer noopener"
       className="flex cursor-pointer items-center gap-2 border-2 border-black bg-spiteCrimson px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-mono font-bold text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none"
     >
       <svg className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -290,6 +294,6 @@ export function AuthButtons() {
       </svg>
       <span className="hidden md:inline">Join the Resistance</span>
       <span className="inline md:hidden">Join</span>
-    </button>
+    </a>
   );
 }
