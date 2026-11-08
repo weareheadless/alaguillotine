@@ -14,39 +14,14 @@ gsap.registerPlugin(useGSAP);
  *
  * Every person in the queue has their own counter and their own blade. The
  * blade waits at the top of the frame and falls the full distance when the
- * countdown ends, then the hauler walks it back up. Nothing is pooled, nothing
- * is averaged across the queue.
+ * countdown ends, then creeps back to the top while the next name waits.
+ * Nothing is pooled, nothing is averaged across the queue.
  */
 
 function MiniBlade({ dropped }: { dropped: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ h: 220, w: 640 });
-  // The hauler walks in after the head has settled, throws the rope, and
-  // hauls the blade back up. The blade is up before the next card arrives.
-  const [haulerOn, setHaulerOn] = useState(false);
-  const [bladeUp, setBladeUp] = useState(false);
-  const hauler = useRef<HTMLDivElement>(null);
-  const rope = useRef<HTMLSpanElement>(null);
-  const hook = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!dropped) {
-      setHaulerOn(false);
-      setBladeUp(false);
-      return;
-    }
-    setBladeUp(false);
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) {
-      setBladeUp(true);
-      return;
-    }
-    // The head finishes its roll at ~2.7s; he steps in just after.
-    const t = window.setTimeout(() => setHaulerOn(true), 2800);
-    return () => window.clearTimeout(t);
-  }, [dropped]);
-
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -67,70 +42,15 @@ function MiniBlade({ dropped }: { dropped: boolean }) {
   // The drawing is 440 units tall; the scale fills the card.
   const scale = Math.max(0.4, Math.min(0.95, size.h / 440));
   // The blade waits at the top of the frame, under the beam, and falls the
-  // full distance on every execution. It stays down until the hauler lifts it.
-  const offset = dropped && !bladeUp ? 57 : 2;
+  // full distance on every execution. When the next name is promoted it
+  // creeps back up on its own, slowly, while the new countdown runs.
+  const offset = dropped ? 57 : 2;
 
   // Drawing units: the head starts at 78% (343) and falls to the bottom of the
   // frame, so it bounces on the card's bottom border. It rolls a few
   // head-lengths, not the whole card, then comes to rest.
   const drop = 55;
   const roll = Math.min(560, Math.max(200, (size.w - 48) / scale - 100));
-
-  // The haul: walk in from where the head lies, throw the rope, pull the
-  // blade up, walk out.
-  useGSAP(
-    () => {
-      const el = hauler.current;
-      const line = rope.current;
-      const ring = hook.current;
-      if (!el || !line || !ring || !haulerOn) return;
-
-      const startX = size.w / scale + 80;
-      const stopX = 150;
-      const beamY = 18;
-      const handY = 170; // raised hands, in wrapper units
-
-      const legL = el.querySelector(".hauler-leg-l");
-      const legR = el.querySelector(".hauler-leg-r");
-      const armL = el.querySelector(".hauler-arm-l");
-      const armR = el.querySelector(".hauler-arm-r");
-
-      gsap.set(el, { x: startX, y: 0, autoAlpha: 1 });
-      gsap.set(line, { height: 0 });
-      gsap.set(ring, { opacity: 0, scale: 0.3 });
-
-      const tl = gsap.timeline();
-      // Walk in, legs and arms swinging.
-      tl.to(el, { x: stopX, duration: 1.2, ease: "none" }, 0);
-      tl.to(legL, { rotation: 24, duration: 0.2, yoyo: true, repeat: 5, ease: "sine.inOut" }, 0);
-      tl.to(legR, { rotation: -24, duration: 0.2, yoyo: true, repeat: 5, ease: "sine.inOut" }, 0);
-      tl.to(armL, { rotation: -18, duration: 0.2, yoyo: true, repeat: 5, ease: "sine.inOut" }, 0);
-      tl.to(armR, { rotation: 18, duration: 0.2, yoyo: true, repeat: 5, ease: "sine.inOut" }, 0);
-
-      // Stop, reach up, throw the rope to the beam.
-      tl.to([legL, legR, armL, armR], { rotation: 0, duration: 0.14, overwrite: "auto" }, 1.2);
-      tl.to(armL, { rotation: 168, duration: 0.18, ease: "power2.out", overwrite: "auto" }, 1.32);
-      tl.to(armR, { rotation: -168, duration: 0.18, ease: "power2.out", overwrite: "auto" }, 1.32);
-      tl.to(line, { height: handY - beamY, duration: 0.22, ease: "power2.out" }, 1.38);
-      tl.to(ring, { opacity: 1, scale: 1, duration: 0.16, ease: "back.out(2.4)" }, 1.56);
-
-      // Pull twice; the first pull raises the blade.
-      tl.call(() => setBladeUp(true), [], 1.62);
-      tl.to(armL, { rotation: 16, duration: 0.38, ease: "power1.inOut", overwrite: "auto" }, 1.62);
-      tl.to(armR, { rotation: -16, duration: 0.38, ease: "power1.inOut", overwrite: "auto" }, 1.62);
-      tl.to(armL, { rotation: 168, duration: 0.34, ease: "power1.inOut", overwrite: "auto" }, 2.0);
-      tl.to(armR, { rotation: -168, duration: 0.34, ease: "power1.inOut", overwrite: "auto" }, 2.0);
-
-      // Let the rope go and walk back out.
-      tl.to([line, ring], { height: 0, opacity: 0, duration: 0.18, ease: "power1.in" }, 2.34);
-      tl.to([armL, armR], { rotation: 0, duration: 0.2, overwrite: "auto" }, 2.34);
-      tl.to(el, { x: startX, duration: 0.9, ease: "none" }, 2.42);
-      tl.to(legL, { rotation: 24, duration: 0.2, yoyo: true, repeat: 3, ease: "sine.inOut", overwrite: "auto" }, 2.42);
-      tl.to(legR, { rotation: -24, duration: 0.2, yoyo: true, repeat: 3, ease: "sine.inOut", overwrite: "auto" }, 2.42);
-      tl.to(el, { autoAlpha: 0, duration: 0.2 }, 3.3);
-    },
-    { dependencies: [haulerOn, size.w, scale], revertOnUpdate: true, scope: box },
-  );
 
   useGSAP(
     () => {
@@ -186,18 +106,6 @@ function MiniBlade({ dropped }: { dropped: boolean }) {
           <div className="guillotine-base" />
           <div className="guillotine-lunette" />
           <div ref={head} className={`guillotine-head ${dropped ? "severed" : ""}`} />
-          {haulerOn && (
-            <div ref={hauler} className="hauler" aria-hidden>
-              <span ref={rope} className="hauler-rope" />
-              <span ref={hook} className="hauler-hook" />
-              <div className="hauler-head" />
-              <div className="hauler-torso" />
-              <div className="hauler-arm hauler-arm-l" />
-              <div className="hauler-arm hauler-arm-r" />
-              <div className="hauler-leg hauler-leg-l" />
-              <div className="hauler-leg hauler-leg-r" />
-            </div>
-          )}
           <div className="absolute inset-0 z-10 overflow-hidden">
             <div
               className={`guillotine-blade-wrapper ${dropped ? "dropped" : ""}`}

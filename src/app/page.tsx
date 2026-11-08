@@ -51,8 +51,8 @@ export default function HomePage() {
       const victim = standing.find((f) => slugify(f.name) === slug) ?? standing[0] ?? null;
       setFrozen(victim);
       setChopped(slug);
-      // Long enough for the head to settle and the hauler to walk in, throw
-      // the rope, haul the blade up and leave.
+      // The head settles at ~2.7s; promote the next name after a beat. The
+      // blade lifts on its own over the next fourteen seconds.
       window.setTimeout(async () => {
         const next = await pullHate();
         setFrozen(null);
@@ -61,7 +61,7 @@ export default function HomePage() {
         if (next?.execution && next.execution.secondsLeft <= 0) {
           window.setTimeout(() => pullHate(), 1500);
         }
-      }, 6200);
+      }, 3800);
     },
     [pullHate, standing],
   );
