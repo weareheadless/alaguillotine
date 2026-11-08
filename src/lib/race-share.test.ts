@@ -70,13 +70,13 @@ test("unknown author and candidate fall back to neutral labels", () => {
 test("share payload is a reply-first text+image payload", () => {
   const payload = buildSharePayload(
     { id: "msg_123", authorName: "John Smith", score: 4, candidate: "Musk", messageText: "A well-aimed line" },
-    { baseUrl: "https://www.fuckyouelon.net" },
+    { baseUrl: "https://alaguillotine.com" },
   );
   assert.equal(payload.kind, "reply-first");
   assert.match(payload.text, /John Smith scored 4\/5 on Musk/);
   assert.ok(payload.text.includes(payload.url), "body must carry the permalink");
-  assert.equal(payload.url, "https://www.fuckyouelon.net/race/msg_123");
-  assert.equal(payload.imageUrl, "https://www.fuckyouelon.net/race/msg_123/opengraph-image");
+  assert.equal(payload.url, "https://alaguillotine.com/race/msg_123");
+  assert.equal(payload.imageUrl, "https://alaguillotine.com/race/msg_123/opengraph-image");
   assert.match(payload.imageAlt, /4\/5/);
 });
 

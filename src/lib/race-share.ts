@@ -45,7 +45,7 @@ export interface SharePayload {
   imageAlt: string;
 }
 
-export const DEFAULT_BASE_URL = "https://www.fuckyouelon.net";
+export const DEFAULT_BASE_URL = "https://alaguillotine.com";
 const MAX_DESCRIPTION = 200;
 const MAX_BODY = 220;
 
