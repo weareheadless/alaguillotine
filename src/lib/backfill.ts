@@ -87,15 +87,44 @@ const THEATRES: Theatre[] = [
     "Sahel massacre report UN",
     "Sahel arms supply Wagner",
     "Sahel displacement famine" ] },
+  { id: "climate", place: "Global", queries: [
+    "fossil fuel lobbying climate obstruction report",
+    "Exxon climate deception investigation",
+    "COP climate summit fossil fuel influence",
+    "climate heat deaths attribution study",
+    "oil company greenwashing advertising report" ] },
 ];
 
 const YEARS = [2023, 2024, 2025];
+
+/**
+ * AIPAC is not a place and its spending is not annual — it is cycle-shaped.
+ * 2024 and 2026 are the two cycles that matter; 2025 is the lobbying year
+ * between them.
+ */
+const AIPAC_CASES: Case[] = [
+  { id: "aipac-2024", place: "United States", after: "2024-01-01", before: "2024-12-31",
+    queries: [
+      "AIPAC election spending 2024 primaries",
+      "United Democracy Project spending Bowman Bush 2024",
+      "AIPAC PAC earmarked contributions candidates 2024" ] },
+  { id: "aipac-2025", place: "United States", after: "2025-01-01", before: "2025-12-31",
+    queries: [
+      "AIPAC lobbying spending 2025",
+      "AIPAC Israel aid lobbying Congress 2025",
+      "AIPAC donor bundling 2025" ] },
+  { id: "aipac-2026", place: "United States", after: "2026-01-01", before: "2026-12-31",
+    queries: [
+      "AIPAC midterm spending 2026",
+      "United Democracy Project 2026 primaries spending",
+      "AIPAC super PAC pass-through committees 2026" ] },
+];
 
 /** The standing record, one case per name across the whole window. */
 const PERSON_CASES: Case[] = [
   { id: "musk-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
     subject: "Elon Musk",
-    queries: ["Elon Musk DOGE USAID dismantling report", "Musk Starlink government contracts investigation", "Musk political donations far-right amplification report"] },
+    queries: ["Elon Musk DOGE USAID dismantling report", "Musk Starlink government contracts investigation", "Musk political donations far-right amplification report", "Elon Musk America PAC election spending 2026", "Elon Musk AIPAC donation Mike Collins"] },
   { id: "thiel-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
     subject: "Peter Thiel",
     queries: ["Peter Thiel Palantir ICE contracts", "Thiel funding JD Vance political rise", "Palantir military targeting contracts investigation"] },
@@ -152,6 +181,7 @@ export const CASES: Case[] = [
       queries: t.queries,
     })),
   ),
+  ...AIPAC_CASES,
   ...PERSON_CASES,
 ];
 
@@ -165,9 +195,11 @@ RULES — hard:
 3. An entry is about a PERSON who ordered, authorised, funded, armed or profited — not a person who suffered. Victims, witnesses, aid workers, investigators and critics are never entries.
 4. Prefer hard sources: court filings, ICC/UN/OCHA reports, sanctions lists, parliamentary records, investigative outlets. Wire copy alone is not enough.
 5. act is one sentence, max 200 chars, specific: what was done, where, when.
-6. category: war | genocide | repression | arms | extraction | impunity.
+6. category: war | genocide | repression | arms | extraction | impunity | climate.
 7. confidence 0-100: 90+ for a court finding or UN determination; 70s for multiple independent investigations; 50s for credible reporting; below 40 do not include.
 8. If the case carries a subject, every entry must be about that subject and no one else. Give the subject's full public name exactly as it appears in reporting. An act carried out by a company counts as the subject's when they are its chief executive, founder or controlling owner — say so in the act ("Oracle, under Ellison, ...").
+9. Prefer acts inside the window. Set year to the year of the act, not the year of the article.
+10. Organizations are not people. Never use a company, PAC, party or state as the person; name the individual who runs it, funds it, or took its money.
 
 Return JSON only:
 {"entries":[{"person":"","role":"","act":"","place":"","year":2024,"category":"war","confidence":0,"sources":["https://...","https://..."]}]}`;
