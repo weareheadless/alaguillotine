@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { clockConfig, runClockPass } from "@/lib/clock-research";
+import { clockConfig, normaliseVoice, runClockPass, type ClockPass } from "@/lib/clock-research";
 import { getDb, readClock, writeClock } from "@/lib/clock-store";
 import { findReelClips } from "@/lib/youtube";
 import { saveReelClip } from "@/lib/reel-store";
@@ -14,6 +14,62 @@ export const dynamic = "force-dynamic";
  * to the browser. If the model fails, the previous reading stands: the clock
  * never falls back to zero because a request timed out.
  */
+/**
+ * Ask Ada on the VPS to write the editorial voice for this reading: mood,
+ * banner, popups, subliminals and item quips. The Worker keeps the research and
+ * the numbers; she keeps the voice. If she is unreachable, the Worker's own
+ * fallback voice stays in place.
+ */
+async function applyAdaVoice(
+  env: { CHAT_UPSTREAM?: string; ADA_KEY?: string },
+  pass: ClockPass,
+): Promise<void> {
+  const base = env.CHAT_UPSTREAM || "https://api.helloada.app/ada";
+  const key = env.ADA_KEY || "";
+  if (!key) return;
+  try {
+    const res = await fetch(`${base}/voice`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "X-Ada-Key": key,
+      },
+      body: JSON.stringify({
+        level: pass.level,
+        composite: pass.composite,
+        items: pass.items.slice(0, 10).map((item) => ({
+          headline: item.headline,
+          fact: item.fact,
+          source: item.source,
+          dimension: item.dimension,
+        })),
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(90_000),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      mood?: string;
+      line?: string;
+      banner?: unknown;
+      ads?: unknown;
+      subliminal?: unknown;
+      quips?: unknown;
+    };
+    if (!data?.mood || !data?.line) return;
+    pass.voice = normaliseVoice(data);
+    const quips = Array.isArray(data.quips) ? data.quips : [];
+    pass.items.forEach((item, i) => {
+      const quip = quips[i];
+      if (typeof quip === "string" && quip.trim()) {
+        item.quip = quip.trim().slice(0, 160);
+      }
+    });
+  } catch {
+    /* keep the Worker's fallback voice */
+  }
+}
+
 async function refreshReel(env: { YOUTUBE_API_KEY?: string }): Promise<number> {
   if (!env.YOUTUBE_API_KEY) return 0;
   try {
@@ -39,6 +95,8 @@ export async function POST(request: Request) {
       SITE_AGENT_LLM_API_KEY?: string;
       CLOCK_API_BASE?: string;
       CLOCK_MODEL?: string;
+      CHAT_UPSTREAM?: string;
+      ADA_KEY?: string;
     };
   };
 
@@ -59,10 +117,12 @@ export async function POST(request: Request) {
   try {
     const previous = await readClock(db);
     const pass = await runClockPass(config, previous?.level ?? null);
+    await applyAdaVoice(context.env ?? {}, pass);
 
-    // Same results as last time: keep the scores, only advance the timestamp.
+    // Same results as last time: keep the scores, but refresh Ada's voice so
+    // the mood and the jokes still move with her.
     if (previous && previous.sourceHash === pass.sourceHash) {
-      await writeClock(db, { ...previous, computedAt: pass.computedAt });
+      await writeClock(db, { ...previous, voice: pass.voice, computedAt: pass.computedAt });
       const clips = await refreshReel(context.env ?? {});
       return Response.json({ ok: true, unchanged: true, level: previous.level, clips });
     }

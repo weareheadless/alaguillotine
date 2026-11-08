@@ -108,7 +108,7 @@ const clip = (value: unknown, max: number) =>
 
 const MOODS = new Set(['calm', 'uneasy', 'angry', 'furious', 'numb'])
 
-function normaliseVoice(raw: unknown): AdaVoice {
+export function normaliseVoice(raw: unknown): AdaVoice {
   const src = (raw ?? {}) as Record<string, unknown>
   const banner = (Array.isArray(src.banner) ? src.banner : [])
     .map((s) => clip(s, 80))
