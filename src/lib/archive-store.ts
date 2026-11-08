@@ -205,20 +205,35 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
     s.avgConfidence += conf;
     s.maxConfidence = Math.max(s.maxConfidence, conf);
     if (Number(r.year ?? 0) >= cutoff) s.recent += 1;
-    if (s.top.length < 12) {
-      s.top.push({
-        act: String(r.act ?? ""),
-        place: String(r.place ?? ""),
-        year: Number(r.year ?? 0),
-        category: String(r.category ?? ""),
-        confidence: conf,
-      });
-    }
+    s.top.push({
+      act: String(r.act ?? ""),
+      place: String(r.place ?? ""),
+      year: Number(r.year ?? 0),
+      category: String(r.category ?? ""),
+      confidence: conf,
+    });
     map.set(key, s);
   }
 
   for (const s of map.values()) {
     s.avgConfidence = s.count ? s.avgConfidence / s.count : 0;
+    // A record is not twelve versions of the same charge. Show the judge the
+    // range: the strongest act in each category first, then fill the remaining
+    // slots with the highest-confidence leftovers.
+    const picked: typeof s.top = [];
+    const seen = new Set<string>();
+    for (const e of s.top) {
+      if (picked.length >= 12) break;
+      if (!seen.has(e.category)) {
+        picked.push(e);
+        seen.add(e.category);
+      }
+    }
+    for (const e of s.top) {
+      if (picked.length >= 12) break;
+      if (!picked.includes(e)) picked.push(e);
+    }
+    s.top = picked;
   }
   return map;
 }
