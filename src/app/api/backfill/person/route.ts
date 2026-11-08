@@ -97,13 +97,51 @@ export async function POST(request: Request) {
     return (h >>> 0).toString(36);
   };
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const words = (s: string) =>
+    new Set(norm(s).split(" ").filter((w) => w.length > 3));
+  // Same act, different wording. Compare the words that carry meaning, and
+  // treat a shared figure as confirmation: two reports of "the $148,378
+  // penalty" are one charge, while $148,378 and $3,750 are two different ones.
+  // This keeps a daily sweep from filing the same charge every time a paper
+  // rephrases it.
+  const figures = (s: string) =>
+    new Set((s.match(/\d[\d,.]*/g) ?? []).map((n) => n.replace(/[.,]$/, "")));
+  const similar = (a: string, b: string) => {
+    const A = words(a);
+    const B = words(b);
+    if (!A.size || !B.size) return false;
+    let overlap = 0;
+    for (const w of A) if (B.has(w)) overlap += 1;
+    const contained = overlap / Math.min(A.size, B.size);
+    if (contained >= 0.7) return true;
+    const FA = figures(a);
+    const FB = figures(b);
+    if (!FA.size || !FB.size) return false;
+    for (const n of FA) if (FB.has(n)) return contained >= 0.5;
+    return false;
+  };
 
   for (let n = 0; n < batch && n < pending.length; n += 1) {
     const next = pending[n];
     const entries = await researchDossierCase(config, next);
+    let added = 0;
 
     if (db) {
+      const known: string[] = [];
+      try {
+        const rows = await db
+          .prepare("SELECT act FROM ledger_entries WHERE lower(person) = lower(?)")
+          .bind(next.person)
+          .all();
+        for (const r of rows.results ?? []) known.push(String(r.act ?? ""));
+      } catch {
+        /* first run for this name */
+      }
+
       for (const e of entries) {
+        if (known.some((act) => similar(act, e.act))) continue;
+        known.push(e.act);
+        added += 1;
         await db
           .prepare(
             `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at)
@@ -132,7 +170,7 @@ export async function POST(request: Request) {
            VALUES (?, ?, ?)
            ON CONFLICT(case_id) DO UPDATE SET attempted_at = excluded.attempted_at, entries = excluded.entries`,
         )
-        .bind(next.id, new Date().toISOString(), entries.length)
+        .bind(next.id, new Date().toISOString(), added)
         .run();
     }
 
@@ -141,7 +179,7 @@ export async function POST(request: Request) {
       case: next.id,
       person: next.person,
       angle: next.angle,
-      entries: entries.length,
+      entries: db ? added : entries.length,
     });
   }
 
