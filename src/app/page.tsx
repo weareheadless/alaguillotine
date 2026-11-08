@@ -5,11 +5,12 @@ import { AdPopups } from "../components/AdPopups";
 import { NavBar } from "../components/NavBar";
 import { RulesBanner } from "../components/RulesBanner";
 import { useClock } from "../components/DoomsdayClock";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Hateometer, useHateometer } from "../components/Hateometer";
 import { ExecutionCountdown } from "../components/ExecutionCountdown";
 import { slugify } from "../lib/slug";
 import { QueueCard } from "../components/QueueCard";
+import type { Figure } from "../lib/hateometer";
 import { CrossesWall } from "../components/CrossesWall";
 import { RageStack } from "../components/RageStack";
 import { SubliminalVideo } from "../components/SubliminalVideo";
@@ -32,20 +33,27 @@ export default function HomePage() {
   const heroHeadline = state.voice.headline || content.hero.headline;
   const heroSubheadline = state.voice.subheadline || content.hero.subheadline;
   const { state: hate, pull: pullHate } = useHateometer();
-  const [dropping, setDropping] = useState<string | null>(null);
+  // Once a name is chopped it stays chopped until the card is replaced. The
+  // poll can take a moment, and the head must not reappear in the gap.
+  const [chopped, setChopped] = useState<string | null>(null);
+  // Hold the card on the chopped figure while the head falls, so a poll cannot
+  // swap it out mid-animation.
+  const [frozen, setFrozen] = useState<Figure | null>(null);
   // Nobody leaves the line: a chop is a tally, and the counter resets so the
   // name climbs back. The wall below is where the executions accumulate.
   const standing = hate.figures;
-  const atTheBlock = standing[0];
+  const atTheBlock = frozen ?? standing[0];
 
   // The countdown reaches zero: drop the blade, let the head roll, then ask
   // the server for the line after the chop.
   const onZero = useCallback(
     (slug: string) => {
-      setDropping(slug);
+      const victim = standing.find((f) => slugify(f.name) === slug) ?? standing[0] ?? null;
+      setFrozen(victim);
+      setChopped(slug);
       window.setTimeout(async () => {
-        setDropping(null);
         const next = await pullHate();
+        setFrozen(null);
         // The client can reach zero a fraction before the server's clock.
         // If the sentence is still standing, ask again a moment later.
         if (next?.execution && next.execution.secondsLeft <= 0) {
@@ -53,8 +61,14 @@ export default function HomePage() {
         }
       }, 3400);
     },
-    [pullHate],
+    [pullHate, standing],
   );
+
+  // A name that leaves the block takes its chop with it: when it climbs back
+  // later, it arrives with a head on.
+  useEffect(() => {
+    if (chopped && atTheBlock && slugify(atTheBlock.name) !== chopped) setChopped(null);
+  }, [atTheBlock, chopped]);
 
   return (
     <div className="relative min-h-screen bg-canvasBlack">
@@ -148,7 +162,7 @@ export default function HomePage() {
                 </div>
                 <QueueCard
                   figure={atTheBlock}
-                  dropped={dropping === slugify(atTheBlock.name)}
+                  dropped={chopped === slugify(atTheBlock.name)}
                 />
               </div>
             )}

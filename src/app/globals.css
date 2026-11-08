@@ -710,7 +710,7 @@ body::after {
 /* ─── Lunette (head restraint) — Yoke with head opening ──────────────────── */
 .guillotine-lunette {
   position: absolute;
-  top: 84%;
+  top: 55%;
   left: 8%;
   right: 8%;
   height: 14%;
@@ -769,19 +769,19 @@ body::after {
 /* ─── Head — Stuck in the hole, scared pale face ──────────────────────────── */
 .guillotine-head {
   position: absolute;
-  top: 84%;
+  top: 55%;
   left: 50%;
   transform: translateX(-50%);
-  width: 36px;
-  height: 40px;
+  width: 44px;
+  height: 48px;
   /* Clear pupils (black dot) inside white sclera + terrified mouth on skin */
   background:
     /* Left eye — pupil (black) inside white */
-    radial-gradient(circle at 9px 15px, #1a1a1a 1.5px, #f0f0f0 2px, transparent 4px),
+    radial-gradient(circle at 11px 18px, #1a1a1a 1.8px, #f0f0f0 2.4px, transparent 4.8px),
     /* Right eye */
-    radial-gradient(circle at 25px 15px, #1a1a1a 1.5px, #f0f0f0 2px, transparent 4px),
+    radial-gradient(circle at 30px 18px, #1a1a1a 1.8px, #f0f0f0 2.4px, transparent 4.8px),
     /* Mouth — tiny terrified O */
-    radial-gradient(circle at 17px 27px, #2a1010 2px, transparent 2.5px),
+    radial-gradient(circle at 21px 33px, #2a1010 2.4px, transparent 3px),
     /* Skin base */
     #d4c5a9;
   border-radius: 50% 50% 45% 45%;
@@ -795,35 +795,11 @@ body::after {
   animation-delay: var(--guillotine-animation-delay, 0s);
 }
 
-/* When severed — the head leaves the shoulders and rolls across the floor */
+/* When severed, GSAP owns the transform: no CSS animation or transition. */
 .guillotine-head.severed {
-  animation: head-roll 2.8s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
+  animation: none;
+  transition: none;
   will-change: transform, opacity;
-}
-
-@keyframes head-roll {
-  0% { transform: translateX(-50%) translateY(0) rotate(0deg); opacity: 1; }
-  9% { transform: translateX(-50%) translateY(7px) rotate(28deg); opacity: 1; }
-  55% {
-    transform: translateX(calc(-50% + var(--roll-1, 300px)))
-      translateY(calc(var(--head-drop, 40px) - 12px)) rotate(390deg);
-    opacity: 1;
-  }
-  76% {
-    transform: translateX(calc(-50% + var(--roll-2, 440px)))
-      translateY(var(--head-drop, 40px)) rotate(560deg);
-    opacity: 1;
-  }
-  87% {
-    transform: translateX(calc(-50% + var(--roll-3, 500px)))
-      translateY(calc(var(--head-drop, 40px) - 7px)) rotate(640deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(calc(-50% + var(--roll-4, 560px)))
-      translateY(var(--head-drop, 40px)) rotate(720deg);
-    opacity: 0;
-  }
 }
 
 /* The card takes the blow with it. */

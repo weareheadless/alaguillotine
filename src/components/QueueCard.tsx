@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import type { Figure } from "../lib/hateometer";
 import { slugify } from "../lib/slug";
+
+gsap.registerPlugin(useGSAP);
 
 /**
  * One head, one blade.
@@ -15,6 +19,7 @@ import { slugify } from "../lib/slug";
 
 function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
   const box = useRef<HTMLDivElement>(null);
+  const head = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ h: 220, w: 640 });
 
   useEffect(() => {
@@ -34,32 +39,66 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
     return () => ro.disconnect();
   }, []);
 
-  // The guillotine is 440 units tall. Fill the card: the old blade was 132px
-  // tall; now it is the height of the container, never smaller.
+  // The drawing is 440 units tall; the scale fills the card.
   const scale = Math.max(0.4, Math.min(0.95, size.h / 440));
-  const offset = dropped ? 74 : 10 + (Math.min(100, Math.max(0, score)) / 100) * 40;
+  // The blade hovers above the neck and slams to the base. The neck is at
+  // 55% of the frame; the blade's bottom edge meets it at a score of 100.
+  const scorePct = Math.min(100, Math.max(0, score));
+  const restOffset = 8 + Math.max(0, scorePct - 70) * (11 / 30);
+  const offset = dropped ? 57 : restOffset;
 
-  // The head leaves the neck and rolls to the right along the card floor.
-  const roll = Math.max(180, (size.w - 170) / scale);
-  const drop = Math.max(18, size.h / scale - 410);
+  // Drawing units: the head starts at 55% (242) and falls past the base to the
+  // bottom of the frame, so it bounces on the card's bottom border. It rolls a
+  // few head-lengths, not the whole card, then comes to rest.
+  const drop = 150;
+  const roll = Math.min(560, Math.max(200, (size.w - 48) / scale - 100));
+
+  useGSAP(
+    () => {
+      const el = head.current;
+      if (!el || !dropped) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        gsap.set(el, { autoAlpha: 0 });
+        return;
+      }
+
+      // The head is 44 units across; rotation is tied to distance travelled,
+      // so it rolls instead of sliding.
+      const spin = (roll / (Math.PI * 44)) * 360;
+
+      gsap.set(el, {
+        xPercent: -50,
+        x: 0,
+        y: 0,
+        rotation: 0,
+        autoAlpha: 1,
+        transformOrigin: "50% 50%",
+      });
+
+      const tl = gsap.timeline();
+      // The blade lands first, then gravity takes the head to the floor.
+      tl.to(el, { y: drop, duration: 0.30, ease: "power2.in" }, 0.16);
+      // First bounce.
+      tl.to(el, { y: drop - 42, duration: 0.20, ease: "power1.out" }, 0.46);
+      tl.to(el, { y: drop, duration: 0.14, ease: "power1.in" }, 0.66);
+      // Second, smaller bounce.
+      tl.to(el, { y: drop - 15, duration: 0.13, ease: "power1.out" }, 0.80);
+      tl.to(el, { y: drop, duration: 0.11, ease: "power1.in" }, 0.93);
+      // The roll: distance and rotation in one tween, so it rolls rather than
+      // slides. It comes to rest on the floor and stays there.
+      tl.to(el, { x: roll, rotation: spin, duration: 2.2, ease: "power1.out" }, 0.46);
+    },
+    { dependencies: [dropped, roll, drop], revertOnUpdate: true, scope: box },
+  );
 
   return (
     <div
       ref={box}
-      className="relative z-10 shrink-0 self-stretch w-[118px] md:w-[168px]"
+      className="relative z-10 shrink-0 self-stretch w-[118px] min-h-[300px] md:w-[168px] md:min-h-[360px]"
     >
       <div
         className="absolute left-1/2 top-0 origin-top"
-        style={
-          {
-            transform: `translateX(-50%) scale(${scale})`,
-            "--roll-1": `${roll * 0.55}px`,
-            "--roll-2": `${roll * 0.8}px`,
-            "--roll-3": `${roll * 0.9}px`,
-            "--roll-4": `${roll}px`,
-            "--head-drop": `${drop}px`,
-          } as React.CSSProperties
-        }
+        style={{ transform: `translateX(-50%) scale(${scale})` }}
       >
         <div className="guillotine-wrapper guillotine-accent-a">
           <div className="guillotine-post-left" />
@@ -67,7 +106,7 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
           <div className="guillotine-beam" />
           <div className="guillotine-base" />
           <div className="guillotine-lunette" />
-          <div className={`guillotine-head ${dropped ? "severed" : ""}`} />
+          <div ref={head} className={`guillotine-head ${dropped ? "severed" : ""}`} />
           <div className="absolute inset-0 z-10 overflow-hidden">
             <div
               className={`guillotine-blade-wrapper ${dropped ? "dropped" : ""}`}
