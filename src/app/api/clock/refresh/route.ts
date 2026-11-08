@@ -122,6 +122,11 @@ export async function POST(request: Request) {
     // Same results as last time: keep the scores, but refresh Ada's voice so
     // the mood and the jokes still move with her.
     if (previous && previous.sourceHash === pass.sourceHash) {
+      // Keep the old scores, but carry Ada's fresh quips across too.
+      previous.items.forEach((item, i) => {
+        const fresh = pass.items[i];
+        if (fresh?.quip) item.quip = fresh.quip;
+      });
       await writeClock(db, { ...previous, voice: pass.voice, computedAt: pass.computedAt });
       const clips = await refreshReel(context.env ?? {});
       return Response.json({ ok: true, unchanged: true, level: previous.level, clips });
