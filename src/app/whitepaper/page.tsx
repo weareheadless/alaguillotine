@@ -44,7 +44,7 @@ export default function ManifestoPage() {
           the manifesto
         </p>
         <h1 className="mt-3 text-4xl font-black uppercase leading-[0.9] tracking-tighter text-sheetWhite md:text-6xl">
-          Ada, <span className="text-spiteCrimson">the clock.</span>
+          Ada, <span className="text-spiteCrimson">the ledger.</span>
         </h1>
 
         {updatedAt && (

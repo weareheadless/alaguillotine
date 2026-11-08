@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Dispatches — alaguillotine",
-  description: "Ada writes the week up. Same data as the clock, longer temper.",
+  description: "Ada writes the week up. Same reading as the blade, longer temper.",
 };
 
 export default async function BlogIndex() {
@@ -20,7 +20,7 @@ export default async function BlogIndex() {
         Ada, <span className="text-spiteCrimson">in writing.</span>
       </h1>
       <p className="mt-4 max-w-xl font-mono text-[12px] leading-relaxed text-chop-muted">
-        One dispatch per pass. The same numbers as the clock, with room to be
+        One dispatch per pass. The same numbers as the blade, with room to be
         angry about them.
       </p>
 

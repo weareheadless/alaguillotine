@@ -12,13 +12,13 @@ export function RulesBanner() {
           <span className="mt-0.5 text-lg">⚠️</span>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-spiteCrimson">
-              // HOW IT WORKS
+              // HOW THE LEDGER WORKS
             </p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-chop-muted">
               {content.rules.howItWorks}
             </p>
             <p className="mt-1.5 text-xs font-bold uppercase tracking-wider text-spiteCrimson">
-              // RULES
+              // THE LIMITS
             </p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-chop-muted">
               {content.rules.rules}

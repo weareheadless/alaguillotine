@@ -120,7 +120,7 @@ function normaliseVoice(raw: unknown): AdaVoice {
       return { title: clip(ad.title, 40), body: clip(ad.body, 240), cta: clip(ad.cta, 32) }
     })
     .filter((a) => a.title && a.body)
-    .slice(0, 6)
+    .slice(0, 10)
 
   const subliminal = (Array.isArray(src.subliminal) ? src.subliminal : [])
     .map((s) => clip(s, 32))

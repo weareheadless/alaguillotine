@@ -205,7 +205,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     revision: 0,
   },
   hero: {
-    headline: "EVERY NAME HERE HAS A BLADE. THEY STILL SLEEP FINE.",
+    headline: "ADA READS THE NEWS AND NAMES THE PEOPLE RESPONSIBLE. THEN SHE KEEPS SCORE.",
     subheadline:
       "Ada reads the news, remembers everything she has read, and decides for herself who deserves the blade. The number is her judgement, not a formula — arithmetic is only used for money: what someone holds, what they give back, and the gap between the two. At ninety the blade falls, a cross goes on the wall, and the name returns to the line with its counter reset. Every claim links to its source. None of it is a verdict.",
     badge: "An art installation · updated every four hours",
@@ -263,50 +263,85 @@ export const DEFAULT_CONTENT: SiteContent = {
   ],
   ads: [
     {
+      title: "PRIVACY IS A PREMIUM FEATURE",
+      body: "YOUR DATA IS ALREADY IN THE PRODUCT. THE ONLY QUESTION IS WHETHER YOU GET A DISCOUNT.",
+      cta: "OPT IN",
+    },
+    {
+      title: "YOUR LANDLORD THANKS YOU",
+      body: "YOUR RENT IS A YIELD PRODUCT. YOUR WAGE IS A COST INPUT. THE GAP BETWEEN THEM IS THE BUSINESS MODEL.",
+      cta: "PAY AGAIN",
+    },
+    {
+      title: "NOBODY IS COMING",
+      body: "THE AID IS IN THE INTEREST OF SHAREHOLDERS. THE WATER IS IN THE INTEREST OF SHAREHOLDERS. YOU ARE IN THE INTEREST OF SHAREHOLDERS.",
+      cta: "ACCEPT",
+    },
+    {
+      title: "DUE PROCESS™",
+      body: "AVAILABLE IN SELECT JURISDICTIONS. CHECK YOUR POSTCODE. CHECK YOUR PASSPORT. CHECK YOUR BALANCE.",
+      cta: "WAIVE IT",
+    },
+    {
+      title: "HUMANITARIAN CORRIDOR",
+      body: "BROUGHT TO YOU BY THE PEOPLE WHO BOMBED IT. LOGO PLACEMENT AVAILABLE ON THE RUBBLE.",
+      cta: "SPONSOR",
+    },
+    {
+      title: "THE BLADE IS A METAPHOR",
+      body: "THE RECORD IS NOT. THE CROSSES ARE NOT. THE NAMES ARE NOT. PLEASE STOP ASKING IF IT IS REAL.",
+      cta: "READ THE LEDGER",
+    },
+    {
+      title: "AUSTERITY IS A LIFESTYLE",
+      body: "FEWER SERVICES, MORE DISCIPLINE, SAME OWNERS. NOW WITH A WELLNESS ANGLE.",
+      cta: "OPTIMISE",
+    },
+    {
+      title: "THE MARKET HAS SPOKEN",
+      body: "IT SAID YOUR HOSPITAL IS UNDERPERFORMING. IT SAID YOUR SCHOOL IS A LIABILITY. IT DID NOT SAY WHO WAS LISTENING.",
+      cta: "AGREE",
+    },
+    {
+      title: "SCORE YOUR FRIENDS",
+      body: "ADA ALREADY DID. THE NUMBER IS PUBLIC. THE SOURCES ARE LINKED. THE BLADE IS METAPHORICAL. THE SHAME IS NOT.",
+      cta: "CHECK THEM",
+    },
+    {
       title: "⚠️ GOV EFFICIENCY UPDATE",
-      body: "ZERO LIVES LOST DUE TO GUILLOTINE BUDGET CUTS // WE HAVE SOCIALIZED THE BLADE MAINTENANCE AND PRIVATIZED THE SPITE // \"0.0 DEATHS, FRANKLY\"",
+      body: "ZERO LIVES LOST TO THE BUDGET CUTS WE HAVE NOT ANNOUNCED YET. THE SAVINGS ARE REAL. THE DEATHS ARE STILL BEING MODELLED.",
       cta: "DEFUND OVERSIGHT",
     },
     {
-      title: "ACQUISITION ALERT",
-      body: "TREASURY FUNDS REROUTED TO BAIL OUT MY COUSIN’S SOLAR-POWERED GUILLOTINE STARTUP // SYNERGIES WILL BE QUASI-INFINITE // DO NOT VOTE AGAINST MY COMP PACKAGE",
-      cta: "APPROVE PAY",
-    },
-    {
       title: "MARS COLONY PROTOCOL",
-      body: "RAPID UNSCHEDULED DISASSEMBLY OF THE GUILLOTINE EXPECTED // VALUATION HAS BEEN ADJUSTED UPWARD BY $40 BILLION TO REFLECT THE DATA GATHERED",
+      body: "EARTH IS A LEGACY ASSET. YOUR LEASE IS A LIABILITY. THE ROCKET IS FULLY SUBSCRIBED.",
       cta: "FUND EXPLOSION",
     },
     {
-      title: "FSD BETA ALERT",
-      body: "BLADE NEURAL NET IS HALLUCINATING AND TARGETING PEDESTRIANS // PLEASE BURN $CHOP TO TRAIN THE ALGORITHM // \"THE SYSTEM IS LEARNING TO AVOID HEAT DEATHS IN EUROPE\"",
-      cta: "IGNORE OVERSIGHT",
-    },
-    {
       title: "xCHOP AI INTEGRATION",
-      body: "LICENSING YOUR HATE SPEECH TO MY OWN SHELL COMPANY AT A 400% PREMIUM // FUNDING SECURED // THE JOURNALISTS COMPLAINING ARE TRAITORS TO THE WEST",
+      body: "WE TRAINED THE MODEL ON YOUR RAGE. IT LEARNED TO SELL IT BACK TO YOU AT A 400% PREMIUM.",
       cta: "SUBSIDIZE ME",
     },
     {
       title: "ABUNDANCE PROTOCOL",
-      body: "MONEY WON'T MATTER IN 2036 // PLEASE DEPOSIT ALL YOUR WORTHLESS FIAT INTO THE GUILLOTINE TREASURY SO WE CAN REACH THE SINGULARITY FASTER",
+      body: "MONEY WILL NOT MATTER IN 2036. UNTIL THEN, PLEASE DEPOSIT YOUR WORTHLESS FIAT IN THE USUAL ACCOUNT.",
       cta: "DONATE FIAT",
     },
     {
-      title: "⚠️ FSD_MULTISIG_BETA_v4.20",
-      body: "UNVERIFIED HYPE DETECTED // THE AUTOMATED TRUSTLESS MULTI-SIG SMART CONTRACT IS IN FSD BETA — FULL RELEASE \"DEFINITELY NEXT YEAR\" // UNTIL THEN, WEALTH REDISTRIBUTION IS MANAGED BY A CENTRALIZED, HIGHLY CORRUPTIBLE SERVER ON AN OVERHEATING RASPBERRY PI // STATUS: FUNDING SECURED",
-      cta: "BUY MORE $CHOP",
+      title: "TERMS OF SERVICE",
+      body: "BY READING THIS YOU AGREE THAT THE BLADE IS A METAPHOR, THE SCORE IS AN ARGUMENT, AND THE RECORD IS PERMANENT.",
+      cta: "I CONSENT",
     },
   ],
   rules: {
     howItWorks:
-      "Interactive satirical class warfare. Every message inches the blade downward and votes for the next target. Even if you post for free, your message actively burns treasury capital and funds an ongoing economic experiment in wealth redistribution.",
+      "Ada reads the wire, the independent press and the court filings every four hours, then names the public figures the reporting holds responsible. Each name gets a counter: her judgement of the documented harm, not a formula. At ninety the blade falls, a cross goes on the wall, and the counter resets. The name climbs back as the record grows. Every charge links to its source; click a name to read its ledger.",
     rules:
-      "Swearing is fine. Doxxing, credible threats, and illegal content are not. Violators get shadowbanned. The blade is metaphorical. Always has been.",
+      "Public figures only. No private people, no victims, no witnesses, no critics. Nothing here is a call to violence — the blade is a metaphor and always has been. Doxxing, credible threats and illegal content are removed. The score is an argument, not a verdict: check the sources, argue back, and watch the line move.",
   },
   footer: "ALAGUILLOTINE.COM // The blade is a metaphor. For now.",
   nav: [
-    { href: "/", label: "The Clock" },
+    { href: "/", label: "The Blade" },
     { href: "/next-in-line", label: "Next in Line" },
     { href: "/whitepaper", label: "The Manifesto" },
     { href: "/blog", label: "Dispatches" },
