@@ -27,6 +27,9 @@ export interface ClockConfig {
   chatKey: string
   chatBase: string
   chatModel: string
+  /** Ada's VPS bridge: judgment and voice live there. */
+  adaBase?: string
+  adaKey?: string
 }
 
 /**
@@ -40,6 +43,8 @@ export function clockConfig(env: {
   CLOCK_SEARCH_BASE?: string
   CLOCK_CHAT_BASE?: string
   CLOCK_MODEL?: string
+  CHAT_UPSTREAM?: string
+  ADA_KEY?: string
 }): ClockConfig | null {
   if (!env.DEEPSEEK_API_KEY || !env.SITE_AGENT_LLM_API_KEY) return null
   return {
@@ -48,6 +53,8 @@ export function clockConfig(env: {
     chatKey: env.SITE_AGENT_LLM_API_KEY,
     chatBase: env.CLOCK_CHAT_BASE || 'https://openrouter.ai/api/v1',
     chatModel: env.CLOCK_MODEL || 'deepseek/deepseek-v4.1-flash',
+    adaBase: env.CHAT_UPSTREAM || 'https://api.helloada.app/ada',
+    adaKey: env.ADA_KEY || '',
   }
 }
 

@@ -78,6 +78,20 @@ async function post<T>(url: string, body: unknown, key: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function postAda<T>(url: string, body: unknown, key: string): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "X-Ada-Key": key,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!res.ok) throw new Error(`${url} -> ${res.status} ${(await res.text()).slice(0, 200)}`);
+  return (await res.json()) as T;
+}
+
 export interface HatePass {
   level: number;
   composite: number;
@@ -124,42 +138,64 @@ export async function runHatePass(
   }
   const pool = [...byUrl.values()].sort((a, b) => b.authority - a.authority);
 
-  const chat = await post<{ choices?: Array<{ message?: { content?: string } }> }>(
-    `${config.chatBase}/chat/completions`,
-    {
-      model: config.chatModel,
-      temperature: 0.6,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM },
-        {
-          role: "user",
-          content: JSON.stringify({
-            queue: roster,
-            standingRecord: STANDING,
-            ledger: previousFigures.slice(0, 40).map((f) => ({
-              name: f.name,
-              record: ledger?.get(f.name.toLowerCase())?.top ?? [],
-            })),
-            results: pool.slice(0, 40).map((c, index) => ({
-              index,
-              topic: c.topic,
-              title: c.title,
-              site: c.site,
-              date: c.date,
-              summary: c.summary.slice(0, 900),
-            })),
-          }),
-        },
-      ],
-    },
-    config.chatKey,
-  );
+  const passPayload = {
+    queue: roster,
+    standingRecord: STANDING,
+    ledger: previousFigures.slice(0, 40).map((f) => ({
+      name: f.name,
+      record: ledger?.get(f.name.toLowerCase())?.top ?? [],
+    })),
+    results: pool.slice(0, 40).map((c, index) => ({
+      index,
+      topic: c.topic,
+      title: c.title,
+      site: c.site,
+      date: c.date,
+      summary: c.summary.slice(0, 900),
+    })),
+  };
 
-  const parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {
+  // Ada is the judge. The Worker gathers the reporting; she decides who is in
+  // the line and what they score. If the VPS is unreachable, fall back to the
+  // shared constitution so the queue still updates.
+  let parsed: {
     items?: Array<Record<string, unknown>>;
     figures?: Array<Record<string, unknown>>;
-  };
+  } | null = null;
+
+  if (config.adaBase && config.adaKey) {
+    try {
+      parsed = await postAda<{
+        items?: Array<Record<string, unknown>>;
+        figures?: Array<Record<string, unknown>>;
+      }>(`${config.adaBase}/judge`, passPayload, config.adaKey);
+    } catch (error) {
+      console.error(
+        "ada_judge_failed",
+        error instanceof Error ? error.message : "unknown",
+      );
+    }
+  }
+
+  if (!parsed) {
+    const chat = await post<{ choices?: Array<{ message?: { content?: string } }> }>(
+      `${config.chatBase}/chat/completions`,
+      {
+        model: config.chatModel,
+        temperature: 0.6,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: JSON.stringify(passPayload) },
+        ],
+      },
+      config.chatKey,
+    );
+    parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {
+      items?: Array<Record<string, unknown>>;
+      figures?: Array<Record<string, unknown>>;
+    };
+  }
   const valid = new Set(HATE_DIMENSIONS.map((d) => d.key));
 
   const items = (parsed.items ?? []).flatMap((item, i) => {
