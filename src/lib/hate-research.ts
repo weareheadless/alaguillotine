@@ -165,10 +165,13 @@ export async function runHatePass(
 
   if (config.adaBase && config.adaKey) {
     try {
-      parsed = await postAda<{
+      const ada = await postAda<{
         items?: Array<Record<string, unknown>>;
         figures?: Array<Record<string, unknown>>;
       }>(`${config.adaBase}/judge`, passPayload, config.adaKey);
+      if (Array.isArray(ada.items) && ada.items.length && Array.isArray(ada.figures)) {
+        parsed = ada;
+      }
     } catch (error) {
       console.error(
         "ada_judge_failed",
