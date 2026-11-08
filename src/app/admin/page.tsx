@@ -156,6 +156,12 @@ export default function AdminPage() {
           </div>
           <AdminObjectiveStrip onOpenTasks={() => setTab("tasks")} />
           <nav className="flex min-h-0 flex-1 gap-0.5 overflow-x-auto p-2 md:block md:space-y-0.5 md:overflow-y-auto">
+            <a
+              href="/admin/submissions"
+              className="block shrink-0 border border-hypeNeon/60 px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-hypeNeon hover:bg-hypeNeon hover:text-black md:w-full md:text-xs"
+            >
+              review desk →
+            </a>
             {NAV.map((n) => (
               <button
                 key={n.id}
