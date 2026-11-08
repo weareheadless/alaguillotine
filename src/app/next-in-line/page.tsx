@@ -12,7 +12,7 @@ import { LineRow } from "@/components/LineRow";
  * satirical note, and a door into the ledger behind every name.
  */
 export default function NextInLinePage() {
-  const hate = useHateometer();
+  const { state: hate } = useHateometer();
   const [query, setQuery] = useState("");
 
   // Everyone is in the line: a chop resets the counter and sends the name back

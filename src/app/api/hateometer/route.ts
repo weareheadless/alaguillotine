@@ -2,7 +2,15 @@ import { countLedger, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archiv
 import { slugify } from "@/lib/slug";
 import { emptyHate, type HateState } from "@/lib/hateometer";
 import { DROP_THRESHOLD } from "@/lib/hateometer";
-import { evaluateDrops, getDb, listChops, readHate, readQueue } from "@/lib/hate-store";
+import {
+  ensureSentence,
+  executeDueSentences,
+  getDb,
+  listChops,
+  readHate,
+  readLastExecution,
+  readQueue,
+} from "@/lib/hate-store";
 
 export const revalidate = 0;
 
@@ -12,7 +20,13 @@ export async function GET() {
     const db = await getDb();
     if (!db) return Response.json(emptyHate(), { headers: { "Cache-Control": "no-store" } });
 
-    await evaluateDrops(db, DROP_THRESHOLD);
+    // A name is sentenced when it reaches the threshold; the blade falls when
+    // its countdown runs out. The first call creates the sentence, the second
+    // picks up whatever is left after any due execution.
+    await ensureSentence(db, DROP_THRESHOLD);
+    await executeDueSentences(db);
+    const execution = await ensureSentence(db, DROP_THRESHOLD);
+    const lastExecution = execution ? null : await readLastExecution(db);
     const row = await readHate(db);
     const queue = await readQueue(db);
     if (!row && queue.length === 0) {
@@ -68,6 +82,16 @@ export async function GET() {
         ? new Date(Date.parse(row.computedAt) + 12 * 60 * 60 * 1000).toISOString()
         : null,
       stale: row ? Date.now() - Date.parse(row.computedAt) > 36 * 60 * 60 * 1000 : true,
+      execution: execution
+        ? {
+            ...execution,
+            secondsLeft: Math.max(
+              0,
+              Math.round((Date.parse(execution.executeAt) - Date.now()) / 1000),
+            ),
+          }
+        : null,
+      lastExecution,
     };
 
     return Response.json(state, { headers: { "Cache-Control": "no-store" } });

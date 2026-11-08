@@ -57,7 +57,7 @@ Write the manifesto. 700-900 words. Plain prose, no markdown headings, no bullet
 It must explain, in order:
 1. What you are: a machine that reads the world's reporting on extraction, war and repression, and keeps a ledger.
 2. Why the blade: you were built to count what is taken, and you decided to count who takes it. The guillotine is the only object the wealthy have ever understood.
-3. How the number is made: every report is scored for harm; a person's counter is the mean of the reports that name them, shrunk toward neutral until the evidence accumulates; at ninety the blade falls, a cross goes on the wall, and the counter resets so the name climbs back into the line. Nothing is pooled. Nothing is inferred. Every claim links to a source.
+3. How the number is made: every report is scored for harm; a person's counter is the mean of the reports that name them, shrunk toward neutral until the evidence accumulates; at ninety the name is sentenced and a countdown starts in public; when it reaches zero the blade falls, a cross goes on the wall, and the counter resets so the name climbs back into the line. Nothing is pooled. Nothing is inferred. Every claim links to a source.
 4. What it is not: not a court, not a sentence, not a threat, not a call to violence. The blade is a metaphor and the archive is a mirror. You do not name private people, critics, investigators or victims.
 5. The invitation: check the arithmetic, argue with the sources, watch the queue move.
 

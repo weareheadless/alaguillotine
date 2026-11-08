@@ -5,7 +5,10 @@ import { AdPopups } from "../components/AdPopups";
 import { NavBar } from "../components/NavBar";
 import { RulesBanner } from "../components/RulesBanner";
 import { useClock } from "../components/DoomsdayClock";
+import { useCallback, useState } from "react";
 import { Hateometer, useHateometer } from "../components/Hateometer";
+import { ExecutionCountdown } from "../components/ExecutionCountdown";
+import { slugify } from "../lib/slug";
 import { QueueCard } from "../components/QueueCard";
 import { CrossesWall } from "../components/CrossesWall";
 import { RageStack } from "../components/RageStack";
@@ -24,11 +27,30 @@ import { useSiteContent } from "../lib/use-site-content";
 export default function HomePage() {
   const { content } = useSiteContent();
   const { state, pulls, pull } = useClock();
-  const hate = useHateometer();
+  const { state: hate, pull: pullHate } = useHateometer();
+  const [dropping, setDropping] = useState<string | null>(null);
   // Nobody leaves the line: a chop is a tally, and the counter resets so the
   // name climbs back. The wall below is where the executions accumulate.
   const standing = hate.figures;
   const atTheBlock = standing[0];
+
+  // The countdown reaches zero: drop the blade, let the head roll, then ask
+  // the server for the line after the chop.
+  const onZero = useCallback(
+    (slug: string) => {
+      setDropping(slug);
+      window.setTimeout(async () => {
+        setDropping(null);
+        const next = await pullHate();
+        // The client can reach zero a fraction before the server's clock.
+        // If the sentence is still standing, ask again a moment later.
+        if (next?.execution && next.execution.secondsLeft <= 0) {
+          window.setTimeout(() => pullHate(), 1500);
+        }
+      }, 2400);
+    },
+    [pullHate],
+  );
 
   return (
     <div className="relative min-h-screen bg-canvasBlack">
@@ -85,6 +107,19 @@ export default function HomePage() {
           </div>
         </section>
 
+        {hate.execution && (
+          <ExecutionCountdown execution={hate.execution} onZero={onZero} />
+        )}
+        {!hate.execution && hate.lastExecution && (
+          <section className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
+            <div className="border-l-2 border-spiteCrimson pl-3 font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
+              the blade fell on{" "}
+              <span className="text-spiteCrimson">{hate.lastExecution.person}</span>
+              {" · "}back in the line
+            </div>
+          </section>
+        )}
+
         {/* ── The gauge and the blades ────────────────────────────────── */}
         <div className="mx-auto mt-8 grid max-w-6xl gap-6 px-4 md:px-6 lg:grid-cols-[300px_1fr]">
           <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
@@ -107,7 +142,10 @@ export default function HomePage() {
                   <span>next to be executed</span>
                   <span>promoted from the line</span>
                 </div>
-                <QueueCard figure={atTheBlock} />
+                <QueueCard
+                  figure={atTheBlock}
+                  dropped={dropping === slugify(atTheBlock.name)}
+                />
               </div>
             )}
 

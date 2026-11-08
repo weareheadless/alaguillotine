@@ -181,8 +181,8 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
            -- to the fresh score. Below 70 the name is still climbing; above it,
            -- Ada's number takes over again.
            score = CASE
-             WHEN queue_people.times_chopped > 0 AND queue_people.score < 70
-               THEN MIN(excluded.score, queue_people.score + 18)
+             WHEN queue_people.times_chopped > 0 AND queue_people.score < excluded.score
+               THEN MIN(excluded.score, queue_people.score + 12)
              ELSE excluded.score
            END,
            mentions = excluded.mentions,
@@ -230,31 +230,149 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
  * the same person again, because the research pass restores their score. The
  * wall counts executions, not refreshes.
  */
-export const CHOP_COOLDOWN_HOURS = 20;
+/**
+ * The blade hangs, then falls.
+ *
+ * A name that reaches the threshold is sentenced, not chopped on the spot.
+ * Its countdown runs in public; when it reaches zero the blade drops, the head
+ * rolls, the counter resets and the next name comes up. One execution per
+ * cooling window, so the line moves like a ritual and not like a batch job.
+ */
+export const SENTENCE_MS = 10 * 60 * 1000;
+export const EXECUTION_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
-export async function evaluateDrops(db: D1, threshold: number): Promise<number> {
-  const cutoff = new Date(Date.now() - CHOP_COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
-  const rows = await db
+export interface Sentence {
+  person: string;
+  slug: string;
+  score: number;
+  sentencedAt: string;
+  executeAt: string;
+}
+
+export interface Execution extends Sentence {
+  executedAt: string;
+}
+
+const sentenceFrom = (r: Record<string, unknown>): Sentence => ({
+  person: String(r.person),
+  slug: String(r.slug),
+  score: Number(r.score),
+  sentencedAt: String(r.sentenced_at),
+  executeAt: String(r.execute_at),
+});
+
+/** The sentence waiting for its blade, or null. */
+export async function readSentence(db: D1): Promise<Sentence | null> {
+  try {
+    const row = await db
+      .prepare(
+        "SELECT person, slug, score, sentenced_at, execute_at FROM chop_sentences WHERE executed_at IS NULL ORDER BY execute_at ASC LIMIT 1",
+      )
+      .first<Record<string, unknown>>();
+    return row ? sentenceFrom(row) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The last blade that fell, while the wound is still fresh. */
+export async function readLastExecution(
+  db: D1,
+  withinMs = 30 * 60 * 1000,
+): Promise<Execution | null> {
+  try {
+    const row = await db
+      .prepare(
+        "SELECT person, slug, score, sentenced_at, execute_at, executed_at FROM chop_sentences WHERE executed_at IS NOT NULL ORDER BY executed_at DESC LIMIT 1",
+      )
+      .first<Record<string, unknown>>();
+    if (!row) return null;
+    const at = String(row.executed_at);
+    if (Date.now() - Date.parse(at) > withinMs) return null;
+    return { ...sentenceFrom(row), executedAt: at };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sentence the worst name that is eligible, if the line is not already waiting
+ * on a blade and the cooling window since the last execution has passed.
+ *
+ * There is no per-name cooldown: the counter reset to 60 is the brake, and the
+ * climb back is the point. A name that returns to the top earns another turn.
+ */
+export async function ensureSentence(db: D1, threshold: number): Promise<Sentence | null> {
+  const pending = await readSentence(db);
+  if (pending) return pending;
+
+  const now = Date.now();
+  try {
+    const last = await db
+      .prepare("SELECT MAX(executed_at) AS last FROM chop_sentences WHERE executed_at IS NOT NULL")
+      .first<Record<string, unknown>>();
+    const lastAt = last?.last ? Date.parse(String(last.last)) : 0;
+    if (lastAt && now - lastAt < EXECUTION_COOLDOWN_MS) return null;
+  } catch {
+    /* table not created yet */
+  }
+
+  const top = await db
     .prepare(
-      `SELECT slug, name, score FROM queue_people q
+      `SELECT slug, name, score FROM queue_people
        WHERE score >= ?
-         AND NOT EXISTS (
-           SELECT 1 FROM chop_events e WHERE e.slug = q.slug AND e.chopped_at > ?
-         )`,
+       ORDER BY score DESC, mentions DESC LIMIT 1`,
     )
-    .bind(threshold, cutoff)
-    .all();
-  const people = rows.results ?? [];
-  if (!people.length) return 0;
+    .bind(threshold)
+    .first<Record<string, unknown>>();
+  if (!top) return null;
 
+  const sentence: Sentence = {
+    person: String(top.name),
+    slug: String(top.slug),
+    score: Number(top.score),
+    sentencedAt: new Date(now).toISOString(),
+    executeAt: new Date(now + SENTENCE_MS).toISOString(),
+  };
+  await db
+    .prepare(
+      "INSERT INTO chop_sentences (id, slug, person, score, sentenced_at, execute_at) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(
+      `${sentence.slug}:${sentence.sentencedAt}`,
+      sentence.slug,
+      sentence.person,
+      sentence.score,
+      sentence.sentencedAt,
+      sentence.executeAt,
+    )
+    .run();
+  return sentence;
+}
+
+/** The blade falls on every sentence whose countdown has run out. */
+export async function executeDueSentences(db: D1): Promise<number> {
   const now = new Date().toISOString();
-  for (const p of people) {
+  let rows: { results?: Array<Record<string, unknown>> };
+  try {
+    rows = await db
+      .prepare(
+        "SELECT id, slug, person, score FROM chop_sentences WHERE executed_at IS NULL AND execute_at <= ?",
+      )
+      .bind(now)
+      .all();
+  } catch {
+    return 0;
+  }
+
+  const due = rows.results ?? [];
+  for (const p of due) {
     const slug = String(p.slug);
     await db
       .prepare(
         "INSERT OR REPLACE INTO chop_events (id, person, slug, score, chopped_at) VALUES (?, ?, ?, ?, ?)",
       )
-      .bind(`${slug}:${now}`, String(p.name), slug, Number(p.score), now)
+      .bind(`${slug}:${now}`, String(p.person), slug, Number(p.score), now)
       .run();
     await db
       .prepare(
@@ -262,8 +380,12 @@ export async function evaluateDrops(db: D1, threshold: number): Promise<number> 
       )
       .bind(Math.max(50, Math.round(Number(p.score) * 0.6)), slug)
       .run();
+    await db
+      .prepare("UPDATE chop_sentences SET executed_at = ? WHERE id = ?")
+      .bind(now, String(p.id))
+      .run();
   }
-  return people.length;
+  return due.length;
 }
 
 export interface ChopRow {

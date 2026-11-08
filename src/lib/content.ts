@@ -207,7 +207,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   hero: {
     headline: "ADA KEEPS SCORE. THEY STILL SLEEP FINE.",
     subheadline:
-      "Ada reads the news, remembers everything she has read, and decides for herself who deserves the blade. The number is her judgement, not a formula — arithmetic is only used for money: what someone holds, what they give back, and the gap between the two. At ninety the blade falls, a cross goes on the wall, and the name returns to the line with its counter reset. Every claim links to its source. None of it is a verdict.",
+      "Ada reads the news, remembers everything she has read, and decides for herself who deserves the blade. The number is her judgement, not a formula — arithmetic is only used for money: what someone holds, what they give back, and the gap between the two. At ninety the name is sentenced: the countdown starts in public, and when it reaches zero the blade falls, a cross goes on the wall, and the name returns to the line with its counter reset. Every claim links to its source. None of it is a verdict.",
     badge: "An art installation · updated every four hours",
   },
   subliminalMessages: [
@@ -335,7 +335,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   ],
   rules: {
     howItWorks:
-      "Ada reads the wire, the independent press and the court filings every four hours, then names the public figures the reporting holds responsible. Each name gets a counter: her judgement of the documented harm, not a formula. At ninety the blade falls, a cross goes on the wall, and the counter resets. The name climbs back as the record grows. Every charge links to its source; click a name to read its ledger.",
+      "Ada reads the wire, the independent press and the court filings every four hours, then names the public figures the reporting holds responsible. Each name gets a counter: her judgement of the documented harm, not a formula. At ninety the name is sentenced and a countdown starts in public; when it reaches zero the blade falls, a cross goes on the wall, and the counter resets. The name climbs back as the record grows. Every charge links to its source; click a name to read its ledger.",
     rules:
       "Public figures only. No private people, no victims, no witnesses, no critics. Nothing here is a call to violence — the blade is a metaphor and always has been. Doxxing, credible threats and illegal content are removed. The score is an argument, not a verdict: check the sources, argue back, and watch the line move.",
   },

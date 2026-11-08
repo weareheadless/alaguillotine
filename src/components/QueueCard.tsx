@@ -28,7 +28,7 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
           <div className={`guillotine-head ${dropped ? "severed" : ""}`} />
           <div className="absolute inset-0 z-10 overflow-hidden">
             <div
-              className="guillotine-blade-wrapper"
+              className={`guillotine-blade-wrapper ${dropped ? "dropped" : ""}`}
               style={{ transform: `translateX(-50%) translateY(${offset}%)` }}
             >
               <div className={`guillotine-blade ${dropped ? "dropped" : ""}`} />
@@ -54,9 +54,19 @@ function Move({ delta }: { delta: number | null }) {
   );
 }
 
-export function QueueCard({ figure }: { figure: Figure }) {
+export function QueueCard({
+  figure,
+  dropped = false,
+}: {
+  figure: Figure;
+  dropped?: boolean;
+}) {
   return (
-    <article className="group relative border border-chop-border bg-chop-card/40 transition-colors hover:bg-chop-card">
+    <article
+      className={`group relative border border-chop-border bg-chop-card/40 transition-colors hover:bg-chop-card ${
+        dropped ? "chopping" : ""
+      }`}
+    >
       <div
         className="absolute left-0 top-0 h-full bg-spiteCrimson"
         style={{ width: 2 }}
@@ -64,7 +74,7 @@ export function QueueCard({ figure }: { figure: Figure }) {
       />
 
       <div className="flex gap-4 p-4 md:gap-6 md:p-5">
-        <MiniBlade score={figure.score} dropped={false} />
+        <MiniBlade score={figure.score} dropped={dropped} />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">

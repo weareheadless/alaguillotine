@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { emptyHate, type HateState } from "../lib/hateometer";
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, SHRINK_M } from "../lib/clock";
 
@@ -17,27 +17,26 @@ import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, SHRINK_M } from "../lib/clock
 export function useHateometer() {
   const [state, setState] = useState<HateState>(emptyHate);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await fetch("/api/hateometer", { cache: "no-store" });
-        if (!res.ok) return;
-        const next = (await res.json()) as HateState;
-        if (!cancelled) setState(next);
-      } catch {
-        /* keep the last good reading */
-      }
-    };
-    load();
-    const id = setInterval(load, 90 * 1000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
+  const pull = useCallback(async (): Promise<HateState | null> => {
+    try {
+      const res = await fetch("/api/hateometer", { cache: "no-store" });
+      if (!res.ok) return null;
+      const next = (await res.json()) as HateState;
+      setState(next);
+      return next;
+    } catch {
+      /* keep the last good reading */
+      return null;
+    }
   }, []);
 
-  return state;
+  useEffect(() => {
+    pull();
+    const id = setInterval(pull, 90 * 1000);
+    return () => clearInterval(id);
+  }, [pull]);
+
+  return { state, pull };
 }
 
 function needleAngle(level: number) {

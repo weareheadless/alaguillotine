@@ -92,6 +92,22 @@ export interface HateState {
   computedAt: string | null;
   nextRunAt: string | null;
   stale: boolean;
+  /** The name under the blade, and how long until it falls. */
+  execution?: {
+    person: string;
+    slug: string;
+    score: number;
+    sentencedAt: string;
+    executeAt: string;
+    secondsLeft: number;
+  } | null;
+  /** The blade that just fell, shown while the wound is fresh. */
+  lastExecution?: {
+    person: string;
+    slug: string;
+    score: number;
+    executedAt: string;
+  } | null;
 }
 
 export const HATE_REFRESH_MS = 12 * 60 * 60 * 1000;
@@ -116,6 +132,8 @@ export function emptyHate(): HateState {
     computedAt: null,
     nextRunAt: null,
     stale: true,
+    execution: null,
+    lastExecution: null,
   };
 }
 
