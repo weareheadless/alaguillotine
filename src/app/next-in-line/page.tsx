@@ -43,8 +43,9 @@ export default function NextInLinePage() {
           </h1>
           <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
             Ada ranks the people the record keeps returning to. The top of this
-            line is promoted to the front page and executed — then the counter
-            resets, a cross goes on the wall, and the name climbs back. Every
+            line is promoted to the front page and sentenced — a countdown runs
+            in public, the blade falls, the counter resets, a cross goes on the
+            wall, and the name climbs back. Every
             score is Ada&apos;s reading of the week plus a bonus for the charges
             already on record. Every name opens its own ledger: the charges, the
             places, the years, the sources.
