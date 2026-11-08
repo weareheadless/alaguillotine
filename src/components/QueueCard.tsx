@@ -42,8 +42,8 @@ function MiniBlade({ dropped }: { dropped: boolean }) {
   // The drawing is 440 units tall; the scale fills the card.
   const scale = Math.max(0.4, Math.min(0.95, size.h / 440));
   // The blade waits at the top of the frame, under the beam, and falls the
-  // full distance on every execution. When the next name is promoted it
-  // creeps back up on its own, slowly, while the new countdown runs.
+  // full distance on every execution. A CSS animation lifts it again after
+  // the head has settled, while the chopped card is still standing.
   const offset = dropped ? 57 : 2;
 
   // Drawing units: the head starts at 78% (343) and falls to the bottom of the
@@ -108,7 +108,7 @@ function MiniBlade({ dropped }: { dropped: boolean }) {
           <div ref={head} className={`guillotine-head ${dropped ? "severed" : ""}`} />
           <div className="absolute inset-0 z-10 overflow-hidden">
             <div
-              className={`guillotine-blade-wrapper ${dropped ? "dropped" : ""}`}
+              className={`guillotine-blade-wrapper ${dropped ? "dropped lift" : ""}`}
               style={{ transform: `translateX(-50%) translateY(${offset}%)` }}
             >
               <div className={`guillotine-blade ${dropped ? "dropped" : ""}`} />

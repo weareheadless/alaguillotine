@@ -51,8 +51,8 @@ export default function HomePage() {
       const victim = standing.find((f) => slugify(f.name) === slug) ?? standing[0] ?? null;
       setFrozen(victim);
       setChopped(slug);
-      // The head settles at ~2.7s; promote the next name after a beat. The
-      // blade lifts on its own over the next fourteen seconds.
+      // The head settles at ~2.7s, the blade climbs for six seconds, then the
+      // next name is promoted. Head roll, blade up, new head, in that order.
       window.setTimeout(async () => {
         const next = await pullHate();
         setFrozen(null);
@@ -61,7 +61,7 @@ export default function HomePage() {
         if (next?.execution && next.execution.secondsLeft <= 0) {
           window.setTimeout(() => pullHate(), 1500);
         }
-      }, 3800);
+      }, 9100);
     },
     [pullHate, standing],
   );

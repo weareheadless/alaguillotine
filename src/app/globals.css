@@ -504,8 +504,8 @@ body::after {
   height: 100%;
   z-index: 10;
   pointer-events: none;
-  /* The blade creeps back to the top while the next countdown runs. */
-  transition: transform 14s linear;
+  /* The blade creeps back to the top after the head settles. */
+  transition: transform 6s linear;
 }
 
 /* The drop is not a drift: it is a slam. */
@@ -513,10 +513,23 @@ body::after {
   transition: transform 0.16s cubic-bezier(0.7, 0, 0.84, 0);
 }
 
+/* After the chop the blade climbs back on its own, once the head has settled. */
+.guillotine-blade-wrapper.lift {
+  animation: blade-lift 6s 2.8s linear forwards;
+}
+
+@keyframes blade-lift {
+  from { transform: translate(-50%, 57%); }
+  to { transform: translate(-50%, 2%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .guillotine-blade-wrapper,
   .guillotine-blade-wrapper.dropped {
     transition: none;
+  }
+  .guillotine-blade-wrapper.lift {
+    animation: none;
   }
 }
 
