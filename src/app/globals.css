@@ -795,6 +795,64 @@ body::after {
   animation-delay: var(--guillotine-animation-delay, 0s);
 }
 
+/* ─── The hauler — a small figure walks the blade back up ────────────────── */
+.guillotine-lift {
+  position: absolute;
+  left: 1%;
+  bottom: 6%;
+  width: 44px;
+  height: 84px;
+  z-index: 12;
+  pointer-events: none;
+  animation: lift-fade 1.15s ease-in-out both;
+}
+
+.guillotine-lift .guillotine-rope {
+  position: absolute;
+  bottom: 90%;
+  left: 50%;
+  width: 2px;
+  height: 355%;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, #6f6f78, #9a9aa4);
+  opacity: 0.8;
+}
+
+.guillotine-hauler {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: haul 0.4s ease-in-out 2;
+  transform-origin: 50% 100%;
+}
+
+.guillotine-hauler circle,
+.guillotine-hauler line {
+  fill: none;
+  stroke: #d4c5a9;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.guillotine-hauler circle {
+  fill: #d4c5a9;
+}
+
+@keyframes haul {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  35% { transform: rotate(-9deg) translateY(2px); }
+  70% { transform: rotate(5deg) translateY(-1px); }
+}
+
+@keyframes lift-fade {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* When severed, GSAP owns the transform: no CSS animation or transition. */
 .guillotine-head.severed {
   animation: none;

@@ -12,15 +12,30 @@ gsap.registerPlugin(useGSAP);
 /**
  * One head, one blade.
  *
- * Every person in the queue has their own counter and their own blade. The blade
- * sits at that person's score: the shrunk mean of the harm reported in their
- * name this pass. Nothing is pooled, nothing is averaged across the queue.
+ * Every person in the queue has their own counter and their own blade. The
+ * blade waits at the top of the frame and falls the full distance when the
+ * countdown ends, then the hauler walks it back up. Nothing is pooled, nothing
+ * is averaged across the queue.
  */
 
-function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
+function MiniBlade({ dropped }: { dropped: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ h: 220, w: 640 });
+  const [lifting, setLifting] = useState(false);
+  const wasDropped = useRef(false);
+
+  useEffect(() => {
+    if (dropped) {
+      wasDropped.current = true;
+      return;
+    }
+    if (!wasDropped.current) return;
+    wasDropped.current = false;
+    setLifting(true);
+    const t = window.setTimeout(() => setLifting(false), 1200);
+    return () => window.clearTimeout(t);
+  }, [dropped]);
 
   useEffect(() => {
     const el = box.current;
@@ -41,11 +56,9 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
 
   // The drawing is 440 units tall; the scale fills the card.
   const scale = Math.max(0.4, Math.min(0.95, size.h / 440));
-  // The blade hovers above the neck and slams to the base. The neck is at
-  // 78% of the frame; the blade's bottom edge meets it at a score of 100.
-  const scorePct = Math.min(100, Math.max(0, score));
-  const restOffset = 10 + scorePct * 0.32;
-  const offset = dropped ? 57 : restOffset;
+  // The blade waits at the top of the frame, under the beam, and falls the
+  // full distance on every execution. It is not parked near the neck.
+  const offset = dropped ? 57 : 2;
 
   // Drawing units: the head starts at 78% (343) and falls to the bottom of the
   // frame, so it bounces on the card's bottom border. It rolls a few
@@ -107,6 +120,19 @@ function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
           <div className="guillotine-base" />
           <div className="guillotine-lunette" />
           <div ref={head} className={`guillotine-head ${dropped ? "severed" : ""}`} />
+          {lifting && (
+            <div className="guillotine-lift" aria-hidden>
+              <span className="guillotine-rope" />
+              <svg viewBox="0 0 40 96" className="guillotine-hauler">
+                <circle cx="20" cy="10" r="7" />
+                <line x1="20" y1="17" x2="20" y2="52" />
+                <line x1="20" y1="26" x2="10" y2="10" />
+                <line x1="20" y1="26" x2="30" y2="10" />
+                <line x1="20" y1="52" x2="10" y2="90" />
+                <line x1="20" y1="52" x2="30" y2="90" />
+              </svg>
+            </div>
+          )}
           <div className="absolute inset-0 z-10 overflow-hidden">
             <div
               className={`guillotine-blade-wrapper ${dropped ? "dropped" : ""}`}
@@ -155,7 +181,7 @@ export function QueueCard({
       />
 
       <div className="flex min-h-[200px] gap-4 p-4 md:gap-6 md:p-5">
-        <MiniBlade score={figure.score} dropped={dropped} />
+        <MiniBlade dropped={dropped} />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
