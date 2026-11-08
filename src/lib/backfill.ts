@@ -24,31 +24,75 @@ export interface Case {
   subject?: string;
 }
 
-export const CASES: Case[] = [
-  { id: "gaza-2024", place: "Gaza", after: "2024-01-01", before: "2024-12-31",
-    queries: ["Gaza civilian deaths UN OCHA report", "Gaza arms transfer approval government", "Gaza famine IPC report"] },
-  { id: "gaza-2025", place: "Gaza", after: "2025-01-01", before: "2025-12-31",
-    queries: ["Gaza casualties OCHA 2025", "Gaza weapons sale approved 2025", "Gaza aid blockade report"] },
-  { id: "sudan-2024", place: "Sudan", after: "2024-01-01", before: "2024-12-31",
-    queries: ["Sudan RSF massacre report UN", "Sudan arms suppliers UAE report", "Sudan displacement famine IPC"] },
-  { id: "sudan-2025", place: "Sudan", after: "2025-01-01", before: "2025-12-31",
-    queries: ["Sudan El Fasher siege casualties", "Sudan weapons flow report", "Sudan war crimes ICC"] },
-  { id: "ukraine-2024", place: "Ukraine", after: "2024-01-01", before: "2024-12-31",
-    queries: ["Ukraine civilian casualties UN report", "Russia strike aid centre casualties", "Ukraine arms package approved"] },
-  { id: "myanmar-2024", place: "Myanmar", after: "2024-01-01", before: "2025-12-31",
-    queries: ["Myanmar airstrike civilians report", "Myanmar junta arms suppliers", "Myanmar Rohingya persecution report"] },
-  { id: "westbank-2024", place: "West Bank", after: "2024-01-01", before: "2025-12-31",
-    queries: ["West Bank settler violence report UN", "West Bank demolition displacement", "Israel incursions Jenin casualties"] },
-  { id: "drc-2024", place: "DR Congo", after: "2024-01-01", before: "2025-12-31",
-    queries: ["DR Congo M23 massacre report", "DR Congo cobalt mining abuses", "DR Congo Rwanda support UN report"] },
-  { id: "lebanon-2024", place: "Lebanon", after: "2024-01-01", before: "2025-12-31",
-    queries: ["Lebanon strike casualties report", "Lebanon pager attack investigation", "Lebanon displacement UN"] },
-  { id: "iran-2025", place: "Iran", after: "2025-01-01", before: "2026-12-31",
-    queries: ["Iran strikes casualties report", "Iran nuclear site attack", "Iran civilian harm UN"] },
+interface Theatre {
+  id: string;
+  place: string;
+  queries: string[];
+}
 
-  // The standing record. These are not places; they are the people whose money
-  // and machinery the other cases run through. One case each, so the ledger
-  // carries the name and not just the country.
+/**
+ * The theatre list. Every theatre is swept once per year, because a 2023
+ * massacre and a 2025 one are different events with different paperwork, and a
+ * single three-year window buries the older one under the newer coverage.
+ */
+const THEATRES: Theatre[] = [
+  { id: "gaza", place: "Gaza", queries: [
+    "Gaza civilian deaths UN OCHA report",
+    "Gaza arms transfer approval government",
+    "Gaza famine IPC report",
+    "Gaza hospital strike investigation" ] },
+  { id: "ukraine", place: "Ukraine", queries: [
+    "Ukraine civilian casualties UN report",
+    "Russia strike aid centre casualties",
+    "Ukraine arms package approved",
+    "Ukraine power grid attack" ] },
+  { id: "sudan", place: "Sudan", queries: [
+    "Sudan RSF massacre report UN",
+    "Sudan arms suppliers UAE report",
+    "Sudan displacement famine IPC",
+    "Sudan El Fasher siege casualties" ] },
+  { id: "myanmar", place: "Myanmar", queries: [
+    "Myanmar airstrike civilians report",
+    "Myanmar junta arms suppliers",
+    "Myanmar Rohingya persecution report" ] },
+  { id: "westbank", place: "West Bank", queries: [
+    "West Bank settler violence report UN",
+    "West Bank demolition displacement",
+    "Israel incursions Jenin casualties" ] },
+  { id: "drc", place: "DR Congo", queries: [
+    "DR Congo M23 massacre report",
+    "DR Congo cobalt mining abuses",
+    "DR Congo Rwanda support UN report" ] },
+  { id: "lebanon", place: "Lebanon", queries: [
+    "Lebanon strike casualties report",
+    "Lebanon pager attack investigation",
+    "Lebanon displacement UN" ] },
+  { id: "iran", place: "Iran", queries: [
+    "Iran strikes casualties report",
+    "Iran nuclear site attack",
+    "Iran civilian harm UN" ] },
+  { id: "yemen", place: "Yemen", queries: [
+    "Yemen coalition airstrike civilians report",
+    "Yemen famine aid blockade",
+    "Yemen arms supply report" ] },
+  { id: "ethiopia", place: "Ethiopia", queries: [
+    "Ethiopia Tigray war crimes report",
+    "Ethiopia famine aid obstruction",
+    "Ethiopia drone strike civilians" ] },
+  { id: "haiti", place: "Haiti", queries: [
+    "Haiti gang violence massacre report",
+    "Haiti arms trafficking report",
+    "Haiti displacement UN" ] },
+  { id: "sahel", place: "Sahel", queries: [
+    "Sahel massacre report UN",
+    "Sahel arms supply Wagner",
+    "Sahel displacement famine" ] },
+];
+
+const YEARS = [2023, 2024, 2025];
+
+/** The standing record, one case per name across the whole window. */
+const PERSON_CASES: Case[] = [
   { id: "musk-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
     subject: "Elon Musk",
     queries: ["Elon Musk DOGE USAID dismantling report", "Musk Starlink government contracts investigation", "Musk political donations far-right amplification report"] },
@@ -76,7 +120,6 @@ export const CASES: Case[] = [
   { id: "sacks-record", place: "United States", after: "2023-01-01", before: "2026-12-31",
     subject: "David Sacks",
     queries: ["David Sacks AI crypto policy conflict", "Sacks venture investments regulation", "Sacks White House adviser"] },
-
   { id: "netanyahu-record", place: "Israel", after: "2023-01-01", before: "2026-12-31",
     subject: "Benjamin Netanyahu",
     queries: ["Netanyahu ICC arrest warrant Gaza", "Netanyahu government settlement expansion approval", "Netanyahu Quneitra Syria incursion 2026"] },
@@ -92,6 +135,24 @@ export const CASES: Case[] = [
   { id: "mbs-record", place: "Saudi Arabia", after: "2015-01-01", before: "2026-12-31",
     subject: "Mohammed bin Salman",
     queries: ["Mohammed bin Salman Yemen war coalition strikes", "Khashoggi killing CIA assessment MBS", "Saudi sovereign fund media capture MBS"] },
+];
+
+/**
+ * The full matrix: twelve theatres × three years, plus the standing record.
+ * Fifty cases. The cron walks them five at a time; a one-off can walk them
+ * faster. Every case is idempotent, so a re-run only adds what is missing.
+ */
+export const CASES: Case[] = [
+  ...THEATRES.flatMap((t) =>
+    YEARS.map((year) => ({
+      id: `${t.id}-${year}`,
+      place: t.place,
+      after: `${year}-01-01`,
+      before: `${year}-12-31`,
+      queries: t.queries,
+    })),
+  ),
+  ...PERSON_CASES,
 ];
 
 const SYSTEM = `You are Ada, keeping the ledger of documented harm for alaguillotine.
@@ -166,7 +227,7 @@ export async function researchCase(config: ClockConfig, c: Case): Promise<Ledger
         { role: "system", content: SYSTEM },
         {
           role: "user",
-          content: JSON.stringify({ case: c.id, place: c.place, subject: c.subject, results: results.slice(0, 24) }),
+          content: JSON.stringify({ case: c.id, place: c.place, subject: c.subject, window: { after: c.after, before: c.before }, results: results.slice(0, 32) }),
         },
       ],
     },

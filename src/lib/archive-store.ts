@@ -137,7 +137,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   ].join(" OR ");
   const rows = await d
     .prepare(
-      `SELECT act, place, year, category, confidence, sources FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC`,
+      `SELECT act, place, year, category, confidence, sources FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
     .bind(name, ...tokens.map((t) => `%${t}%`))
     .all();

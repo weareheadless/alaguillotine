@@ -6,7 +6,12 @@ import { slugify } from "@/lib/slug";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/backfill?case=<id> — deep research, one case per invocation.
+ * POST /api/backfill — deep research, a few cases per invocation.
+ *
+ * Every case is recorded in ledger_cases whether it found anything or not, so
+ * an empty case does not block the queue forever. Entries are keyed on the act
+ * itself, not the case, so the same charge found by two different sweeps lands
+ * once.
  */
 export async function POST(request: Request) {
   const ctx = (await getCloudflareContext({ async: true })) as unknown as {
@@ -35,47 +40,60 @@ export async function POST(request: Request) {
   const config = clockConfig(ctx.env ?? {});
   if (!config) return Response.json({ error: "no model key" }, { status: 500 });
 
-  const wanted = new URL(request.url).searchParams.get("case");
-  const batch = Math.min(
-    5,
-    Math.max(1, Number(new URL(request.url).searchParams.get("batch") ?? 1)),
-  );
+  const url = new URL(request.url);
+  const wanted = url.searchParams.get("case");
+  const batch = Math.min(5, Math.max(1, Number(url.searchParams.get("batch") ?? 1)));
   const db = ctx.env?.D1;
 
-  const hasEntries = async (id: string) => {
-    if (!db) return false;
-    const row = await db
-      .prepare("SELECT COUNT(*) AS n FROM ledger_entries WHERE case_id = ?")
-      .bind(id)
+  const done = new Set<string>();
+  if (db) {
+    try {
+      const rows = await db.prepare("SELECT case_id FROM ledger_cases").bind().all();
+      for (const r of rows.results ?? []) done.add(String(r.case_id));
+    } catch {
+      /* table not created yet */
+    }
+  }
+
+  if (url.searchParams.get("status")) {
+    if (!db) return Response.json({ error: "no db" }, { status: 500 });
+    const total = await db.prepare("SELECT COUNT(*) AS n FROM ledger_entries").bind().all();
+    const byYear = await db
+      .prepare("SELECT year, COUNT(*) AS n FROM ledger_entries GROUP BY year ORDER BY year")
+      .bind()
       .all();
-    return Number(row.results?.[0]?.n ?? 0) > 0;
-  };
+    const pending = CASES.filter((c) => !done.has(c.id)).map((c) => c.id);
+    return Response.json({
+      ok: true,
+      cases: CASES.length,
+      done: CASES.length - pending.length,
+      pending: pending.length,
+      next: pending.slice(0, 10),
+      entries: Number(total.results?.[0]?.n ?? 0),
+      byYear: byYear.results ?? [],
+    });
+  }
 
   const run: Array<{ case: string; entries: number }> = [];
 
   // One row per act, not per person per case: the id has to differ when the
-  // same name carries several charges.
+  // same name carries several charges, and has to match when two sweeps find
+  // the same act.
   const actHash = (s: string) => {
     let h = 5381;
     for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
     return (h >>> 0).toString(36);
   };
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
   for (let n = 0; n < batch; n += 1) {
     let next = wanted ? CASES.find((c) => c.id === wanted) : undefined;
-    if (!next) {
-      for (const c of CASES) {
-        if (!(await hasEntries(c.id))) {
-          next = c;
-          break;
-        }
-      }
-    }
+    if (!next) next = CASES.find((c) => !done.has(c.id));
     if (!next) break;
 
     const entries = await researchCase(config, next);
 
-    if (db && entries.length) {
+    if (db) {
       for (const e of entries) {
         await db
           .prepare(
@@ -84,7 +102,7 @@ export async function POST(request: Request) {
              ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources`,
           )
           .bind(
-            `${e.caseId}:${slugify(e.person)}:${actHash(e.act)}`,
+            `${slugify(e.person)}:${actHash(norm(e.act))}`,
             e.person,
             e.role,
             e.act,
@@ -98,8 +116,18 @@ export async function POST(request: Request) {
           )
           .run();
       }
+
+      await db
+        .prepare(
+          `INSERT INTO ledger_cases (case_id, attempted_at, entries)
+           VALUES (?, ?, ?)
+           ON CONFLICT(case_id) DO UPDATE SET attempted_at = excluded.attempted_at, entries = excluded.entries`,
+        )
+        .bind(next.id, new Date().toISOString(), entries.length)
+        .run();
     }
 
+    done.add(next.id);
     run.push({ case: next.id, entries: entries.length });
     if (wanted) break;
   }
