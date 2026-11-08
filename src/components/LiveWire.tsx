@@ -16,7 +16,7 @@ export function LiveWire({ items }: { items: RageItem[] }) {
 
   useEffect(() => {
     if (items.length < 2) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % items.length), 3800);
+    const id = setInterval(() => setIndex((i) => (i + 1) % items.length), 8000);
     return () => clearInterval(id);
   }, [items.length]);
 
@@ -32,20 +32,20 @@ export function LiveWire({ items }: { items: RageItem[] }) {
 
   return (
     <div className="border-y border-chop-border bg-chop-card/30">
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2 md:px-6">
+      <div className="mx-auto flex max-w-6xl items-start gap-3 px-4 py-2.5 md:px-6">
         <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.25em] text-spiteCrimson">
           <span className="h-1.5 w-1.5 animate-pulse bg-spiteCrimson" />
           wire
         </span>
 
-        <div key={item.id} className="wire-in min-w-0 flex-1 overflow-hidden">
-          <p className="truncate font-mono text-[11px] text-sheetWhite">
+        <div key={item.id} className="wire-in min-w-0 flex-1">
+          <p className="truncate font-mono text-[13px] leading-snug text-sheetWhite">
             <span className="text-chop-muted">{item.source}</span>
             <span className="mx-2 text-chop-muted">·</span>
             {item.headline}
           </p>
           {item.quip ? (
-            <p className="truncate font-mono text-[10px] leading-tight text-spiteCrimson/90">
+            <p className="mt-0.5 font-mono text-[12px] leading-snug text-spiteCrimson/90">
               {item.quip}
             </p>
           ) : null}
