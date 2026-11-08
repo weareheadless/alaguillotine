@@ -239,7 +239,6 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
  * cooling window, so the line moves like a ritual and not like a batch job.
  */
 export const SENTENCE_MS = 10 * 60 * 1000;
-export const EXECUTION_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
 export interface Sentence {
   person: string;
@@ -306,17 +305,9 @@ export async function ensureSentence(db: D1, threshold: number): Promise<Sentenc
   const pending = await readSentence(db);
   if (pending) return pending;
 
+  // No cooling window: the moment one blade falls, the next name is
+  // sentenced. The countdown itself is the pause, so the line keeps moving.
   const now = Date.now();
-  try {
-    const last = await db
-      .prepare("SELECT MAX(executed_at) AS last FROM chop_sentences WHERE executed_at IS NOT NULL")
-      .first<Record<string, unknown>>();
-    const lastAt = last?.last ? Date.parse(String(last.last)) : 0;
-    if (lastAt && now - lastAt < EXECUTION_COOLDOWN_MS) return null;
-  } catch {
-    /* table not created yet */
-  }
-
   const top = await db
     .prepare(
       `SELECT slug, name, score FROM queue_people
