@@ -61,13 +61,7 @@ interface Balances {
   at: string;
 }
 
-export function TreasuryStats({
-  wallet,
-  mint,
-}: {
-  wallet: string;
-  mint: string;
-}) {
+export function TreasuryStats({ wallet }: { wallet: string }) {
   const [balances, setBalances] = useState<Balances | null>(null);
   const [reading, setReading] = useState(true);
 
@@ -105,7 +99,7 @@ export function TreasuryStats({
           <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
             $CHOP in the fund
           </p>
-          <p className="mt-1 font-mono text-2xl font-black tracking-tight text-sheetWhite">
+          <p className="mt-1 font-mono text-3xl font-black tracking-tight text-sheetWhite">
             {balances?.chop == null ? "—" : fmt(balances.chop, 0)}
           </p>
         </div>
@@ -113,7 +107,7 @@ export function TreasuryStats({
           <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
             SOL in the fund
           </p>
-          <p className="mt-1 font-mono text-2xl font-black tracking-tight text-sheetWhite">
+          <p className="mt-1 font-mono text-3xl font-black tracking-tight text-sheetWhite">
             {balances?.sol == null ? "—" : fmt(balances.sol, 4)}
           </p>
         </div>
@@ -124,8 +118,8 @@ export function TreasuryStats({
           {reading
             ? "reading the chain…"
             : failed
-              ? "nodes unreachable — no number rather than a fake one"
-              : `read from the chain${balances ? ` at ${balances.at.slice(11, 16)} UTC` : ""}`}
+              ? "could not read the chain — no number rather than a fake one"
+              : "live from Solana"}
         </span>
         <button
           type="button"
@@ -135,7 +129,6 @@ export function TreasuryStats({
         >
           refresh
         </button>
-        <span className="text-chop-muted/60">mint {mint.slice(0, 6)}…</span>
       </div>
     </div>
   );

@@ -1,6 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+const LINKS = [
+  { href: "/", label: "The Blade" },
+  { href: "/next-in-line", label: "Next in Line" },
+  { href: "/resistance", label: "The Fund" },
+  { href: "/whitepaper", label: "The Manifesto" },
+  { href: "/blog", label: "Dispatches" },
+  { href: "/submit", label: "Submit a Name" },
+];
 
 export function GlobalFooter() {
   const pathname = usePathname();
@@ -8,6 +18,25 @@ export function GlobalFooter() {
   return (
     <footer className="border-t-4 border-black bg-[#0a0a0a] py-12 px-6 z-50 relative">
       <div className="mx-auto max-w-4xl font-mono text-xs text-[#818384] leading-relaxed">
+        <nav className="mb-10 flex flex-wrap justify-center gap-x-6 gap-y-2 border-b border-white/10 pb-6 text-[10px] font-bold uppercase tracking-[0.15em]">
+          {LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={pathname === link.href ? "text-hypeNeon" : "text-chop-muted hover:text-sheetWhite"}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <a
+            href="https://forum.alaguillotine.com"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-chop-muted hover:text-sheetWhite"
+          >
+            The Forum ↗
+          </a>
+        </nav>
         <h3 className="mb-4 text-center text-[13px] font-bold text-spiteCrimson uppercase tracking-widest">
           NOTICE OF ARTISTIC SATIRE &amp; SYMBOLIC REPRESENTATION
         </h3>

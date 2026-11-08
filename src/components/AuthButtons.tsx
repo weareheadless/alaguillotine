@@ -8,7 +8,7 @@
 export function AuthButtons() {
   return (
     <a
-      href="/forum"
+      href="/resistance"
       className="flex cursor-pointer items-center gap-2 border-2 border-black bg-spiteCrimson px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-mono font-bold text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none"
     >
       <svg

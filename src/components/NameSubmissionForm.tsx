@@ -8,7 +8,7 @@ const field =
 const label =
   "mb-1 block font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-chop-muted";
 
-export function NameSubmissionForm() {
+export function NameSubmissionForm({ compact = false }: { compact?: boolean }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [country, setCountry] = useState("");
@@ -116,7 +116,7 @@ export function NameSubmissionForm() {
 
   return (
     <form onSubmit={submit} className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={`grid gap-4 ${compact ? "" : "sm:grid-cols-2"}`}>
         <div>
           <label htmlFor="name" className={label}>
             The name *
@@ -131,48 +131,21 @@ export function NameSubmissionForm() {
             className={field}
           />
         </div>
-        <div>
-          <label htmlFor="role" className={label}>
-            What they do
-          </label>
-          <input
-            id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            placeholder="CEO, minister, landlord, fund"
-            maxLength={120}
-            className={field}
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="country" className={label}>
-            Where
-          </label>
-          <input
-            id="country"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            placeholder="Country or jurisdiction"
-            maxLength={60}
-            className={field}
-          />
-        </div>
-        <div>
-          <label htmlFor="submitter" className={label}>
-            Your handle (optional)
-          </label>
-          <input
-            id="submitter"
-            value={submitter}
-            onChange={(e) => setSubmitter(e.target.value)}
-            placeholder="How the record credits you"
-            maxLength={60}
-            className={field}
-          />
-        </div>
+        {!compact && (
+          <div>
+            <label htmlFor="role" className={label}>
+              What they do
+            </label>
+            <input
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="CEO, minister, landlord, fund"
+              maxLength={120}
+              className={field}
+            />
+          </div>
+        )}
       </div>
 
       <div>
@@ -184,7 +157,7 @@ export function NameSubmissionForm() {
           value={acts}
           onChange={(e) => setActs(e.target.value)}
           placeholder="One paragraph. What happened, who it hurt, and when. Specifics only — a feeling is not a charge."
-          rows={5}
+          rows={compact ? 3 : 5}
           maxLength={2000}
           required
           className={`${field} resize-y`}
@@ -202,8 +175,12 @@ export function NameSubmissionForm() {
           id="sources"
           value={sources}
           onChange={(e) => setSources(e.target.value)}
-          placeholder={"https://example.com/investigation\nhttps://example.com/court-filing"}
-          rows={3}
+          placeholder={
+            compact
+              ? "https://example.com/investigation"
+              : "https://example.com/investigation\nhttps://example.com/court-filing"
+          }
+          rows={compact ? 2 : 3}
           required
           className={`${field} resize-y`}
         />
@@ -213,20 +190,22 @@ export function NameSubmissionForm() {
         </p>
       </div>
 
-      <div>
-        <label htmlFor="why" className={label}>
-          Why it matters (optional)
-        </label>
-        <textarea
-          id="why"
-          value={why}
-          onChange={(e) => setWhy(e.target.value)}
-          placeholder="The part the article buries."
-          rows={2}
-          maxLength={600}
-          className={`${field} resize-y`}
-        />
-      </div>
+      {!compact && (
+        <div>
+          <label htmlFor="why" className={label}>
+            Why it matters (optional)
+          </label>
+          <textarea
+            id="why"
+            value={why}
+            onChange={(e) => setWhy(e.target.value)}
+            placeholder="The part the article buries."
+            rows={2}
+            maxLength={600}
+            className={`${field} resize-y`}
+          />
+        </div>
+      )}
 
       {/* Bots fill this in; humans never see it. */}
       <div className="hidden" aria-hidden="true">
@@ -257,6 +236,14 @@ export function NameSubmissionForm() {
         <p className="font-mono text-[9px] uppercase tracking-wider text-chop-muted">
           free · no account · no email · 2 a day
         </p>
+        {compact && (
+          <Link
+            href="/submit"
+            className="font-mono text-[9px] uppercase tracking-wider text-hypeNeon underline decoration-hypeNeon/40 hover:decoration-hypeNeon"
+          >
+            full form: role, country, more sources →
+          </Link>
+        )}
       </div>
     </form>
   );

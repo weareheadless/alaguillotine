@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { useHateometer } from "@/components/Hateometer";
 import { LineRow } from "@/components/LineRow";
+import { NameSubmissionForm } from "@/components/NameSubmissionForm";
 
 /**
  * The line.
@@ -78,6 +79,51 @@ export default function NextInLinePage() {
           score = ada&apos;s reading of the week + up to 22 points for the ledger on record
         </p>
 
+        <section
+          id="propose"
+          className="mb-8 scroll-mt-24 border-2 border-black bg-sheetWhite/[0.03] p-5"
+        >
+          <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
+            <div>
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-spiteCrimson">
+                the front door
+              </p>
+              <h2 className="mt-2 text-2xl font-black uppercase leading-none tracking-tighter md:text-3xl">
+                Put a name on the record.
+              </h2>
+              <p className="mt-2 max-w-xl font-mono text-[11px] leading-relaxed text-chop-muted">
+                If the reporting holds someone responsible and the source
+                survives a reading, they can stand under a blade with their own
+                counter. No account, no email.
+              </p>
+              <div className="mt-5">
+                <NameSubmissionForm compact />
+              </div>
+            </div>
+            <aside className="space-y-3">
+              <div className="border-2 border-black bg-canvasBlack p-4">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-hypeNeon">
+                  what happens next
+                </p>
+                <ol className="mt-3 space-y-2 font-mono text-[10px] leading-relaxed text-chop-muted">
+                  <li>Ada reads it against its sources.</li>
+                  <li>A human approves or rejects it.</li>
+                  <li>Approved: it enters the line below.</li>
+                </ol>
+              </div>
+              <div className="border-2 border-spiteCrimson bg-spiteCrimson/10 p-4">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-spiteCrimson">
+                  rejected?
+                </p>
+                <p className="mt-2 font-mono text-[10px] leading-relaxed text-chop-muted">
+                  You get a real reason. Sometimes it is that they are not evil
+                  enough to make the wall. That is the bar.
+                </p>
+              </div>
+            </aside>
+          </div>
+        </section>
+
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
             {filtered.length} names · click any card for the record
@@ -85,8 +131,8 @@ export default function NextInLinePage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a name or a country"
-            className="border-2 border-chop-border bg-white/5 px-3 py-2 font-mono text-xs text-sheetWhite outline-none placeholder:text-chop-muted focus:border-hypeNeon"
+            placeholder="Search a name or country"
+            className="w-full border-2 border-chop-border bg-white/5 px-3 py-2 font-mono text-xs text-sheetWhite outline-none placeholder:text-chop-muted focus:border-hypeNeon sm:w-72"
           />
         </div>
 
