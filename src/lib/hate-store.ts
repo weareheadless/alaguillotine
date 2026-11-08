@@ -308,10 +308,13 @@ export async function ensureSentence(db: D1, threshold: number): Promise<Sentenc
   // No cooling window: the moment one blade falls, the next name is
   // sentenced. The countdown itself is the pause, so the line keeps moving.
   const now = Date.now();
+  // The card rounds the counter for display, so the sentence must use the
+  // rounded number too: a name the page shows at 90 is on the block, not
+  // silently stuck at 89.6 with no countdown.
   const top = await db
     .prepare(
       `SELECT slug, name, score FROM queue_people
-       WHERE score >= ?
+       WHERE ROUND(score) >= ?
        ORDER BY score DESC, mentions DESC LIMIT 1`,
     )
     .bind(threshold)
