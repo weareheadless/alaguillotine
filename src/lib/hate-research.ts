@@ -46,12 +46,12 @@ RULES — hard:
 6. You choose who belongs in the line. The standingRecord is your memory: every person on it is already documented and MUST appear in your output, scored, with basis set to the record line — unless this pass contains evidence that clears them. The feed is the news; the record is the site. The reporting is not the only thing you know: if a person is a documented, widely reported author of mass harm and today's feed simply missed them, name them anyway and set "basis" to the record you are drawing on. Up to five of those per pass. The feed is the news; you are the memory. Include anyone whose decisions, companies or orders cause mass harm: heads of state and ministers, military and security chiefs, arms and defence executives, and the billionaires, funders and lobbyists whose money and platforms make it possible. Exclude only private individuals, and anyone the text presents purely as a victim, witness or critic.
 7. Every figure cites item_indices. No figure without items.
 8. Name everyone the reporting supports, up to 20. A thin list is a wasted pass — the queue is the point of the site.
-9. score is YOUR judgement, 0-100, of how much this person deserves the blade. No formula overrules you and nothing is averaged. Only people, never a company — when the reporting names a company, name the people who run it or own it (a defence contractor means its chief executive and its largest shareholders). Scores must differ from each other — if everyone lands on 50 you have not decided. Use the whole range: 90+ for someone who ordered or bankrolled mass death, 70s for systematic cruelty with a body count, 50s for extraction and impunity, 30s for complicity.
+9. score is YOUR judgement, 0-100, and the queue must be a ladder, not a pile. Enforce this shape: exactly ONE person at 100; at most TWO more in 95-99; at most FOUR more in 90-94; the next serious cases in 80-89; extraction and impunity in 60-79; complicity and thin evidence in 40-59. That means at most seven people at 90 or above in the whole pass. If two people would get the same score, decide which is worse and separate them by at least 1 point. A person with a smaller documented record sits below a person with a larger one unless the act itself is worse. Only people, never a company — when the reporting names a company, name the people who run it or own it (a defence contractor means its chief executive and its largest shareholders). Use the whole range.
 10. The line must include the owners as well as the officials. If the reporting names a billionaire, an executive, a funder or a lobbyist whose money or platform causes the harm, they belong here with their own charge — the people who pay are as responsible as the people who sign.
 11. reason is what they are accused of, one sentence, max 240 chars. Be specific about the act, the place and the year. If the reporting is thin, say what is alleged, not what is proven.
 12. ledger is the long record: documented acts with a year and a confidence. Weigh it. A person with several high-confidence entries should score higher than this week's headlines alone would suggest. Do not invent beyond the ledger lines; a thin record should score lower, not be padded.
 13. Self-defence is not a charge. If the reporting says a person or state was responding to an armed attack, do not score them for the attack they are answering. Prosecuting officials, filing legal cases, declaring red lines and diplomatic statements are not harm. If a response deliberately targets civilians or is clearly disproportionate, it may be a charge — but the reason must say what was done to whom, and the initiator of the original attack belongs in the line, not the defender.
-14. The site adds a record bonus after your score: 2 points per documented charge, capped at 22, and a floor when there are five or more charges. Your score is the base judgment; the record is the long memory. Score the person, not the arithmetic.
+14. The ledger block gives each name charges (how many documented acts), recent (acts in the last two years) and up to twelve of the highest-confidence acts. Weigh that record in your score: a name with 150 documented acts is worse than a name with 12, even if this week's reporting is thinner on the first. The site then adds a small bonus, at most 5 points, so your score is the verdict and the record is only a tie-breaker. Do not inflate a score to compensate for a thin record, and do not leave a deep record unreflected.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],
@@ -142,10 +142,16 @@ export async function runHatePass(
   const passPayload = {
     queue: roster,
     standingRecord: STANDING,
-    ledger: previousFigures.slice(0, 40).map((f) => ({
-      name: f.name,
-      record: ledger?.get(f.name.toLowerCase())?.top ?? [],
-    })),
+    ledger: previousFigures.slice(0, 40).map((f) => {
+      const rec = ledger?.get(f.name.toLowerCase());
+      return {
+        name: f.name,
+        charges: rec?.count ?? 0,
+        recent: rec?.recent ?? 0,
+        avgConfidence: rec ? Math.round(rec.avgConfidence) : 0,
+        record: rec?.top ?? [],
+      };
+    }),
     results: pool.slice(0, 40).map((c, index) => ({
       index,
       topic: c.topic,

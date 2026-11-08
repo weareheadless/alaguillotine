@@ -9,7 +9,9 @@
  */
 export const STANDING: Array<{ name: string; role: string; country: string; basis: string }> = [
   { name: "Elon Musk", role: "CEO, Tesla / SpaceX / xAI", country: "United States",
-    basis: "Ran the Department of Government Efficiency, which dismantled USAID programmes; Starlink and federal contracts; the largest disclosed political donor in the 2024 and 2026 cycles, including more than $445 million in 2026 through America PAC and allied groups; repeated far-right amplification on X." },
+    basis: "Ran the Department of Government Efficiency, which dismantled USAID programmes; Starlink and federal contracts; the largest disclosed political donor in the 2024 and 2026 cycles, including more than $445 million in 2026 through America PAC and allied groups; repeated far-right amplification on X; Tesla and SpaceX labour, safety and discrimination litigation; SEC and insider-trading disputes; foreign payments and government contracts; xAI and data-centre power deals." },
+  { name: "Donald Trump", role: "President", country: "United States",
+    basis: "Second-term personal enrichment through crypto, foreign payments and policy-linked trading; the 2026 Venezuela operation and its oil arrangements; mass deportation and ICE detention expansion, including camp conditions documented by human-rights investigators; insider-trading allegations around tariff and crypto announcements." },
   { name: "Peter Thiel", role: "Co-founder, Palantir / Founders Fund", country: "United States",
     basis: "Palantir surveillance and targeting contracts with immigration enforcement and militaries; funded the political rise of JD Vance; defence and data infrastructure for allied militaries." },
   { name: "Alex Karp", role: "CEO, Palantir", country: "United States",

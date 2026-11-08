@@ -71,6 +71,21 @@ export async function POST(request: Request) {
     }
 
     merged.sort((a, b) => b.score - a.score || b.mentions - a.mentions);
+
+    // Ada ranks; this only spaces the ladder. Her order is untouched, but the
+    // top of the queue is separated by at least a point so the page cannot
+    // show a wall of identical 100s. Only one name can hold 100.
+    let ceiling: number | null = null;
+    for (const person of merged) {
+      if (person.score < 80) break;
+      if (ceiling === null) {
+        person.score = Math.min(100, person.score);
+      } else {
+        person.score = Math.min(person.score, Math.round((ceiling - 1) * 10) / 10);
+      }
+      ceiling = person.score;
+    }
+
     const ranked = merged.map((person, i) => {
       const rank = i + 1;
       const was = queue.find((q) => q.name.toLowerCase() === person.name.toLowerCase());

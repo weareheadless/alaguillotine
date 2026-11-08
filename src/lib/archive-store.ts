@@ -205,7 +205,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
     s.avgConfidence += conf;
     s.maxConfidence = Math.max(s.maxConfidence, conf);
     if (Number(r.year ?? 0) >= cutoff) s.recent += 1;
-    if (s.top.length < 3) {
+    if (s.top.length < 12) {
       s.top.push({
         act: String(r.act ?? ""),
         place: String(r.place ?? ""),
@@ -226,17 +226,22 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
 /**
  * The record bonus.
  *
- * Two points per documented charge, plus a little for confidence, capped at 22.
- * A substantial record also sets a floor, so a quiet week cannot erase it. The
- * bonus is deliberately smaller than a news cycle: the record raises the score,
- * it does not replace the reporting.
+ * A small logarithmic nudge, capped at 5, plus a floor for a substantial
+ * record so a quiet week cannot erase it. The judge sees the record itself
+ * (count, recency, top acts); this only breaks ties in its favour.
  */
 export function recordAdjustment(s: LedgerSummary | undefined): { bonus: number; floor: number } {
   if (!s || s.count === 0) return { bonus: 0, floor: 0 };
-  const bonus = Math.min(22, Math.round((2 * s.count + 0.06 * s.avgConfidence) * 10) / 10);
+  // The judge now sees the size of the record (charges, recent, top acts) and
+  // is told to weigh it. The bonus is only a nudge, so arithmetic cannot turn
+  // a queue of high-80s judgments into a wall of 100s.
+  const bonus = Math.min(
+    5,
+    Math.round((2 * Math.log10(1 + s.count) + 0.01 * s.avgConfidence) * 10) / 10,
+  );
   const floor =
     s.count >= 5
-      ? Math.min(85, Math.round((28 + 2.6 * s.count + 0.12 * s.avgConfidence) * 10) / 10)
+      ? Math.min(70, Math.round((28 + 2.2 * s.count + 0.1 * s.avgConfidence) * 10) / 10)
       : 0;
   return { bonus, floor };
 }
