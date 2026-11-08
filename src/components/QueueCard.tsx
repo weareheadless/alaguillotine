@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import type { Figure } from "../lib/hateometer";
 import { slugify } from "../lib/slug";
 
@@ -13,12 +14,53 @@ import { slugify } from "../lib/slug";
  */
 
 function MiniBlade({ score, dropped }: { score: number; dropped: boolean }) {
-  const scale = 0.3;
+  const box = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ h: 220, w: 640 });
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const card = el.closest("article");
+    const measure = () => {
+      setSize({
+        h: el.clientHeight || 220,
+        w: card?.clientWidth || 640,
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (card) ro.observe(card);
+    return () => ro.disconnect();
+  }, []);
+
+  // The guillotine is 440 units tall. Fill the card: the old blade was 132px
+  // tall; now it is the height of the container, never smaller.
+  const scale = Math.max(0.4, Math.min(0.95, size.h / 440));
   const offset = dropped ? 74 : 10 + (Math.min(100, Math.max(0, score)) / 100) * 40;
 
+  // The head leaves the neck and rolls to the right along the card floor.
+  const roll = Math.max(180, (size.w - 170) / scale);
+  const drop = Math.max(18, size.h / scale - 410);
+
   return (
-    <div className="relative shrink-0" style={{ width: 200 * scale, height: 440 * scale }}>
-      <div className="absolute left-0 top-0 origin-top-left" style={{ transform: `scale(${scale})` }}>
+    <div
+      ref={box}
+      className="relative z-10 shrink-0 self-stretch w-[118px] md:w-[168px]"
+    >
+      <div
+        className="absolute left-1/2 top-0 origin-top"
+        style={
+          {
+            transform: `translateX(-50%) scale(${scale})`,
+            "--roll-1": `${roll * 0.55}px`,
+            "--roll-2": `${roll * 0.8}px`,
+            "--roll-3": `${roll * 0.9}px`,
+            "--roll-4": `${roll}px`,
+            "--head-drop": `${drop}px`,
+          } as React.CSSProperties
+        }
+      >
         <div className="guillotine-wrapper guillotine-accent-a">
           <div className="guillotine-post-left" />
           <div className="guillotine-post-right" />
@@ -73,7 +115,7 @@ export function QueueCard({
         aria-hidden
       />
 
-      <div className="flex gap-4 p-4 md:gap-6 md:p-5">
+      <div className="flex min-h-[200px] gap-4 p-4 md:gap-6 md:p-5">
         <MiniBlade score={figure.score} dropped={dropped} />
 
         <div className="min-w-0 flex-1">

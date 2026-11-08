@@ -47,7 +47,7 @@ export default function HomePage() {
         if (next?.execution && next.execution.secondsLeft <= 0) {
           window.setTimeout(() => pullHate(), 1500);
         }
-      }, 2400);
+      }, 3400);
     },
     [pullHate],
   );

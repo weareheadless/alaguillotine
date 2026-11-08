@@ -795,15 +795,35 @@ body::after {
   animation-delay: var(--guillotine-animation-delay, 0s);
 }
 
-/* When severed — the head leaves the shoulders and rolls off the block */
+/* When severed — the head leaves the shoulders and rolls across the floor */
 .guillotine-head.severed {
-  animation: head-roll 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: head-roll 2.8s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes head-roll {
   0% { transform: translateX(-50%) translateY(0) rotate(0deg); opacity: 1; }
-  16% { transform: translateX(-50%) translateY(2px) rotate(0deg); opacity: 1; }
-  100% { transform: translateX(26%) translateY(64px) rotate(155deg); opacity: 0; }
+  9% { transform: translateX(-50%) translateY(7px) rotate(28deg); opacity: 1; }
+  55% {
+    transform: translateX(calc(-50% + var(--roll-1, 300px)))
+      translateY(calc(var(--head-drop, 40px) - 12px)) rotate(390deg);
+    opacity: 1;
+  }
+  76% {
+    transform: translateX(calc(-50% + var(--roll-2, 440px)))
+      translateY(var(--head-drop, 40px)) rotate(560deg);
+    opacity: 1;
+  }
+  87% {
+    transform: translateX(calc(-50% + var(--roll-3, 500px)))
+      translateY(calc(var(--head-drop, 40px) - 7px)) rotate(640deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(-50% + var(--roll-4, 560px)))
+      translateY(var(--head-drop, 40px)) rotate(720deg);
+    opacity: 0;
+  }
 }
 
 /* The card takes the blow with it. */
