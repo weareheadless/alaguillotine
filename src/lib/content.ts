@@ -344,6 +344,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     { href: "/", label: "The Blade" },
     { href: "/next-in-line", label: "Next in Line" },
     { href: "/submit", label: "Submit a Name" },
+    { href: "/forum", label: "The Forum" },
     { href: "/resistance", label: "The Resistance" },
     { href: "/whitepaper", label: "The Manifesto" },
     { href: "/blog", label: "Dispatches" },

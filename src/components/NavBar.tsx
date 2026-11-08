@@ -30,7 +30,7 @@ export function NavBar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const linkClass = (active: boolean) =>
-    `rounded-sm border-2 px-2 py-1 md:px-3 md:py-1.5 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-all ${
+    `whitespace-nowrap rounded-sm border-2 px-2 py-1 md:px-2 md:py-1.5 xl:px-3 text-[9px] md:text-[10px] font-bold uppercase tracking-wider transition-all ${
       active
         ? "border-black bg-spiteCrimson text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
         : "border-transparent text-chop-muted hover:text-sheetWhite"
@@ -51,7 +51,7 @@ export function NavBar() {
           <span className="text-lg md:text-xl font-black uppercase tracking-tighter text-sheetWhite animate-glitch-text">
             <span className="text-spiteCrimson">A LA</span> GUILLOTINE
           </span>
-          <span className="hidden rounded-sm border-2 border-spiteCrimson bg-spiteCrimson/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-spiteCrimson sm:inline-block">
+          <span className="hidden rounded-sm border-2 border-spiteCrimson bg-spiteCrimson/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-spiteCrimson xl:inline-block">
             $CHOP PROTOCOL
           </span>
         </Link>

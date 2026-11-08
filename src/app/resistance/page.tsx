@@ -14,6 +14,10 @@ export const metadata = {
 
 const FORUM = "https://forum.alaguillotine.com";
 
+/** In-site links go through /forum, which frames the forum under the site nav. */
+const forumLink = (path = "/") =>
+  path === "/" ? "/forum" : `/forum?to=${encodeURIComponent(path)}`;
+
 export default async function ResistancePage() {
   const topics = await readForumTopics(6);
 
@@ -37,14 +41,12 @@ export default async function ResistancePage() {
             the open, with the receipt posted next to the story.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href={FORUM}
-              target="_blank"
-              rel="noreferrer noopener"
+            <Link
+              href={forumLink()}
               className="border-2 border-black bg-spiteCrimson px-5 py-3 font-mono text-[11px] font-black uppercase tracking-[0.2em] text-sheetWhite shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none"
             >
               Open the forum →
-            </a>
+            </Link>
             <Link
               href="/submit"
               className="border-2 border-black bg-sheetWhite px-5 py-3 font-mono text-[11px] font-black uppercase tracking-[0.2em] text-canvasBlack shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-hypeNeon active:translate-x-1 active:translate-y-1 active:shadow-none"
@@ -88,14 +90,12 @@ export default async function ResistancePage() {
               >
                 view on solscan
               </a>
-              <a
-                href={FORUM}
-                target="_blank"
-                rel="noreferrer noopener"
+              <Link
+                href={forumLink()}
                 className="text-chop-muted underline decoration-chop-muted/40 hover:text-hypeNeon"
               >
                 argue about it in the forum
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -181,24 +181,20 @@ export default async function ResistancePage() {
               <h2 className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-sheetWhite">
                 from the forum
               </h2>
-              <a
-                href={FORUM}
-                target="_blank"
-                rel="noreferrer noopener"
+              <Link
+                href={forumLink()}
                 className="font-mono text-[9px] uppercase tracking-[0.2em] text-hypeNeon hover:underline"
               >
                 all threads →
-              </a>
+              </Link>
             </div>
 
             {topics.length > 0 ? (
               <ul className="mt-4 divide-y-2 divide-black">
                 {topics.map((topic) => (
                   <li key={topic.id}>
-                    <a
-                      href={`${FORUM}/post/${topic.id}`}
-                      target="_blank"
-                      rel="noreferrer noopener"
+                    <Link
+                      href={forumLink(`/post/${topic.id}`)}
                       className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 transition-colors hover:text-hypeNeon"
                     >
                       <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-spiteCrimson">
@@ -210,7 +206,7 @@ export default async function ResistancePage() {
                       <span className="font-mono text-[9px] text-chop-muted">
                         {topic.comments} replies
                       </span>
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -229,10 +225,8 @@ export default async function ResistancePage() {
           </div>
 
           <aside className="space-y-3">
-            <a
-              href={`${FORUM}/c/the_fund`}
-              target="_blank"
-              rel="noreferrer noopener"
+            <Link
+              href={forumLink("/c/the_fund")}
               className="block border-2 border-black bg-sheetWhite p-4 text-canvasBlack shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
             >
               <p className="font-mono text-[9px] font-black uppercase tracking-[0.2em] text-spiteCrimson">
@@ -241,11 +235,9 @@ export default async function ResistancePage() {
               <p className="mt-1 font-mono text-[11px] font-bold leading-snug">
                 Proposals, votes, receipts.
               </p>
-            </a>
-            <a
-              href={`${FORUM}/c/mutual_aid`}
-              target="_blank"
-              rel="noreferrer noopener"
+            </Link>
+            <Link
+              href={forumLink("/c/mutual_aid")}
               className="block border-2 border-black bg-canvasBlack p-4 transition-colors hover:border-hypeNeon"
             >
               <p className="font-mono text-[9px] font-black uppercase tracking-[0.2em] text-hypeNeon">
@@ -254,11 +246,9 @@ export default async function ResistancePage() {
               <p className="mt-1 font-mono text-[11px] font-bold leading-snug text-sheetWhite">
                 Food, legal aid, medical aid, shelter.
               </p>
-            </a>
-            <a
-              href={`${FORUM}/c/evidence`}
-              target="_blank"
-              rel="noreferrer noopener"
+            </Link>
+            <Link
+              href={forumLink("/c/evidence")}
               className="block border-2 border-black bg-canvasBlack p-4 transition-colors hover:border-hypeNeon"
             >
               <p className="font-mono text-[9px] font-black uppercase tracking-[0.2em] text-hypeNeon">
@@ -267,11 +257,9 @@ export default async function ResistancePage() {
               <p className="mt-1 font-mono text-[11px] font-bold leading-snug text-sheetWhite">
                 Sources that survive a reading.
               </p>
-            </a>
-            <a
-              href={`${FORUM}/c/meta`}
-              target="_blank"
-              rel="noreferrer noopener"
+            </Link>
+            <Link
+              href={forumLink("/c/meta")}
               className="block border-2 border-black bg-canvasBlack p-4 transition-colors hover:border-hypeNeon"
             >
               <p className="font-mono text-[9px] font-black uppercase tracking-[0.2em] text-hypeNeon">
@@ -280,7 +268,7 @@ export default async function ResistancePage() {
               <p className="mt-1 font-mono text-[11px] font-bold leading-snug text-sheetWhite">
                 Rules, moderation, bans.
               </p>
-            </a>
+            </Link>
           </aside>
         </section>
 

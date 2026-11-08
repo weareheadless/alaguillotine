@@ -163,6 +163,10 @@
       "label": "Submit a Name"
     },
     {
+      "href": "/forum",
+      "label": "The Forum"
+    },
+    {
       "href": "/resistance",
       "label": "The Resistance"
     },
