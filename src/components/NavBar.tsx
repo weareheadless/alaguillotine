@@ -4,20 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthButtons } from "./AuthButtons";
-import { getCurrentEpoch } from "../app/actions/epoch";
 import { useSiteContent } from "../lib/use-site-content";
 
 export function NavBar() {
   const { content } = useSiteContent();
   const pathname = usePathname();
-  const [epochNum, setEpochNum] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    getCurrentEpoch().then((ep) => {
-      if (ep) setEpochNum(ep.epoch_number);
-    }).catch(() => {});
-  }, []);
 
   // Close the portable menu whenever the route changes
   useEffect(() => {
@@ -73,19 +65,8 @@ export function NavBar() {
           ))}
         </nav>
 
-        {/* ─── Right cluster: Epoch + Auth + Hamburger ────────────────── */}
+        {/* ─── Right cluster: Auth + Hamburger ───────────────────────── */}
         <div className="flex flex-shrink-0 items-center gap-2 md:gap-3">
-          {epochNum !== null && (
-            <>
-              <span className="hidden lg:inline-block rounded-sm border-2 border-hypeNeon bg-hypeNeon/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-hypeNeon">
-                EPOCH {epochNum}
-              </span>
-              <span className="lg:hidden rounded-sm border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-hypeNeon">
-                E{epochNum}
-              </span>
-            </>
-          )}
-
           {/* Desktop auth */}
           <div className="hidden lg:block">
             <AuthButtons />

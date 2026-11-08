@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
-import { SolanaWalletProvider } from "../components/WalletProvider";
-import { ExecutionProvider } from "../lib/execution-context";
-import { AuthProvider } from "../lib/auth-context";
 import { TerminalProvider } from "../lib/terminal-context";
 import { LayoutExtras } from "../components/LayoutExtras";
 import { GlobalFooter } from "../components/GlobalFooter";
@@ -67,17 +64,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           ⚠️ LEGAL DEPT: This is an interactive art installation &amp; political satire. Public figures are symbolic. The blade is metaphorical. Always has been.
         </div>
         <TerminalProvider>
-          <SolanaWalletProvider>
-            <ExecutionProvider>
-              <AuthProvider>
-              <div className="flex-grow">{children}</div>
-              <LayoutExtras />
+          <div className="flex-grow">{children}</div>
+          <LayoutExtras />
 
-              {/* ─── Global Footer Disclaimer ──────────────────────────────── */}
-              <GlobalFooter />
-              </AuthProvider>
-            </ExecutionProvider>
-          </SolanaWalletProvider>
+          {/* ─── Global Footer Disclaimer ──────────────────────────────── */}
+          <GlobalFooter />
         </TerminalProvider>
       </body>
     </html>

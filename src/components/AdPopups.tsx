@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchTopBounties } from "../app/actions/feed";
-import type { FeedMessage } from "../lib/types";
 import { useSiteContent } from "../lib/use-site-content";
 import { useAdaVoice } from "../lib/use-ada-voice";
 import type { AdContent } from "../lib/content";
@@ -14,21 +12,25 @@ import type { AdContent } from "../lib/content";
  * a yellow system card, a browser notification, a cookie banner, a crypto
  * ticker, a breaking-news alert. They arrive on their own and they leave on
  * their own. Closing one only makes room for the next.
+ *
+ * The paid-override popup is gone with the paid messages: there is no token
+ * gate on speech any more.
  */
 
 const MAX_POPUPS = 4;
 const FORMATS = ["card", "notify", "cookie", "crypto", "breaking"] as const;
-type Format = (typeof FORMATS)[number] | "paid";
+type Format = (typeof FORMATS)[number];
 
 type Placed = {
   id: number;
   side: "left" | "right";
   format: Format;
-  data: AdContent | FeedMessage;
+  data: AdContent;
   rot: number;
 };
 
-const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)];
+const pick = <T,>(list: readonly T[]): T =>
+  list[Math.floor(Math.random() * list.length)];
 
 export function AdPopups() {
   const { content } = useSiteContent();
@@ -37,22 +39,8 @@ export function AdPopups() {
 
   const [stack, setStack] = useState<Placed[]>([]);
   const [leaving, setLeaving] = useState<number[]>([]);
-  const [bounties, setBounties] = useState<FeedMessage[]>([]);
   const nextId = useRef(0);
   const history = useRef<number[]>([]);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setBounties(await fetchTopBounties());
-      } catch {
-        /* keep the last pool */
-      }
-    };
-    load();
-    const id = setInterval(load, 30_000);
-    return () => clearInterval(id);
-  }, []);
 
   const close = useCallback((id: number) => {
     setLeaving((prev) => (prev.includes(id) ? prev : [...prev, id]));
@@ -62,54 +50,34 @@ export function AdPopups() {
     }, 260);
   }, []);
 
-  const spawn = useCallback(
-    (forced?: { paid: true; data: FeedMessage }) => {
-      const id = nextId.current++;
+  const spawn = useCallback(() => {
+    const id = nextId.current++;
 
-      setStack((prev) => {
-        if (prev.length >= MAX_POPUPS) return prev;
+    setStack((prev) => {
+      if (prev.length >= MAX_POPUPS) return prev;
 
-        if (forced) {
-          return [
-            ...prev,
-            { id, side: "right", format: "paid", data: forced.data, rot: 1.4 + Math.random() * 1.6 },
-          ];
-        }
+      const available = ads
+        .map((_, i) => i)
+        .filter((i) => !history.current.includes(i));
+      const pool = available.length ? available : ads.map((_, i) => i);
+      const idx = pick(pool);
+      history.current = [...history.current.slice(-3), idx];
+      const data = ads[idx];
 
-        let data: AdContent;
-        if (bounties.length > 0 && Math.random() > 0.62) {
-          // A paid message still looks like a paid message.
-          return [
-            ...prev,
-            {
-              id,
-              side: "right",
-              format: "paid",
-              data: pick(bounties),
-              rot: 1.4 + Math.random() * 1.6,
-            },
-          ];
-        }
+      const format = pick(FORMATS);
+      const side: "left" | "right" =
+        format === "notify" || format === "crypto" ? "right" : "left";
+      const rot =
+        side === "left"
+          ? -2.4 + Math.random() * 3.6
+          : 2.4 - Math.random() * 3.6;
 
-        const available = ads.map((_, i) => i).filter((i) => !history.current.includes(i));
-        const pool = available.length ? available : ads.map((_, i) => i);
-        const idx = pick(pool);
-        history.current = [...history.current.slice(-3), idx];
-        data = ads[idx];
+      return [...prev, { id, side, format, data, rot }];
+    });
 
-        const format = pick(FORMATS);
-        const side: "left" | "right" =
-          format === "notify" || format === "crypto" ? "right" : "left";
-        const rot = side === "left" ? -2.4 + Math.random() * 3.6 : 2.4 - Math.random() * 3.6;
-
-        return [...prev, { id, side, format, data, rot }];
-      });
-
-      // It leaves on its own. The page should never be fully clean.
-      window.setTimeout(() => close(id), 8000 + Math.random() * 9000);
-    },
-    [ads, bounties, close],
-  );
+    // It leaves on its own. The page should never be fully clean.
+    window.setTimeout(() => close(id), 8000 + Math.random() * 9000);
+  }, [ads, close]);
 
   useEffect(() => {
     const first = setTimeout(() => spawn(), 5000);
@@ -120,16 +88,6 @@ export function AdPopups() {
       clearTimeout(first);
       clearInterval(id);
     };
-  }, [spawn]);
-
-  useEffect(() => {
-    const onPaid = (event: Event) => {
-      const detail = (event as CustomEvent).detail as FeedMessage;
-      spawn({ paid: true, data: detail });
-      fetchTopBounties().then(setBounties).catch(() => {});
-    };
-    window.addEventListener("paid-message", onPaid);
-    return () => window.removeEventListener("paid-message", onPaid);
   }, [spawn]);
 
   if (!stack.length) return null;
@@ -159,13 +117,12 @@ export function AdPopups() {
             key={ad.id}
             style={{ ...style, zIndex: 50 + i }}
             className={`fixed font-mono transition-all duration-300 ${
-              isLeaving ? "pointer-events-none scale-95 opacity-0" : "animate-fade-in opacity-100"
+              isLeaving
+                ? "pointer-events-none scale-95 opacity-0"
+                : "animate-fade-in opacity-100"
             }`}
           >
-            <Popup
-              ad={ad}
-              onClose={() => close(ad.id)}
-            />
+            <Popup ad={ad} onClose={() => close(ad.id)} />
           </div>
         );
       })}
@@ -174,38 +131,7 @@ export function AdPopups() {
 }
 
 function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
-  if (ad.format === "paid") {
-    const msg = ad.data as FeedMessage;
-    return (
-      <div className="w-72 border-4 border-spiteCrimson bg-canvasBlack shadow-[8px_8px_0px_0px_#E11D48] md:w-80">
-        <div className="flex items-center justify-between border-b-4 border-spiteCrimson bg-spiteCrimson px-2 py-1 text-white">
-          <span className="animate-pulse text-[10px] font-black uppercase tracking-widest text-black md:text-xs">
-            ⚠️ PAID OVERRIDE
-          </span>
-          <button onClick={onClose} className="text-sm font-black hover:text-black focus:outline-none">
-            X
-          </button>
-        </div>
-        <div className="grid-overlay p-4">
-          <div className="mb-2 inline-block border-2 border-hypeNeon bg-hypeNeon/10 px-2 py-0.5 text-[10px] font-bold text-hypeNeon">
-            SPONSORED: ${msg.amount_paid.toFixed(2)} CHOP
-          </div>
-          <h4 className="mb-3 text-xs font-black leading-tight text-sheetWhite md:text-sm">
-            &quot;{msg.text}&quot;
-          </h4>
-          <p className="mb-4 text-right text-[10px] text-chop-muted">— {msg.author_name}</p>
-          <button
-            onClick={onClose}
-            className="w-full border-2 border-spiteCrimson bg-black py-1.5 text-[10px] font-bold tracking-widest text-spiteCrimson transition-all hover:bg-spiteCrimson hover:text-black"
-          >
-            DISMISS OBLIGATION
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const copy = ad.data as AdContent;
+  const copy = ad.data;
 
   if (ad.format === "notify") {
     return (
@@ -226,7 +152,9 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
             <h4 className="mt-1 text-[11px] font-black uppercase leading-tight text-sheetWhite">
               {copy.title}
             </h4>
-            <p className="mt-1 text-[10px] leading-snug text-chop-muted">{copy.body}</p>
+            <p className="mt-1 text-[10px] leading-snug text-chop-muted">
+              {copy.body}
+            </p>
             <button
               onClick={onClose}
               className="mt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-spiteCrimson hover:text-sheetWhite"
@@ -253,13 +181,20 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           <span className="text-[9px] font-black uppercase tracking-[0.2em]">
             privacy notice
           </span>
-          <button onClick={onClose} className="text-xs font-black hover:text-spiteCrimson">
+          <button
+            onClick={onClose}
+            className="text-xs font-black hover:text-spiteCrimson"
+          >
             ×
           </button>
         </div>
         <div className="p-3">
-          <h4 className="text-[11px] font-black uppercase leading-tight">{copy.title}</h4>
-          <p className="mt-1 text-[10px] leading-snug text-black/70">{copy.body}</p>
+          <h4 className="text-[11px] font-black uppercase leading-tight">
+            {copy.title}
+          </h4>
+          <p className="mt-1 text-[10px] leading-snug text-black/70">
+            {copy.body}
+          </p>
           <div className="mt-3 flex items-center gap-3">
             <button
               onClick={onClose}
@@ -286,7 +221,10 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-hypeNeon">
             $CHOP / USD ▲ 400%
           </span>
-          <button onClick={onClose} className="text-xs font-black text-hypeNeon/70 hover:text-hypeNeon">
+          <button
+            onClick={onClose}
+            className="text-xs font-black text-hypeNeon/70 hover:text-hypeNeon"
+          >
             ×
           </button>
         </div>
@@ -294,7 +232,9 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           <h4 className="text-[11px] font-black uppercase leading-tight text-hypeNeon">
             {copy.title}
           </h4>
-          <p className="mt-1 text-[10px] leading-snug text-hypeNeon/70">{copy.body}</p>
+          <p className="mt-1 text-[10px] leading-snug text-hypeNeon/70">
+            {copy.body}
+          </p>
           <button
             onClick={onClose}
             className="mt-3 w-full border border-hypeNeon bg-hypeNeon py-1 text-[9px] font-black uppercase tracking-widest text-black hover:bg-transparent hover:text-hypeNeon"
@@ -325,7 +265,9 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           <h4 className="text-sm font-black uppercase leading-tight text-sheetWhite">
             {copy.title}
           </h4>
-          <p className="mt-1.5 text-[10px] leading-snug text-sheetWhite/70">{copy.body}</p>
+          <p className="mt-1.5 text-[10px] leading-snug text-sheetWhite/70">
+            {copy.body}
+          </p>
           <button
             onClick={onClose}
             className="mt-3 w-full border border-spiteCrimson py-1 text-[9px] font-black uppercase tracking-widest text-spiteCrimson hover:bg-spiteCrimson hover:text-black"
@@ -340,8 +282,13 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
   return (
     <div className="w-64 border-4 border-black bg-[#FDE047] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:w-72">
       <div className="flex items-center justify-between border-b-4 border-black bg-spiteCrimson px-2 py-1 text-white">
-        <span className="animate-pulse text-[10px] font-bold tracking-widest">SYSTEM_AD_</span>
-        <button onClick={onClose} className="text-sm font-black hover:text-black focus:outline-none">
+        <span className="animate-pulse text-[10px] font-bold tracking-widest">
+          SYSTEM_AD_
+        </span>
+        <button
+          onClick={onClose}
+          className="text-sm font-black hover:text-black focus:outline-none"
+        >
           X
         </button>
       </div>
@@ -349,7 +296,9 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
         <h4 className="mb-2 text-xs font-black uppercase leading-tight text-canvasBlack">
           {copy.title}
         </h4>
-        <p className="mb-4 text-[10px] leading-tight text-canvasBlack/90">{copy.body}</p>
+        <p className="mb-4 text-[10px] leading-tight text-canvasBlack/90">
+          {copy.body}
+        </p>
         <button
           onClick={onClose}
           className="w-full border-2 border-black bg-hypeNeon py-1.5 text-[10px] font-bold tracking-widest text-canvasBlack shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"

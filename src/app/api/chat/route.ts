@@ -1,5 +1,4 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { getClientIp, getSessionUserId } from "@/lib/session";
 
 /**
  * /api/chat — proxy to Ada's chat server on the VPS.
@@ -9,9 +8,9 @@ import { getClientIp, getSessionUserId } from "@/lib/session";
  * Worker's shared key. If the VPS is unreachable the widget gets a clean error,
  * not a fake Ada.
  *
- * Identity: a logged-in user is billed under their session user id; anonymous
- * visitors are billed under a UUID they generate and send in `X-User-Id`
- * (persisted in localStorage). The chat server also rate-limits per IP.
+ * Identity: visitors are billed under a UUID they generate and send in
+ * `X-User-Id` (persisted in localStorage). There is no local account any more;
+ * the forum holds the only login. The chat server also rate-limits per IP.
  */
 
 type ChatEnv = {
@@ -37,6 +36,12 @@ function sanitizeUserId(raw: string | null): string {
   return "";
 }
 
+function clientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]?.trim() || "unknown";
+  return req.headers.get("x-real-ip") || "unknown";
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -45,11 +50,9 @@ export async function POST(req: Request) {
       return Response.json({ ok: false, error: "empty message" }, { status: 400 });
     }
 
-    const sessionUserId = await getSessionUserId();
-    const headerUserId = sanitizeUserId(req.headers.get("x-user-id"));
-    const user_id = sessionUserId || headerUserId || "";
+    const user_id = sanitizeUserId(req.headers.get("x-user-id"));
     const name = String(body?.name ?? "").slice(0, 40);
-    const ip = await getClientIp();
+    const ip = clientIp(req);
     const { base, key } = await upstream();
 
     const upstreamRes = await fetch(`${base}/chat`, {
@@ -79,12 +82,12 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const sessionUserId = await getSessionUserId();
+    const user_id = sanitizeUserId(req.headers.get("x-user-id"));
     const { base, key } = await upstream();
     const upstreamRes = await fetch(
-      `${base}/chat/meta?user_id=${encodeURIComponent(sessionUserId || "")}`,
+      `${base}/chat/meta?user_id=${encodeURIComponent(user_id)}`,
       {
         cache: "no-store",
         headers: key ? { "X-Ada-Key": key } : undefined,

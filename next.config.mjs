@@ -11,9 +11,6 @@ const nextConfig = {
     process.env.NEXT_DIST_DIR ||
     (process.env.NODE_ENV === "development" ? ".next-dev" : ".next"),
 
-  // Transpile problematic packages
-  transpilePackages: ["appwrite"],
-
   // Reduce peak memory during `next build`. This box is shared with other
   // services and was OOM-ing mid-build (surfacing as a bogus globals.css /
   // css-loader "webpack error"). Disabling dual string buffer caching and
