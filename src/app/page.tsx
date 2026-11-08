@@ -26,7 +26,7 @@ import { useSiteContent } from "../lib/use-site-content";
  * argument, not a planted impression.
  */
 const CUT_IN: CutIn = {
-  src: "/static/musknazi.gif",
+  src: "/static/musknazi-cut.webp",
   quote: "My heart goes out to you",
   who: "Elon Musk · 20 Jan 2025 · Capital One Arena",
   href: "https://apnews.com/article/musk-gesture-salute-antisemitism-0070dae53c7a73397b104ae645877535",
