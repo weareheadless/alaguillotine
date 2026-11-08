@@ -58,7 +58,6 @@ const fmt = (value: number, digits: number) =>
 interface Balances {
   sol: number | null;
   chop: number | null;
-  at: string;
 }
 
 export function TreasuryStats({ wallet }: { wallet: string }) {
@@ -82,7 +81,7 @@ export function TreasuryStats({ wallet }: { wallet: string }) {
       chop = account?.data?.[0] ? decodeTokenAmount(account.data[0]) : 0;
     }
 
-    setBalances({ sol, chop, at: new Date().toISOString() });
+    setBalances({ sol, chop });
     setReading(false);
   }, [wallet]);
 
@@ -94,22 +93,22 @@ export function TreasuryStats({ wallet }: { wallet: string }) {
 
   return (
     <div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <div className="border-2 border-black bg-canvasBlack p-4">
-          <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+      <div className="mt-4 border-y border-chop-border">
+        <div className="flex items-baseline justify-between gap-3 py-2.5">
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
             $CHOP in the fund
-          </p>
-          <p className="mt-1 font-mono text-3xl font-black tracking-tight text-sheetWhite">
+          </span>
+          <span className="font-mono text-xl font-black tracking-tight text-sheetWhite">
             {balances?.chop == null ? "—" : fmt(balances.chop, 0)}
-          </p>
+          </span>
         </div>
-        <div className="border-2 border-black bg-canvasBlack p-4">
-          <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+        <div className="flex items-baseline justify-between gap-3 border-t border-chop-border py-2.5">
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
             SOL in the fund
-          </p>
-          <p className="mt-1 font-mono text-3xl font-black tracking-tight text-sheetWhite">
+          </span>
+          <span className="font-mono text-xl font-black tracking-tight text-sheetWhite">
             {balances?.sol == null ? "—" : fmt(balances.sol, 4)}
-          </p>
+          </span>
         </div>
       </div>
 
@@ -118,7 +117,7 @@ export function TreasuryStats({ wallet }: { wallet: string }) {
           {reading
             ? "reading the chain…"
             : failed
-              ? "could not read the chain — no number rather than a fake one"
+              ? "could not read the chain — no fake number"
               : "live from Solana"}
         </span>
         <button

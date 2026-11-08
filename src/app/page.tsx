@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FsdBanner } from "../components/FsdBanner";
 import { AdPopups } from "../components/AdPopups";
 import { NavBar } from "../components/NavBar";
-import { NameSubmissionForm } from "../components/NameSubmissionForm";
+import { useDrawer } from "../components/drawers";
 import { RulesBanner } from "../components/RulesBanner";
 import { useClock } from "../components/DoomsdayClock";
 import { useCallback, useEffect, useState } from "react";
@@ -29,6 +29,7 @@ import { useSiteContent } from "../lib/use-site-content";
  */
 export default function HomePage() {
   const { content } = useSiteContent();
+  const { show } = useDrawer();
   const { state, pulls, pull } = useClock();
   // Ada rewrites the front page when she has something to say; otherwise the
   // standing copy holds.
@@ -99,17 +100,25 @@ export default function HomePage() {
               {heroSubheadline}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                href="#propose"
+              <button
+                type="button"
+                onClick={() => show("propose")}
                 className="border-2 border-black bg-spiteCrimson px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
               >
                 Propose a name
-              </a>
-              <Link
-                href="/resistance"
+              </button>
+              <button
+                type="button"
+                onClick={() => show("fund")}
                 className="border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon"
               >
-                The fund &amp; forum →
+                The fund
+              </button>
+              <Link
+                href="/forum"
+                className="border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon"
+              >
+                The forum →
               </Link>
             </div>
           </div>
@@ -198,75 +207,6 @@ export default function HomePage() {
 
           </section>
         </div>
-
-        {/* ── The front door: propose, or go argue the fund ───────────── */}
-        <section
-          id="propose"
-          className="mx-auto mt-12 max-w-6xl scroll-mt-24 px-4 md:px-6"
-        >
-          <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
-            <div className="border-2 border-black bg-sheetWhite/[0.03] p-5 sm:p-6">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-spiteCrimson">
-                the front door
-              </p>
-              <h2 className="mt-2 text-2xl font-black uppercase leading-none tracking-tighter md:text-3xl">
-                Propose a name<span className="text-spiteCrimson">.</span>
-              </h2>
-              <p className="mt-2 max-w-xl font-mono text-[11px] leading-relaxed text-chop-muted">
-                Free, no account, no email. Ada reads every proposal and answers
-                with a real reason — even when the reason is that they are not
-                evil enough.
-              </p>
-              <div className="mt-5">
-                <NameSubmissionForm compact />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <Link
-                href="/resistance"
-                className="group border-2 border-black bg-hypeNeon p-5 text-canvasBlack shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-sheetWhite active:translate-x-1 active:translate-y-1 active:shadow-none"
-              >
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-black/60">
-                  the fund + the forum
-                </p>
-                <h2 className="mt-2 text-2xl font-black uppercase leading-none tracking-tighter md:text-3xl">
-                  The Fund →
-                </h2>
-                <p className="mt-2 font-mono text-[11px] leading-relaxed text-black/70">
-                  A public wallet, a forum with no email, and every grant paid
-                  with a receipt. The money is argued in the open.
-                </p>
-              </Link>
-
-              <div className="border-2 border-black bg-canvasBlack p-5">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-chop-muted">
-                  how a proposal moves
-                </p>
-                <ol className="mt-3 space-y-2 font-mono text-[10px] leading-relaxed text-chop-muted">
-                  <li>
-                    <span className="font-bold text-sheetWhite">1.</span> You
-                    file it here, with a source.
-                  </li>
-                  <li>
-                    <span className="font-bold text-sheetWhite">2.</span> Ada
-                    reads it; a human approves or rejects with a reason.
-                  </li>
-                  <li>
-                    <span className="font-bold text-sheetWhite">3.</span> It
-                    enters the line with its own counter.
-                  </li>
-                </ol>
-                <Link
-                  href="/next-in-line"
-                  className="mt-3 inline-block font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-hypeNeon underline decoration-hypeNeon/40 hover:decoration-hypeNeon"
-                >
-                  see the line →
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* ── The evidence ────────────────────────────────────────────── */}
         <section className="mx-auto mt-12 max-w-6xl px-4 md:px-6">

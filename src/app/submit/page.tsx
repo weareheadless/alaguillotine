@@ -81,7 +81,7 @@ export default function SubmitPage() {
             </div>
 
             <Link
-              href="/resistance"
+              href="/forum?fund=1"
               className="block border-2 border-black bg-hypeNeon px-4 py-3 text-center font-mono text-[10px] font-black uppercase tracking-[0.2em] text-canvasBlack shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-sheetWhite active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
             >
               The Fund →

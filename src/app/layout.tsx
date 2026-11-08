@@ -4,6 +4,7 @@ import "./globals.css";
 import { TerminalProvider } from "../lib/terminal-context";
 import { LayoutExtras } from "../components/LayoutExtras";
 import { GlobalFooter } from "../components/GlobalFooter";
+import { DrawerProvider } from "../components/drawers";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://alaguillotine.com"),
@@ -64,11 +65,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           ⚠️ LEGAL DEPT: This is an interactive art installation &amp; political satire. Public figures are symbolic. The blade is metaphorical. Always has been.
         </div>
         <TerminalProvider>
-          <div className="flex-grow">{children}</div>
-          <LayoutExtras />
+          <DrawerProvider>
+            <div className="flex-grow">{children}</div>
+            <LayoutExtras />
 
-          {/* ─── Global Footer Disclaimer ──────────────────────────────── */}
-          <GlobalFooter />
+            {/* ─── Global Footer Disclaimer ──────────────────────────────── */}
+            <GlobalFooter />
+          </DrawerProvider>
         </TerminalProvider>
       </body>
     </html>

@@ -1,21 +1,39 @@
-import { redirect } from "next/navigation";
+import { NavBar } from "@/components/NavBar";
+import { ForumFrame } from "@/components/ForumFrame";
 
-/**
- * The forum and the fund now share one page. Keep the old links working.
- */
+export const dynamic = "force-dynamic";
+
+export const metadata = {
+  title: "The Forum — A LA GUILLOTINE",
+  description:
+    "No email, accounts approved by hand, one person one voice. The fund is argued here.",
+};
+
+const COMMUNITIES = new Set(["the_fund", "mutual_aid", "evidence", "meta"]);
+
+function initialPath(params: { to?: string | string[]; c?: string | string[] }) {
+  const to = Array.isArray(params.to) ? params.to[0] : params.to;
+  if (to && to.startsWith("/") && !to.startsWith("//")) {
+    return to.slice(0, 300);
+  }
+  const c = Array.isArray(params.c) ? params.c[0] : params.c;
+  if (c && COMMUNITIES.has(c)) return `/c/${c}`;
+  return undefined;
+}
+
 export default async function ForumPage({
   searchParams,
 }: {
   searchParams: Promise<{ to?: string | string[]; c?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const query = new URLSearchParams();
 
-  const to = Array.isArray(params.to) ? params.to[0] : params.to;
-  if (to) query.set("to", to);
-  const c = Array.isArray(params.c) ? params.c[0] : params.c;
-  if (c) query.set("c", c);
-
-  const suffix = query.toString();
-  redirect(`/resistance${suffix ? `?${suffix}` : ""}`);
+  return (
+    <div className="min-h-screen bg-canvasBlack text-sheetWhite">
+      <NavBar />
+      <main className="mx-auto max-w-[1500px] px-4 pb-6 pt-4 sm:px-6">
+        <ForumFrame full initialPath={initialPath(params)} />
+      </main>
+    </div>
+  );
 }

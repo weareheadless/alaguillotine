@@ -343,7 +343,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   nav: [
     { href: "/", label: "The Blade" },
     { href: "/next-in-line", label: "Next in Line" },
-    { href: "/resistance", label: "The Fund" },
+    { href: "/forum", label: "The Forum" },
     { href: "/whitepaper", label: "The Manifesto" },
     { href: "/blog", label: "Dispatches" },
   ],

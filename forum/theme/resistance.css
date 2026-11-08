@@ -12589,3 +12589,8 @@ pre code { border: 0; padding: 0; }
   letter-spacing: -0.02em;
   text-transform: uppercase;
 }
+
+/* In the site frame the tab above already names the community, and the
+   Posts/Comments switch is noise on a fund page. Keep the sort and the posts. */
+.ala-embedded .community .col-12.col-md-8.col-lg-9 > .mb-2 { display: none !important; }
+.ala-embedded .data-type-select { display: none !important; }

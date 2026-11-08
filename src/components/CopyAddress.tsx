@@ -24,7 +24,7 @@ export function CopyAddress({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <code className="break-all border-2 border-black bg-canvasBlack px-3 py-2 font-mono text-[11px] text-hypeNeon">
+      <code className="break-all border-2 border-black bg-canvasBlack px-2.5 py-1.5 font-mono text-[10px] text-hypeNeon">
         {address}
       </code>
       <button

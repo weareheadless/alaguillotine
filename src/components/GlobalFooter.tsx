@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useDrawer } from "./drawers";
 
 const LINKS = [
   { href: "/", label: "The Blade" },
   { href: "/next-in-line", label: "Next in Line" },
-  { href: "/resistance", label: "The Fund" },
+  { href: "/forum", label: "The Forum" },
   { href: "/whitepaper", label: "The Manifesto" },
   { href: "/blog", label: "Dispatches" },
-  { href: "/submit", label: "Submit a Name" },
 ];
 
 export function GlobalFooter() {
   const pathname = usePathname();
+  const { show } = useDrawer();
   if (pathname?.startsWith("/admin")) return null;
   return (
     <footer className="border-t-4 border-black bg-[#0a0a0a] py-12 px-6 z-50 relative">
@@ -28,14 +29,20 @@ export function GlobalFooter() {
               {link.label}
             </Link>
           ))}
-          <a
-            href="https://forum.alaguillotine.com"
-            target="_blank"
-            rel="noreferrer noopener"
+          <button
+            type="button"
+            onClick={() => show("fund")}
             className="text-chop-muted hover:text-sheetWhite"
           >
-            The Forum ↗
-          </a>
+            The Fund
+          </button>
+          <button
+            type="button"
+            onClick={() => show("propose")}
+            className="text-chop-muted hover:text-sheetWhite"
+          >
+            Submit a Name
+          </button>
         </nav>
         <h3 className="mb-4 text-center text-[13px] font-bold text-spiteCrimson uppercase tracking-widest">
           NOTICE OF ARTISTIC SATIRE &amp; SYMBOLIC REPRESENTATION

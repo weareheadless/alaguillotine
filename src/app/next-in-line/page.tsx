@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { useHateometer } from "@/components/Hateometer";
 import { LineRow } from "@/components/LineRow";
-import { NameSubmissionForm } from "@/components/NameSubmissionForm";
+import { useDrawer } from "@/components/drawers";
 
 /**
  * The line.
@@ -14,6 +14,7 @@ import { NameSubmissionForm } from "@/components/NameSubmissionForm";
  */
 export default function NextInLinePage() {
   const { state: hate } = useHateometer();
+  const { show } = useDrawer();
   const [query, setQuery] = useState("");
 
   // Everyone is in the line: a chop resets the counter and sends the name back
@@ -34,43 +35,39 @@ export default function NextInLinePage() {
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
       <NavBar />
 
-      <main className="mx-auto max-w-5xl px-4 pb-24 pt-10 sm:px-6">
-        <section className="border-b-4 border-spiteCrimson pb-8">
+      <main className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6">
+        <section className="border-b-4 border-spiteCrimson pb-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
             the line
           </p>
-          <h1 className="mt-3 text-5xl font-black uppercase leading-[0.88] tracking-[-0.06em] sm:text-7xl">
+          <h1 className="mt-2 text-4xl font-black uppercase leading-[0.9] tracking-[-0.05em] sm:text-5xl">
             Next <span className="text-spiteCrimson">in line.</span>
           </h1>
-          <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
-            Ada ranks the people the record keeps returning to. The top of this
-            line is promoted to the front page and sentenced — a countdown runs
-            in public, the blade falls, the counter resets, a cross goes on the
-            wall, and the name climbs back. Every
-            score is Ada&apos;s reading of the week plus a bonus for the charges
-            already on record. Every name opens its own ledger: the charges, the
-            places, the years, the sources.
+          <p className="mt-3 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
+            Ada ranks the people the record keeps returning to. The top of the
+            line is promoted, sentenced and chopped in public, then it climbs
+            back. Click a name for its charges and sources.
           </p>
         </section>
 
-        <section className="grid gap-3 py-8 sm:grid-cols-3">
-          <div className="border-2 border-black bg-sheetWhite p-4 text-canvasBlack">
+        <section className="grid gap-3 py-6 sm:grid-cols-3">
+          <div className="border-2 border-black bg-sheetWhite p-3.5 text-canvasBlack">
             <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-spiteCrimson">
               in the line
             </p>
-            <p className="mt-1 text-4xl font-black tracking-tighter">{standing.length}</p>
+            <p className="mt-1 text-3xl font-black tracking-tighter">{standing.length}</p>
             <p className="mt-1 font-mono text-[9px] text-black/60">names still standing</p>
           </div>
-          <div className="border-2 border-spiteCrimson bg-spiteCrimson p-4 text-sheetWhite">
+          <div className="border-2 border-spiteCrimson bg-spiteCrimson p-3.5 text-sheetWhite">
             <p className="font-mono text-[9px] font-bold uppercase tracking-widest">blade falls</p>
-            <p className="mt-1 text-4xl font-black tracking-tighter">{chops}</p>
+            <p className="mt-1 text-3xl font-black tracking-tighter">{chops}</p>
             <p className="mt-1 font-mono text-[9px] text-white/70">crosses on the wall</p>
           </div>
-          <div className="border-2 border-hypeNeon bg-hypeNeon p-4 text-canvasBlack">
+          <div className="border-2 border-hypeNeon bg-hypeNeon p-3.5 text-canvasBlack">
             <p className="font-mono text-[9px] font-bold uppercase tracking-widest">
               charges on record
             </p>
-            <p className="mt-1 text-4xl font-black tracking-tighter">{charges}</p>
+            <p className="mt-1 text-3xl font-black tracking-tighter">{charges}</p>
             <p className="mt-1 font-mono text-[9px] text-black/60">ledger entries, sourced</p>
           </div>
         </section>
@@ -79,61 +76,25 @@ export default function NextInLinePage() {
           score = ada&apos;s reading of the week + up to 22 points for the ledger on record
         </p>
 
-        <section
-          id="propose"
-          className="mb-8 scroll-mt-24 border-2 border-black bg-sheetWhite/[0.03] p-5"
-        >
-          <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
-            <div>
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-spiteCrimson">
-                the front door
-              </p>
-              <h2 className="mt-2 text-2xl font-black uppercase leading-none tracking-tighter md:text-3xl">
-                Put a name on the record.
-              </h2>
-              <p className="mt-2 max-w-xl font-mono text-[11px] leading-relaxed text-chop-muted">
-                If the reporting holds someone responsible and the source
-                survives a reading, they can stand under a blade with their own
-                counter. No account, no email.
-              </p>
-              <div className="mt-5">
-                <NameSubmissionForm compact />
-              </div>
-            </div>
-            <aside className="space-y-3">
-              <div className="border-2 border-black bg-canvasBlack p-4">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-hypeNeon">
-                  what happens next
-                </p>
-                <ol className="mt-3 space-y-2 font-mono text-[10px] leading-relaxed text-chop-muted">
-                  <li>Ada reads it against its sources.</li>
-                  <li>A human approves or rejects it.</li>
-                  <li>Approved: it enters the line below.</li>
-                </ol>
-              </div>
-              <div className="border-2 border-spiteCrimson bg-spiteCrimson/10 p-4">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-spiteCrimson">
-                  rejected?
-                </p>
-                <p className="mt-2 font-mono text-[10px] leading-relaxed text-chop-muted">
-                  You get a real reason. Sometimes it is that they are not evil
-                  enough to make the wall. That is the bar.
-                </p>
-              </div>
-            </aside>
-          </div>
-        </section>
-
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
             {filtered.length} names · click any card for the record
           </p>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a name or country"
-            className="w-full border-2 border-chop-border bg-white/5 px-3 py-2 font-mono text-xs text-sheetWhite outline-none placeholder:text-chop-muted focus:border-hypeNeon sm:w-72"
-          />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a name or country"
+              className="w-full border-2 border-chop-border bg-white/5 px-3 py-2 font-mono text-xs text-sheetWhite outline-none placeholder:text-chop-muted focus:border-hypeNeon sm:w-72"
+            />
+            <button
+              type="button"
+              onClick={() => show("propose")}
+              className="whitespace-nowrap border-2 border-black bg-spiteCrimson px-3 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            >
+              + Propose a name
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">

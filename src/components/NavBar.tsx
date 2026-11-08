@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AuthButtons } from "./AuthButtons";
+import { useDrawer } from "./drawers";
 import { useSiteContent } from "../lib/use-site-content";
 
 export function NavBar() {
   const { content } = useSiteContent();
   const pathname = usePathname();
+  const { show } = useDrawer();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Close the portable menu whenever the route changes
@@ -65,16 +66,32 @@ export function NavBar() {
           ))}
         </nav>
 
-        {/* ─── Right cluster: Auth + Hamburger ───────────────────────── */}
+        {/* ─── Right cluster: the fund, propose, hamburger ───────────── */}
         <div className="flex flex-shrink-0 items-center gap-2 md:gap-3">
-          {/* Desktop auth */}
-          <div className="hidden lg:block">
-            <AuthButtons />
+          <div className="hidden items-center gap-2 lg:flex">
+            <button
+              type="button"
+              onClick={() => show("fund")}
+              className="whitespace-nowrap border-2 border-chop-border px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-chop-muted transition-colors hover:border-hypeNeon hover:text-hypeNeon"
+            >
+              The Fund
+            </button>
+            <button
+              type="button"
+              onClick={() => show("propose")}
+              className="whitespace-nowrap border-2 border-black bg-spiteCrimson px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            >
+              Propose a name
+            </button>
           </div>
-          {/* Portable auth */}
-          <div className="lg:hidden scale-[0.85] origin-right">
-            <AuthButtons />
-          </div>
+
+          <button
+            type="button"
+            onClick={() => show("propose")}
+            className="border-2 border-black bg-spiteCrimson px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-sheetWhite shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none lg:hidden"
+          >
+            Propose
+          </button>
 
           {/* Sandwich menu (portable: phones + tablets) */}
           <button
@@ -106,6 +123,26 @@ export function NavBar() {
               {link.label}
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              show("fund");
+            }}
+            className={mobileLinkClass(false)}
+          >
+            The Fund
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              show("propose");
+            }}
+            className={mobileLinkClass(false)}
+          >
+            Propose a name
+          </button>
         </nav>
       )}
     </header>
