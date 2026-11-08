@@ -11,6 +11,8 @@
 interface Source {
   instance: string;
   name: string;
+  /** Quiet communities have nothing in TopDay; Hot keeps them in the wire. */
+  sort?: string;
 }
 
 // Two instances, so no single server decides what Ada reads.
@@ -26,6 +28,7 @@ const COMMUNITIES: Source[] = [
   { instance: "https://lemmy.ml", name: "worldnews" },
   { instance: "https://lemmy.ml", name: "nottheonion" },
   { instance: "https://lemmy.ml", name: "unions" },
+  { instance: "https://sopuli.xyz", name: "collapse", sort: "Hot" },
 ];
 
 export interface LemmyPost {
@@ -51,12 +54,12 @@ interface ApiPost {
 
 const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 
-async function fetchCommunity({ instance, name }: Source): Promise<LemmyPost[]> {
+async function fetchCommunity({ instance, name, sort = "TopDay" }: Source): Promise<LemmyPost[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
     const res = await fetch(
-      `${instance}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=TopDay&limit=12`,
+      `${instance}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=${sort}&limit=12`,
       { signal: controller.signal, headers: { accept: "application/json" } },
     );
     if (!res.ok) return [];
@@ -96,5 +99,19 @@ export async function fetchLemmyCandidates(): Promise<LemmyPost[]> {
     if (!prev || post.authority > prev.authority) byUrl.set(post.url, post);
   }
 
-  return [...byUrl.values()].sort((a, b) => b.authority - a.authority).slice(0, 40);
+  // A quiet community should not be drowned out by a loud one. Take the top
+  // three from each, then rank the whole pool.
+  const byCommunity = new Map<string, LemmyPost[]>();
+  for (const post of byUrl.values()) {
+    const list = byCommunity.get(post.site) ?? [];
+    list.push(post);
+    byCommunity.set(post.site, list);
+  }
+
+  const picked: LemmyPost[] = [];
+  for (const list of byCommunity.values()) {
+    picked.push(...list.sort((a, b) => b.authority - a.authority).slice(0, 3));
+  }
+
+  return picked.sort((a, b) => b.authority - a.authority).slice(0, 60);
 }
