@@ -9,6 +9,7 @@ import { useClock } from "../components/DoomsdayClock";
 import { useCallback, useEffect, useState } from "react";
 import { Hateometer, useHateometer } from "../components/Hateometer";
 import { ExecutionCountdown } from "../components/ExecutionCountdown";
+import { NextReading } from "../components/NextReading";
 import { slugify } from "../lib/slug";
 import { QueueCard } from "../components/QueueCard";
 import type { Figure } from "../lib/hateometer";
@@ -182,17 +183,15 @@ export default function HomePage() {
           </div>
         </section>
 
-        {hate.execution && (
+        {hate.execution ? (
           <ExecutionCountdown execution={hate.execution} onZero={onZero} />
-        )}
-        {!hate.execution && hate.lastExecution && (
-          <section className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
-            <div className="border-l-2 border-spiteCrimson pl-3 font-mono text-[10px] uppercase tracking-[0.2em] text-chop-muted">
-              the blade fell on{" "}
-              <span className="text-spiteCrimson">{hate.lastExecution.person}</span>
-              {" · "}back in the line
-            </div>
-          </section>
+        ) : (
+          <NextReading
+            nextRunAt={hate.nextRunAt}
+            lastReadingAt={hate.computedAt}
+            figures={standing}
+            lastExecution={hate.lastExecution}
+          />
         )}
 
         {/* ── The gauge and the blades ────────────────────────────────── */}
