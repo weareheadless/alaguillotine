@@ -37,8 +37,20 @@ export async function GET(request: Request) {
   if (!db) return Response.json({ error: "no db" }, { status: 500 });
   const rows = new URL(request.url).searchParams.get("rows") === "1";
   const summary = await coverageSummary(db, rows);
+  // Public view: names and outcomes, never internal error text.
+  const safe = rows
+    ? {
+        ...summary,
+        rows: summary.rows.map((r) => ({
+          name: r.name,
+          status: r.status,
+          entries: r.entries,
+          checkedAt: r.checkedAt,
+        })),
+      }
+    : summary;
   return Response.json(
-    { ok: true, ...summary },
+    { ok: true, ...safe },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
