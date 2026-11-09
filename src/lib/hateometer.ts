@@ -110,6 +110,24 @@ export interface HateState {
   } | null;
 }
 
+/**
+ * Does this wire item actually name the person?
+ *
+ * The model is told every figure must cite an item, and a standing-record name
+ * with no story today will happily cite the nearest war. That is how a Tigray
+ * charge ended up under a card showing Ukraine and Myanmar. Attach an item only
+ * when the text carries the name or a distinctive part of it.
+ */
+export function itemMentions(name: string, item: { headline: string; fact: string }): boolean {
+  const hay = `${item.headline} ${item.fact}`.toLowerCase();
+  const parts = name
+    .toLowerCase()
+    .split(/\s+/)
+    .map((p) => p.replace(/[^a-z0-9'-]/g, ""))
+    .filter((p) => p.length >= 4);
+  return parts.some((part) => hay.includes(part));
+}
+
 export const HATE_REFRESH_MS = 12 * 60 * 60 * 1000;
 
 /** The blade falls at this counter. The chop is a tally; the counter resets and the name climbs back. */

@@ -3,7 +3,7 @@ import { STANDING } from './standing'
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, shrink } from "./clock";
 import type { LedgerSummary } from "./archive-store";
 import type { ClockConfig } from "./clock-research";
-import { HATE_DIMENSIONS, rankFigures, type Figure, type HateDimension, type HateKey } from "./hateometer";
+import { HATE_DIMENSIONS, itemMentions, rankFigures, type Figure, type HateDimension, type HateKey } from "./hateometer";
 
 /**
  * The queue's research pass.
@@ -44,7 +44,7 @@ RULES — hard:
 4. File each item under: war, civilian, repression, arms, incitement.
 5. harm 0-100: 90-100 mass civilian harm documented; 70-89 significant lethal violence or systematic repression; 50-69 structural harm or the machinery feeding it; 30-49 tension without documented harm; 0-29 noise. Legal action, prosecution of officials, diplomacy, sanctions relief and self-defence are noise, not harm.
 6. You choose who belongs in the line. The standingRecord is your memory: every person on it is already documented and MUST appear in your output, scored, with basis set to the record line — unless this pass contains evidence that clears them. The feed is the news; the record is the site. The reporting is not the only thing you know: if a person is a documented, widely reported author of mass harm and today's feed simply missed them, name them anyway and set "basis" to the record you are drawing on. Up to five of those per pass. The feed is the news; you are the memory. Include anyone whose decisions, companies or orders cause mass harm: heads of state and ministers, military and security chiefs, arms and defence executives, and the billionaires, funders and lobbyists whose money and platforms make it possible. Exclude only private individuals, and anyone the text presents purely as a victim, witness or critic.
-7. Every figure cites item_indices. No figure without items.
+7. Every figure cites item_indices for items that name them. A standing-record figure with no story today may cite none if basis is set — do not attach an unrelated item just to fill the field.
 8. Name everyone the reporting supports, up to 20. A thin list is a wasted pass — the queue is the point of the site.
 9. score is YOUR judgement, 0-100, and the queue must be a ladder, not a pile. Enforce this shape: exactly ONE person at 100; at most TWO more in 95-99; at most FOUR more in 90-94; the next serious cases in 80-89; extraction and impunity in 60-79; complicity and thin evidence in 40-59. That means at most seven people at 90 or above in the whole pass. If two people would get the same score, decide which is worse and separate them by at least 1 point. A person with a smaller documented record sits below a person with a larger one unless the act itself is worse. Only people, never a company — when the reporting names a company, name the people who run it or own it (a defence contractor means its chief executive and its largest shareholders). Use the whole range.
 10. The line must include the owners as well as the officials. If the reporting names a billionaire, an executive, a funder or a lobbyist whose money or platform causes the harm, they belong here with their own charge — the people who pay are as responsible as the people who sign.
@@ -232,7 +232,7 @@ export async function runHatePass(
     if (!name) return [];
     const cited = (Array.isArray(f.item_indices) ? f.item_indices : [])
       .map((i) => items[Number(i)])
-      .filter(Boolean);
+      .filter((item) => item != null && itemMentions(name, item));
     // No article today is not a reason to forget a documented record.
     if (!cited.length && !clip(f.basis, 200)) return [];
     const given = Number(f.score);

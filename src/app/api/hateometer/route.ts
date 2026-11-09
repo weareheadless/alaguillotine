@@ -1,6 +1,6 @@
 import { countLedger, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { slugify } from "@/lib/slug";
-import { emptyHate, type HateState } from "@/lib/hateometer";
+import { emptyHate, itemMentions, type HateState } from "@/lib/hateometer";
 import { DROP_THRESHOLD } from "@/lib/hateometer";
 import {
   ensureSentence,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/hate-store";
 
 export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 /** GET /api/hateometer — the queue and its counters. */
 export async function GET() {
@@ -60,8 +61,18 @@ export async function GET() {
       const slug = slugify(f.name);
       const chop = chopBySlug[slug];
       const summary = ledgerSummaryFor(summaries, f.name);
+      // A stored pass may have attached an unrelated story (the model is told
+      // every figure needs one). Show only items that actually name them, and
+      // fall back to the ledger charges when the record is the only evidence.
+      const items = (f.items ?? []).filter((item) => itemMentions(f.name, item));
       return {
         ...f,
+        items,
+        mentions: items.length,
+        source: items[0]?.source ?? "ada's record",
+        sourceUrl:
+          items[0]?.sourceUrl ??
+          `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(f.name)}`,
         ledgerCount:
           countRows.length > 0 ? countLedger(countRows, f.name) : counts[f.name.toLowerCase()] ?? 0,
         topCharges: summary?.top ?? [],

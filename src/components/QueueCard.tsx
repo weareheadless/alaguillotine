@@ -187,7 +187,7 @@ export function QueueCard({
               </div>
               <div className="mt-1 flex items-center justify-end gap-2">
                 <span className="font-mono text-[9px] uppercase tracking-widest text-chop-muted">
-                  {figure.mentions} rep
+                  {figure.mentions > 0 ? `${figure.mentions} rep` : "on the record"}
                 </span>
                 <Move delta={figure.delta} />
               </div>
@@ -203,7 +203,7 @@ export function QueueCard({
             {figure.reason}
           </p>
 
-          {figure.items.length > 0 && (
+          {figure.items.length > 0 ? (
             <ul className="mt-3 space-y-2 border-t border-chop-border/60 pt-3">
               {figure.items.slice(0, 2).map((item, i) => (
                 <li key={i} className="font-mono text-[10px] leading-relaxed text-chop-muted">
@@ -219,7 +219,24 @@ export function QueueCard({
                 </li>
               ))}
             </ul>
-          )}
+          ) : (figure.topCharges?.length ?? 0) > 0 ? (
+            // No story naming them this pass: show the record, not the wire.
+            <ul className="mt-3 space-y-2 border-t border-chop-border/60 pt-3">
+              {figure.topCharges!.slice(0, 2).map((charge, i) => (
+                <li key={`${charge.year}-${i}`} className="font-mono text-[10px] leading-relaxed text-chop-muted">
+                  <Link
+                    href={`/person/${slugify(figure.name)}`}
+                    className="text-sheetWhite underline decoration-chop-border underline-offset-2 hover:decoration-spiteCrimson"
+                  >
+                    {charge.act}
+                  </Link>
+                  <span className="block text-[10px] uppercase tracking-[0.08em] text-chop-muted">
+                    {charge.place} · {charge.year} · {charge.category}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       </div>
     </article>
