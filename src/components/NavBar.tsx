@@ -5,12 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDrawer } from "./drawers";
 import { useSiteContent } from "../lib/use-site-content";
+import { CHOP_MINT } from "@/lib/treasury";
+import { FORUM_ENABLED } from "@/lib/constants";
+
+const PUMP_URL = `https://pump.fun/coin/${CHOP_MINT}`;
 
 export function NavBar() {
   const { content } = useSiteContent();
   const pathname = usePathname();
   const { show } = useDrawer();
   const [menuOpen, setMenuOpen] = useState(false);
+  const links = content.nav.filter((link) => FORUM_ENABLED || link.href !== "/forum");
 
   // Close the portable menu whenever the route changes
   useEffect(() => {
@@ -59,7 +64,7 @@ export function NavBar() {
 
         {/* ─── Nav Links (desktop, lg+) ─────────────────────────────── */}
         <nav className="hidden lg:flex flex-1 items-center justify-center gap-1 ml-4">
-          {content.nav.map((link) => (
+          {links.map((link) => (
             <Link key={link.href} href={link.href} className={linkClass(isActive(link.href))}>
               {link.label}
             </Link>
@@ -69,6 +74,14 @@ export function NavBar() {
         {/* ─── Right cluster: the fund, propose, hamburger ───────────── */}
         <div className="flex flex-shrink-0 items-center gap-2 md:gap-3">
           <div className="hidden items-center gap-2 lg:flex">
+            <a
+              href={PUMP_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="whitespace-nowrap border-2 border-hypeNeon/60 px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
+            >
+              $CHOP ↗
+            </a>
             <button
               type="button"
               onClick={() => show("fund")}
@@ -113,7 +126,7 @@ export function NavBar() {
           id="mobile-nav"
           className="lg:hidden flex flex-col gap-2 border-t-2 border-black bg-canvasBlack/95 px-4 py-3 backdrop-blur-md"
         >
-          {content.nav.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -123,6 +136,15 @@ export function NavBar() {
               {link.label}
             </Link>
           ))}
+          <a
+            href={PUMP_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={() => setMenuOpen(false)}
+            className={`${mobileLinkClass(false)} text-hypeNeon`}
+          >
+            Buy $CHOP ↗
+          </a>
           <button
             type="button"
             onClick={() => {

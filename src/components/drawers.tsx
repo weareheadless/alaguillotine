@@ -1,23 +1,18 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import Link from "next/link";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { NameSubmissionForm } from "./NameSubmissionForm";
 import { TreasuryStats } from "./TreasuryStats";
 import { CopyAddress } from "./CopyAddress";
+import { AdaPromise } from "./AdaPromise";
 import { CHOP_MINT, FUND_WALLET } from "@/lib/treasury";
 
 /**
- * The two side panels: propose a name, and the fund.
+ * The two side panels: propose a name, and the money.
  *
- * One button opens the same panel on every page, so the forum stays a forum
- * and the money stays one click away without taking up the page.
+ * One button opens the same panel on every page. The forum is closed for now,
+ * so the fund panel has to carry the whole pitch: the meme, the promise, and
+ * the address that actually pays for the machine.
  */
 
 type DrawerId = "propose" | "fund";
@@ -142,15 +137,73 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
         {!seen.has("fund") ? null : (
         <>
         <p className="font-mono text-[11px] leading-relaxed text-chop-muted">
-          Food, legal aid, medical care and shelter. The forum decides where it
-          goes; this site can only read the wallet.
+          Two wallets. One is a joke with a ticker; one keeps the machine alive.
+          This site can read both and sign neither.
         </p>
 
-        <div className="mt-4 border-2 border-black bg-sheetWhite/[0.03] p-4">
+        <div className="mt-2">
           <TreasuryStats wallet={FUND_WALLET} />
-          <div className="mt-3">
-            <CopyAddress address={FUND_WALLET} label="copy address" />
+        </div>
+
+        <AdaPromise />
+
+        <section className="mt-4 border-2 border-hypeNeon bg-hypeNeon/[0.06] p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="text-2xl font-black uppercase leading-none tracking-tighter text-hypeNeon">
+              $CHOP
+            </h3>
+            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-chop-muted">
+              the meme
+            </span>
           </div>
+
+          <p className="mt-2 font-mono text-[11px] leading-relaxed text-sheetWhite/85">
+            Wokism, but with a ticker. Make corporate greed nervous and a little
+            money for a change. No utility, no roadmap, no Mars colony — just a
+            bag and a blade.
+          </p>
+
+          <a
+            href={`https://pump.fun/coin/${CHOP_MINT}`}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="mt-3 block border-2 border-black bg-hypeNeon px-3 py-2.5 text-center font-mono text-[10px] font-black uppercase tracking-[0.15em] text-canvasBlack shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-sheetWhite active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+          >
+            Buy $CHOP on pump.fun ↗
+          </a>
+
+          <div className="mt-2">
+            <CopyAddress address={CHOP_MINT} label="copy the mint" />
+          </div>
+
+          <p className="mt-3 border-t border-hypeNeon/25 pt-2 font-mono text-[9px] leading-relaxed text-chop-muted">
+            $CHOP is a meme, not a security, not a donation, not a claim on
+            anything. It can go to zero. Do not spend money you need.
+          </p>
+        </section>
+
+        <section className="mt-3 border-2 border-chop-border bg-sheetWhite/[0.03] p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="text-2xl font-black uppercase leading-none tracking-tighter text-sheetWhite">
+              SOL
+            </h3>
+            <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-chop-muted">
+              the real one
+            </span>
+          </div>
+
+          <p className="mt-2 font-mono text-[11px] leading-relaxed text-chop-muted">
+            Real money, real address. It keeps the machine running — the model,
+            the servers, the electricity — and when there is enough, the cause:
+            food, legal aid, medical care, shelter. It may fund all of that, or
+            it may fund a bigger model and a better joke. There is no roadmap.
+            There is a wallet, and you can watch it.
+          </p>
+
+          <div className="mt-3">
+            <CopyAddress address={FUND_WALLET} label="copy the address" />
+          </div>
+
           <div className="mt-3 flex flex-wrap gap-3 font-mono text-[9px] uppercase tracking-[0.12em]">
             <a
               href={`https://solscan.io/account/${FUND_WALLET}`}
@@ -160,20 +213,12 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
             >
               Solscan
             </a>
-            <a
-              href={`https://pump.fun/coin/${CHOP_MINT}`}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-chop-muted underline decoration-chop-muted/40 hover:text-hypeNeon"
-            >
-              buy $CHOP
-            </a>
           </div>
+
           <p className="mt-3 border-t border-chop-border pt-2 font-mono text-[9px] leading-relaxed text-chop-muted">
-            $CHOP is a meme, not a donation. It can go to zero. Send SOL to fund
-            the work.
+            No token, no return, no receipt for your soul. No key on this site.
           </p>
-        </div>
+        </section>
 
         <ol className="mt-4 space-y-2 font-mono text-[10px] leading-relaxed text-chop-muted">
           <li>
@@ -181,27 +226,21 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
             named organisation, an amount, a receipt.
           </li>
           <li>
-            <span className="font-bold text-sheetWhite">02 decide</span> — the
-            forum argues it; a vote when there is money.
+            <span className="font-bold text-sheetWhite">02 decide</span> — Ada
+            argues with herself; a human with the key signs.
           </li>
           <li>
             <span className="font-bold text-sheetWhite">03 prove</span> — the
-            wallet pays; the receipt goes in the thread.
+            wallet pays and the receipt is published. Eventually. Same delivery
+            date as full self-driving.
           </li>
         </ol>
 
         <p className="mt-3 border-t border-chop-border pt-2 font-mono text-[9px] leading-relaxed text-chop-muted">
           Food, water, shelter, legal aid, medical aid. No weapons, no violence.
-          No key on this site.
+          The forum is closed for now; it comes back when there are enough
+          people to argue with.
         </p>
-
-        <Link
-          href="/forum?c=the_fund"
-          onClick={hide}
-          className="mt-4 block border-2 border-black bg-spiteCrimson px-4 py-2.5 text-center font-mono text-[10px] font-black uppercase tracking-[0.15em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-        >
-          Argue it in the forum →
-        </Link>
         </>
         )}
       </Panel>

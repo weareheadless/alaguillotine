@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FsdBanner } from "../components/FsdBanner";
 import { AdPopups } from "../components/AdPopups";
 import { NavBar } from "../components/NavBar";
@@ -19,6 +18,8 @@ import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
+import { CHOP_MINT } from "../lib/treasury";
+import { AdaPromise } from "../components/AdaPromise";
 
 /**
  * The archive cut-in. The gesture and the words are both on the record, so the
@@ -126,13 +127,29 @@ export default function HomePage() {
               >
                 The fund
               </button>
-              <Link
-                href="/forum"
-                className="border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon"
+              <a
+                href={`https://pump.fun/coin/${CHOP_MINT}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="border-2 border-hypeNeon px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
               >
-                The forum →
-              </Link>
+                Buy $CHOP ↗
+              </a>
             </div>
+
+            <p className="mt-4 max-w-2xl font-mono text-[10px] leading-relaxed text-chop-muted">
+              <span className="font-bold uppercase tracking-[0.15em] text-spiteCrimson">
+                ada promises
+              </span>{" "}
+              <AdaPromise variant="inline" />{" "}
+              <button
+                type="button"
+                onClick={() => show("fund")}
+                className="whitespace-nowrap text-hypeNeon underline decoration-hypeNeon/40 hover:decoration-hypeNeon"
+              >
+                the catch →
+              </button>
+            </p>
           </div>
 
           <NewsReel

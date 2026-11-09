@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDrawer } from "./drawers";
+import { CHOP_MINT } from "@/lib/treasury";
+import { FORUM_ENABLED } from "@/lib/constants";
 
 const LINKS = [
   { href: "/", label: "The Blade" },
   { href: "/next-in-line", label: "Next in Line" },
-  { href: "/forum", label: "The Forum" },
   { href: "/whitepaper", label: "The Manifesto" },
   { href: "/blog", label: "Dispatches" },
 ];
@@ -16,11 +17,12 @@ export function GlobalFooter() {
   const pathname = usePathname();
   const { show } = useDrawer();
   if (pathname?.startsWith("/admin")) return null;
+  const links = LINKS.filter((link) => FORUM_ENABLED || link.href !== "/forum");
   return (
     <footer className="border-t-4 border-black bg-[#0a0a0a] py-12 px-6 z-50 relative">
       <div className="mx-auto max-w-4xl font-mono text-xs text-[#818384] leading-relaxed">
         <nav className="mb-10 flex flex-wrap justify-center gap-x-6 gap-y-2 border-b border-white/10 pb-6 text-[10px] font-bold uppercase tracking-[0.15em]">
-          {LINKS.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -29,6 +31,14 @@ export function GlobalFooter() {
               {link.label}
             </Link>
           ))}
+          <a
+            href={`https://pump.fun/coin/${CHOP_MINT}`}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-hypeNeon hover:text-sheetWhite"
+          >
+            $CHOP ↗
+          </a>
           <button
             type="button"
             onClick={() => show("fund")}

@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+import { FORUM_ENABLED } from "@/lib/constants";
 
 /**
- * The fund is a side panel now, opened over the forum it belongs to.
+ * The old fund URL. With the forum closed the fund panel opens over the blade,
+ * so this keeps every shared link working either way.
  */
 export default async function ResistancePage({
   searchParams,
@@ -9,8 +11,10 @@ export default async function ResistancePage({
   searchParams: Promise<{ to?: string | string[]; c?: string | string[] }>;
 }) {
   const params = await searchParams;
-  const query = new URLSearchParams();
 
+  if (!FORUM_ENABLED) redirect("/?fund=1");
+
+  const query = new URLSearchParams();
   const c = Array.isArray(params.c) ? params.c[0] : params.c;
   if (c) query.set("c", c);
   const to = Array.isArray(params.to) ? params.to[0] : params.to;

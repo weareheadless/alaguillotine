@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { NavBar } from "@/components/NavBar";
 import { ForumFrame } from "@/components/ForumFrame";
+import { FORUM_ENABLED } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,9 @@ export default async function ForumPage({
   searchParams: Promise<{ to?: string | string[]; c?: string | string[] }>;
 }) {
   const params = await searchParams;
+
+  // Hidden for now: setting FORUM_ENABLED back to true restores the page.
+  if (!FORUM_ENABLED) redirect("/");
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
