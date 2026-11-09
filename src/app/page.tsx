@@ -8,8 +8,7 @@ import { RulesBanner } from "../components/RulesBanner";
 import { useClock } from "../components/DoomsdayClock";
 import { useCallback, useEffect, useState } from "react";
 import { useHateometer } from "../components/Hateometer";
-import { ExecutionCountdown } from "../components/ExecutionCountdown";
-import { NextReading } from "../components/NextReading";
+import { StatusToolbar, queueNote } from "../components/StatusToolbar";
 import { slugify } from "../lib/slug";
 import { QueueCard } from "../components/QueueCard";
 import type { Figure } from "../lib/hateometer";
@@ -164,33 +163,15 @@ export default function HomePage() {
           <LiveWire items={state.items} />
         </div>
 
-        {/* ── Ada, in her own voice ───────────────────────────────────── */}
-        <section className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
-          <div className="flex flex-col gap-3 border-y-2 border-spiteCrimson bg-spiteCrimson/[0.07] px-4 py-4 md:flex-row md:items-center md:gap-6 md:px-6">
-            <div className="flex shrink-0 items-baseline gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-chop-muted">
-                ada is
-              </span>
-              <span className="font-mono text-2xl font-black uppercase tracking-tight text-spiteCrimson md:text-3xl">
-                {state.voice.mood || "reading"}
-              </span>
-            </div>
-            <p className="font-mono text-[12px] leading-relaxed text-sheetWhite md:text-[13px]">
-              {state.voice.line || "No reading yet. The machine is still looking."}
-            </p>
-          </div>
-        </section>
-
-        {hate.execution ? (
-          <ExecutionCountdown execution={hate.execution} onZero={onZero} />
-        ) : (
-          <NextReading
-            nextRunAt={hate.nextRunAt}
-            lastReadingAt={hate.computedAt}
-            figures={standing}
-            lastExecution={hate.lastExecution}
-          />
-        )}
+        {/* ── The pulse: mood, line and the next event in one bar ──────── */}
+        <StatusToolbar
+          mood={state.voice.mood}
+          line={state.voice.line}
+          execution={hate.execution}
+          nextRunAt={hate.nextRunAt}
+          figures={standing}
+          onZero={onZero}
+        />
 
         {/* ── The blades ──────────────────────────────────────────────── */}
         <div className="mx-auto mt-8 max-w-6xl px-4 md:px-6">
@@ -199,8 +180,11 @@ export default function HomePage() {
               <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
                 on the block
               </h2>
-              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                {standing.length} waiting in the line
+              <span className="text-right font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                {standing.length} waiting
+                {queueNote(standing) ? (
+                  <span className="hidden sm:inline"> · {queueNote(standing)}</span>
+                ) : null}
               </span>
             </div>
 
