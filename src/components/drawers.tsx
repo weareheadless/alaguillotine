@@ -220,27 +220,6 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
           </p>
         </section>
 
-        <ol className="mt-4 space-y-2 font-mono text-[10px] leading-relaxed text-chop-muted">
-          <li>
-            <span className="font-bold text-sheetWhite">01 propose</span> — a
-            named organisation, an amount, a receipt.
-          </li>
-          <li>
-            <span className="font-bold text-sheetWhite">02 decide</span> — Ada
-            argues with herself; a human with the key signs.
-          </li>
-          <li>
-            <span className="font-bold text-sheetWhite">03 prove</span> — the
-            wallet pays and the receipt is published. Eventually. Same delivery
-            date as full self-driving.
-          </li>
-        </ol>
-
-        <p className="mt-3 border-t border-chop-border pt-2 font-mono text-[9px] leading-relaxed text-chop-muted">
-          Food, water, shelter, legal aid, medical aid. No weapons, no violence.
-          The forum is closed for now; it comes back when there are enough
-          people to argue with.
-        </p>
         </>
         )}
       </Panel>
@@ -293,7 +272,7 @@ function Panel({
           close ×
         </button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-24 pt-5">{children}</div>
     </aside>
   );
 }
