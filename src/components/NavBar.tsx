@@ -5,10 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDrawer } from "./drawers";
 import { useSiteContent } from "../lib/use-site-content";
-import { CHOP_MINT } from "@/lib/treasury";
 import { FORUM_ENABLED } from "@/lib/constants";
-
-const PUMP_URL = `https://pump.fun/coin/${CHOP_MINT}`;
 
 export function NavBar() {
   const { content } = useSiteContent();
@@ -74,14 +71,13 @@ export function NavBar() {
         {/* ─── Right cluster: the fund, propose, hamburger ───────────── */}
         <div className="flex flex-shrink-0 items-center gap-2 md:gap-3">
           <div className="hidden items-center gap-2 lg:flex">
-            <a
-              href={PUMP_URL}
-              target="_blank"
-              rel="noreferrer noopener"
+            <button
+              type="button"
+              onClick={() => show("fund")}
               className="whitespace-nowrap border-2 border-hypeNeon/60 px-2.5 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
             >
-              $CHOP ↗
-            </a>
+              Buy $CHOP
+            </button>
             <button
               type="button"
               onClick={() => show("fund")}
@@ -136,15 +132,16 @@ export function NavBar() {
               {link.label}
             </Link>
           ))}
-          <a
-            href={PUMP_URL}
-            target="_blank"
-            rel="noreferrer noopener"
-            onClick={() => setMenuOpen(false)}
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              show("fund");
+            }}
             className={`${mobileLinkClass(false)} text-hypeNeon`}
           >
-            Buy $CHOP ↗
-          </a>
+            Buy $CHOP
+          </button>
           <button
             type="button"
             onClick={() => {

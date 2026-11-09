@@ -20,14 +20,14 @@ export async function GET() {
     const db = await getDb();
     if (!db) return Response.json(emptyHate(), { headers: { "Cache-Control": "no-store" } });
 
-    // A name is sentenced when it reaches the threshold; the blade falls when
-    // its countdown runs out. The first call creates the sentence, the second
-    // picks up whatever is left after any due execution.
-    await ensureSentence(db, DROP_THRESHOLD);
-    await executeDueSentences(db);
-    const execution = await ensureSentence(db, DROP_THRESHOLD);
-    const lastExecution = execution ? null : await readLastExecution(db);
+    // A name can only be sentenced in the half hour before a public slot, and
+    // only once the reading for that slot has landed. The first call creates
+    // the sentence, the second picks up whatever is left after any execution.
     const row = await readHate(db);
+    await ensureSentence(db, DROP_THRESHOLD, row?.computedAt ?? null);
+    await executeDueSentences(db);
+    const execution = await ensureSentence(db, DROP_THRESHOLD, row?.computedAt ?? null);
+    const lastExecution = execution ? null : await readLastExecution(db);
     const queue = await readQueue(db);
     if (!row && queue.length === 0) {
       return Response.json(emptyHate(), { headers: { "Cache-Control": "no-store" } });

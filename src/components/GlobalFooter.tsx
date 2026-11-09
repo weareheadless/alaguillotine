@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDrawer } from "./drawers";
-import { CHOP_MINT } from "@/lib/treasury";
 import { FORUM_ENABLED } from "@/lib/constants";
 
 const LINKS = [
@@ -31,14 +30,13 @@ export function GlobalFooter() {
               {link.label}
             </Link>
           ))}
-          <a
-            href={`https://pump.fun/coin/${CHOP_MINT}`}
-            target="_blank"
-            rel="noreferrer noopener"
+          <button
+            type="button"
+            onClick={() => show("fund")}
             className="text-hypeNeon hover:text-sheetWhite"
           >
-            $CHOP ↗
-          </a>
+            Buy $CHOP
+          </button>
           <button
             type="button"
             onClick={() => show("fund")}

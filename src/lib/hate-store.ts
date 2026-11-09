@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Figure, HateDimension } from "./hateometer";
 import { slugify } from "./slug";
+import { sentenceSlot } from "./schedule";
 
 type D1Statement = {
   bind: (...values: unknown[]) => D1Statement;
@@ -231,14 +232,14 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
  * wall counts executions, not refreshes.
  */
 /**
- * The blade hangs, then falls.
+ * The blade hangs, then falls on schedule.
  *
- * A name that reaches the threshold is sentenced, not chopped on the spot.
- * Its countdown runs in public; when it reaches zero the blade drops, the head
- * rolls, the counter resets and the next name comes up. One execution per
- * cooling window, so the line moves like a ritual and not like a batch job.
+ * A name that reaches the threshold is sentenced during the half hour before a
+ * public execution slot (01:00 or 13:00 UTC). Its countdown runs in public;
+ * when it reaches zero the blade drops, the head rolls, the counter resets and
+ * the next name comes up. One execution per slot, so the line moves like a
+ * ritual and not like a batch job.
  */
-export const SENTENCE_MS = 10 * 60 * 1000;
 
 export interface Sentence {
   person: string;
@@ -301,13 +302,17 @@ export async function readLastExecution(
  * There is no per-name cooldown: the counter reset to 60 is the brake, and the
  * climb back is the point. A name that returns to the top earns another turn.
  */
-export async function ensureSentence(db: D1, threshold: number): Promise<Sentence | null> {
+export async function ensureSentence(
+  db: D1,
+  threshold: number,
+  readingAt?: string | null,
+): Promise<Sentence | null> {
   const pending = await readSentence(db);
   if (pending) return pending;
 
-  // No cooling window: the moment one blade falls, the next name is
-  // sentenced. The countdown itself is the pause, so the line keeps moving.
   const now = Date.now();
+  const slot = sentenceSlot(now, readingAt);
+  if (slot == null) return null;
   // The card rounds the counter for display, so the sentence must use the
   // rounded number too: a name the page shows at 90 is on the block, not
   // silently stuck at 89.6 with no countdown.
@@ -326,7 +331,7 @@ export async function ensureSentence(db: D1, threshold: number): Promise<Sentenc
     slug: String(top.slug),
     score: Number(top.score),
     sentencedAt: new Date(now).toISOString(),
-    executeAt: new Date(now + SENTENCE_MS).toISOString(),
+    executeAt: new Date(slot).toISOString(),
   };
   await db
     .prepare(

@@ -102,7 +102,7 @@ export function NextReading({
               {left == null ? "--:--" : running ? "—" : clock(left)}
             </div>
             <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-              {running ? "reading now" : "until the next sentencing window"}
+              {running ? "reading now" : "until the next reading"}
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@ export function NextReading({
                 ? `last reading ${new Date(lastReadingAt).toISOString().slice(11, 16)} UTC`
                 : "no reading yet"}
           </span>
-          <span>00:30 and 12:30 UTC · readings can slip</span>
+          <span>readings 00:30 / 12:30 · blades 01:00 / 13:00 UTC · can slip</span>
         </div>
       </div>
     </section>

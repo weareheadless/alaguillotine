@@ -7,7 +7,7 @@ import { useDrawer } from "../components/drawers";
 import { RulesBanner } from "../components/RulesBanner";
 import { useClock } from "../components/DoomsdayClock";
 import { useCallback, useEffect, useState } from "react";
-import { Hateometer, useHateometer } from "../components/Hateometer";
+import { useHateometer } from "../components/Hateometer";
 import { ExecutionCountdown } from "../components/ExecutionCountdown";
 import { NextReading } from "../components/NextReading";
 import { slugify } from "../lib/slug";
@@ -19,7 +19,6 @@ import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
-import { CHOP_MINT } from "../lib/treasury";
 import { AdaPromise } from "../components/AdaPromise";
 
 /**
@@ -128,14 +127,13 @@ export default function HomePage() {
               >
                 The fund
               </button>
-              <a
-                href={`https://pump.fun/coin/${CHOP_MINT}`}
-                target="_blank"
-                rel="noreferrer noopener"
+              <button
+                type="button"
+                onClick={() => show("fund")}
                 className="border-2 border-hypeNeon px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
               >
-                Buy $CHOP ↗
-              </a>
+                Buy $CHOP
+              </button>
             </div>
 
             <p className="mt-4 max-w-2xl font-mono text-[10px] leading-relaxed text-chop-muted">
@@ -194,12 +192,8 @@ export default function HomePage() {
           />
         )}
 
-        {/* ── The gauge and the blades ────────────────────────────────── */}
-        <div className="mx-auto mt-8 grid max-w-6xl gap-6 px-4 md:px-6 lg:grid-cols-[300px_1fr]">
-          <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
-            <Hateometer state={hate} />
-          </div>
-
+        {/* ── The blades ──────────────────────────────────────────────── */}
+        <div className="mx-auto mt-8 max-w-6xl px-4 md:px-6">
           <section id="queue">
             <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
               <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
