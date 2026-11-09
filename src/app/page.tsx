@@ -191,7 +191,7 @@ export default function HomePage() {
             {atTheBlock && (
               <div className="mt-4">
                 <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-                  <span>next to be executed</span>
+                  <span>{hate.execution ? "next to be executed" : "top of the line"}</span>
                   <span>promoted from the line</span>
                 </div>
                 <QueueCard
