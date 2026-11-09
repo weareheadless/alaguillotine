@@ -3,6 +3,7 @@ import { clockConfig } from "@/lib/clock-research";
 import { runHatePass } from "@/lib/hate-research";
 import { getDb, readHate, readQueue, writeHate, writeQueue } from "@/lib/hate-store";
 import { ledgerSummaryFor, readLedgerSummaries, recordAdjustment } from "@/lib/archive-store";
+import { registerQueueNames } from "@/lib/coverage";
 import type { Figure } from "@/lib/hateometer";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +99,9 @@ export async function POST(request: Request) {
     });
 
     await writeQueue(db, ranked);
+    // A new name is registered for its first look the moment it enters the
+    // line, not whenever the next coverage cron happens to run.
+    await registerQueueNames(db);
     await writeHate(db, {
       level: pass.level,
       composite: pass.composite,

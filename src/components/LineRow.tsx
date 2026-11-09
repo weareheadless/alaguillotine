@@ -79,7 +79,13 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
               open the ledger →
             </span>
             <span className="text-chop-muted">·</span>
-            <span className="text-chop-muted">{figure.mentions} reports</span>
+            <span className="text-chop-muted">
+              {figure.mentions > 0
+                ? `${figure.mentions} reports`
+                : figure.investigated
+                  ? "no current reports"
+                  : "first look pending"}
+            </span>
             {(figure.timesChopped ?? 0) > 0 && (
               <>
                 <span className="text-chop-muted">·</span>

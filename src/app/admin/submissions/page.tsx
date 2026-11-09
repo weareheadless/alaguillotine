@@ -158,6 +158,7 @@ export default function AdminSubmissionsPage() {
       </header>
 
       <main className="mx-auto mt-6 max-w-4xl space-y-4">
+        <CoveragePanel />
         {loading && items.length === 0 && (
           <p className="text-xs uppercase tracking-[0.3em] text-chop-muted">
             reading the pile…
@@ -180,6 +181,104 @@ export default function AdminSubmissionsPage() {
         ))}
       </main>
     </div>
+  );
+}
+
+type CoverageRow = {
+  name: string;
+  status: "pending" | "running" | "done" | "failed";
+  entries: number;
+  checkedAt: string | null;
+  lastError?: string;
+};
+
+type CoverageData = {
+  total: number;
+  pending: number;
+  running: number;
+  done: number;
+  failed: number;
+  unread: number;
+  rows: CoverageRow[];
+};
+
+/**
+ * The guarantee, visible: how many names in the line have actually been read.
+ * A first look is a bounded dossier pass, and "nothing found" counts as read.
+ */
+function CoveragePanel() {
+  const [data, setData] = useState<CoverageData | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/coverage?rows=1", { cache: "no-store" });
+      const json = (await response.json()) as CoverageData;
+      if (!response.ok) throw new Error("coverage unavailable");
+      setData(json);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "coverage unavailable");
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function runNext() {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/coverage?batch=1", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json?.error ?? "first look failed");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "first look failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const next = (data?.rows ?? []).filter((r) => r.status !== "done").slice(0, 3);
+
+  return (
+    <section className="border-2 border-glitchGray bg-chop-card/40 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-chop-muted">
+            record coverage
+          </p>
+          <p className="mt-1 text-sm font-bold text-sheetWhite">
+            {data ? `${data.done} of ${data.total} names read` : "reading…"}
+            {data && data.unread > 0 && (
+              <span className="ml-2 font-mono text-[10px] font-normal text-amber-400">
+                {data.unread} unread
+              </span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={runNext}
+          disabled={busy || !data || data.unread === 0}
+          className="border-2 border-hypeNeon px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-hypeNeon hover:bg-hypeNeon hover:text-black disabled:border-glitchGray disabled:text-chop-muted"
+        >
+          {busy ? "reading…" : "run next first look"}
+        </button>
+      </div>
+      {data && next.length > 0 && (
+        <p className="mt-2 font-mono text-[10px] text-chop-muted">
+          next: {next.map((r) => `${r.name} (${r.status})`).join(" · ")}
+        </p>
+      )}
+      {error && <p className="mt-2 font-mono text-[10px] text-spiteCrimson">{error}</p>}
+    </section>
   );
 }
 

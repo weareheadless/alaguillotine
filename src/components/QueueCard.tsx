@@ -187,7 +187,11 @@ export function QueueCard({
               </div>
               <div className="mt-1 flex items-center justify-end gap-2">
                 <span className="font-mono text-[9px] uppercase tracking-widest text-chop-muted">
-                  {figure.mentions > 0 ? `${figure.mentions} rep` : "on the record"}
+                  {figure.mentions > 0
+                    ? `${figure.mentions} rep`
+                    : figure.investigated
+                      ? "on the record"
+                      : "record pending"}
                 </span>
                 <Move delta={figure.delta} />
               </div>

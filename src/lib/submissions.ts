@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { registerQueueNames } from "./coverage";
 import { slugify } from "./slug";
 
 /**
@@ -310,6 +311,9 @@ export async function reviewSubmission(
         submission.sources[0] ?? "",
       )
       .run();
+
+    // The review read the claim; the first look reads the whole record.
+    await registerQueueNames(db);
   }
 
   return {

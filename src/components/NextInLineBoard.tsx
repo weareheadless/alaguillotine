@@ -74,7 +74,12 @@ export function NextInLineBoard({ figures }: { figures: Figure[] }) {
               {f.reason}
             </p>
             <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-chop-muted">
-              {f.mentions} report{f.mentions === 1 ? "" : "s"} ·{" "}
+              {f.mentions > 0
+                ? `${f.mentions} report${f.mentions === 1 ? "" : "s"}`
+                : f.investigated
+                  ? "no current reports"
+                  : "first look pending"}{" "}
+              ·{" "}
               <a
                 href={f.sourceUrl}
                 target="_blank"

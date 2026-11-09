@@ -2,6 +2,7 @@ import { countLedger, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archiv
 import { slugify } from "@/lib/slug";
 import { emptyHate, itemMentions, type HateState } from "@/lib/hateometer";
 import { DROP_THRESHOLD } from "@/lib/hateometer";
+import { coverageBySlug } from "@/lib/coverage";
 import {
   ensureSentence,
   executeDueSentences,
@@ -56,6 +57,7 @@ export async function GET() {
     const chops = await listChops(db);
     const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
     const summaries = await readLedgerSummaries();
+    const coverage = await coverageBySlug(db);
 
     const withCounts = (queue.length ? queue : (row?.figures ?? [])).map((f) => {
       const slug = slugify(f.name);
@@ -65,10 +67,15 @@ export async function GET() {
       // every figure needs one). Show only items that actually name them, and
       // fall back to the ledger charges when the record is the only evidence.
       const items = (f.items ?? []).filter((item) => itemMentions(f.name, item));
+      const read = coverage.get(slug);
       return {
         ...f,
         items,
         mentions: items.length,
+        investigated: read?.status === "done",
+        investigation: read
+          ? { status: read.status, checkedAt: read.checkedAt, entries: read.entries }
+          : { status: "pending" as const, checkedAt: null, entries: 0 },
         source: items[0]?.source ?? "ada's record",
         sourceUrl:
           items[0]?.sourceUrl ??

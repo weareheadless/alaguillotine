@@ -78,6 +78,15 @@ export interface Figure {
     category: string;
     confidence: number;
   }>;
+  /** Has Ada run the full first-look dossier for this name? */
+  investigated?: boolean;
+  /** The first-look outcome, when one exists. */
+  investigation?: {
+    status: "pending" | "running" | "done" | "failed";
+    checkedAt: string | null;
+    /** Charges written to the ledger by the first look. */
+    entries: number;
+  };
   /** When the blade last fell on this name. */
   lastChoppedAt?: string | null;
 }
