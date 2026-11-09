@@ -76,7 +76,7 @@ export interface AdaVoice {
   /** Top-bar strings she wrote for this reading. */
   banner: string[];
   /** Popups she wrote for this reading. */
-  ads: { title: string; body: string; cta: string }[];
+  ads: { title: string; body: string; cta: string; openFund?: boolean }[];
   /** Single frames for the broken-TV corner. Short, ugly, true. */
   subliminal: string[];
   updatedAt: string | null;

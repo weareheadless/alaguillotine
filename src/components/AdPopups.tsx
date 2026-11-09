@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSiteContent } from "../lib/use-site-content";
 import { useAdaVoice } from "../lib/use-ada-voice";
+import { useDrawer } from "./drawers";
+import { COIN_ADS } from "@/lib/coin-ads";
 import type { AdContent } from "../lib/content";
 
 /**
@@ -35,7 +37,9 @@ const pick = <T,>(list: readonly T[]): T =>
 export function AdPopups() {
   const { content } = useSiteContent();
   const ada = useAdaVoice();
-  const ads = ada.ads.length ? ada.ads : content.ads;
+  const editorial = ada.ads.length ? ada.ads : content.ads;
+  // Coin ads always rotate in, whatever Ada wrote this reading.
+  const ads = useMemo(() => [...editorial, ...COIN_ADS], [editorial]);
 
   const [stack, setStack] = useState<Placed[]>([]);
   const [leaving, setLeaving] = useState<number[]>([]);
@@ -64,7 +68,10 @@ export function AdPopups() {
       history.current = [...history.current.slice(-3), idx];
       const data = ads[idx];
 
-      const format = pick(FORMATS);
+      // Coin ads belong in the ad-shaped formats, not the privacy notice.
+      const format = data.openFund
+        ? pick(["crypto", "card", "breaking"] as const)
+        : pick(FORMATS);
       const side: "left" | "right" =
         format === "notify" || format === "crypto" ? "right" : "left";
       const rot =
@@ -132,6 +139,13 @@ export function AdPopups() {
 
 function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
   const copy = ad.data;
+  const { show } = useDrawer();
+
+  // The CTA on a coin ad opens the fund panel; the pump link is in there.
+  const act = () => {
+    if (copy.openFund) show("fund");
+    onClose();
+  };
 
   if (ad.format === "notify") {
     return (
@@ -156,7 +170,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
               {copy.body}
             </p>
             <button
-              onClick={onClose}
+              onClick={act}
               className="mt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-spiteCrimson hover:text-sheetWhite"
             >
               {copy.cta} →
@@ -197,7 +211,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           </p>
           <div className="mt-3 flex items-center gap-3">
             <button
-              onClick={onClose}
+              onClick={act}
               className="border-2 border-black bg-black px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-sheetWhite"
             >
               {copy.cta}
@@ -236,7 +250,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
             {copy.body}
           </p>
           <button
-            onClick={onClose}
+            onClick={act}
             className="mt-3 w-full border border-hypeNeon bg-hypeNeon py-1 text-[9px] font-black uppercase tracking-widest text-black hover:bg-transparent hover:text-hypeNeon"
           >
             {copy.cta}
@@ -269,7 +283,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
             {copy.body}
           </p>
           <button
-            onClick={onClose}
+            onClick={act}
             className="mt-3 w-full border border-spiteCrimson py-1 text-[9px] font-black uppercase tracking-widest text-spiteCrimson hover:bg-spiteCrimson hover:text-black"
           >
             {copy.cta}
@@ -300,7 +314,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           {copy.body}
         </p>
         <button
-          onClick={onClose}
+          onClick={act}
           className="w-full border-2 border-black bg-hypeNeon py-1.5 text-[10px] font-bold tracking-widest text-canvasBlack shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
         >
           {copy.cta}

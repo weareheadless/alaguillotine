@@ -48,6 +48,8 @@ export interface AdContent {
   title: string;
   body: string;
   cta: string;
+  /** Coin ads open the fund panel so the joke is told before the link. */
+  openFund?: boolean;
 }
 
 export interface RulesContent {
