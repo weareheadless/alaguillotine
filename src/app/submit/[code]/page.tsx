@@ -13,7 +13,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 const STATUS_LINE: Record<string, string> = {
-  pending: "Ada has not ruled on it yet.",
+  pending: "Ada is reading it. The verdict lands here.",
   approved: "It is in the line.",
   rejected: "It did not make the wall.",
 };

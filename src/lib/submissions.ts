@@ -5,9 +5,10 @@ import { slugify } from "./slug";
  * Names proposed by the public.
  *
  * The queue itself is written by Ada's research passes; this table is the
- * front door. A submission sits here until a human reads it. On approval the
- * name is written into `queue_people`, where it keeps its own counter like
- * every other name on the line.
+ * front door. A submission is read by Ada: the site gathers the reporting,
+ * she rules, and the verdict is written here. The review desk can still
+ * overrule a pending proposal. On approval the name is written into
+ * `queue_people`, where it keeps its own counter like every other name.
  *
  * No account and no email. The receipt code is the submitter's only handle, so
  * it is random, unguessable, and never listed publicly.

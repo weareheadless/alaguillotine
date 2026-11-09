@@ -117,8 +117,9 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
         {!seen.has("propose") ? null : (
         <>
         <p className="font-mono text-[11px] leading-relaxed text-chop-muted">
-          Free, no account, no email. Ada reads every proposal and answers with
-          a real reason — even when the reason is that they are not evil enough.
+          Free, no account, no email. Ada reads the proposal, checks the
+          reporting, and rules — approval or a real reason, even when the reason
+          is that they are not evil enough. Usually inside a minute.
         </p>
         <div className="mt-5">
           <NameSubmissionForm compact />

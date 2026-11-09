@@ -7,18 +7,36 @@ import {
   type PublicSubmission,
 } from "@/lib/submissions";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { reviewByAda, type ReviewEnv } from "@/lib/ada-review";
 
 export const revalidate = 0;
 
 const MAX_PER_DAY = 2;
 
-type Env = { D1?: D1 };
+type Env = { D1?: D1 } & ReviewEnv;
 
 async function db(): Promise<D1 | null> {
   const context = (await getCloudflareContext({ async: true })) as unknown as {
     env?: Env;
   };
   return context.env?.D1 ?? null;
+}
+
+/** The DB, the model keys, and the Workers lifetime for a background review. */
+async function runtime(): Promise<{
+  db: D1 | null;
+  env: ReviewEnv;
+  waitUntil?: (promise: Promise<unknown>) => void;
+}> {
+  const context = (await getCloudflareContext({ async: true })) as unknown as {
+    env?: Env;
+    ctx?: { waitUntil?: (promise: Promise<unknown>) => void };
+  };
+  return {
+    db: context.env?.D1 ?? null,
+    env: context.env ?? {},
+    waitUntil: context.ctx?.waitUntil?.bind(context.ctx),
+  };
 }
 
 const clean = (value: unknown, max: number): string =>
@@ -77,7 +95,7 @@ export async function GET(request: Request) {
  * flood the review queue, and a honeypot field for bots that fill forms.
  */
 export async function POST(request: Request) {
-  const database = await db();
+  const { db: database, env, waitUntil } = await runtime();
   if (!database) {
     return Response.json({ error: "unavailable" }, { status: 503 });
   }
@@ -144,6 +162,12 @@ export async function POST(request: Request) {
     submitter,
     ipHash,
   });
+
+  // Ada reads it in the background: gather the reporting, make the call, write
+  // the verdict. The submitter gets the code now and checks the status later.
+  // A failure leaves it pending for the review desk.
+  const review = reviewByAda(database, submission, env).catch(() => {});
+  if (waitUntil) waitUntil(review);
 
   return Response.json(
     { ok: true, code: submission.code },
