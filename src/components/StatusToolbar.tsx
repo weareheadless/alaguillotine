@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { DROP_THRESHOLD, type Figure } from "@/lib/hateometer";
 
 /**
- * The blade clock, and the mood that goes with it.
+ * The blade clock.
  *
- * The countdown belongs to the blade, not to a separate status strip: it sits
- * in the queue header, next to the name it is counting down to. The mood, the
- * wire and the fund line live in one panel underneath.
+ * It sits in the queue header, above the card, so the countdown belongs to the
+ * name it is counting down to. The old mood/line/clock strip is gone; the mood
+ * lives in the control deck now.
  */
 export interface StatusExecution {
   person: string;
@@ -17,17 +17,6 @@ export interface StatusExecution {
   sentencedAt: string;
   executeAt: string;
   secondsLeft: number;
-}
-
-export interface StatusToolbarProps {
-  mood: string;
-  line: string;
-  execution?: StatusExecution | null;
-  nextRunAt: string | null;
-  figures: Figure[];
-  onZero: (slug: string) => void;
-  /** The queue header owns the clock; the pulse panel only needs the mood. */
-  showClock?: boolean;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -148,61 +137,5 @@ export function BladeClock({
         />
       </div>
     </div>
-  );
-}
-
-export function StatusToolbar({
-  mood,
-  line,
-  execution,
-  nextRunAt,
-  figures,
-  onZero,
-  showClock = true,
-}: StatusToolbarProps) {
-  const moodEl = () => (
-    <div className="flex shrink-0 items-baseline gap-2">
-      <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-        ada is
-      </span>
-      <span className="font-mono text-lg font-black uppercase tracking-tight text-spiteCrimson md:text-xl">
-        {mood || "reading"}
-      </span>
-    </div>
-  );
-
-  return (
-    <section className="min-w-0">
-      <div className="flex items-center justify-between gap-3 md:hidden">
-        {moodEl()}
-        {showClock && (
-          <BladeClock
-            execution={execution}
-            nextRunAt={nextRunAt}
-            onZero={onZero}
-            compact
-          />
-        )}
-      </div>
-      <p className="mt-1.5 font-mono text-[11px] leading-snug text-sheetWhite/85 md:hidden">
-        {line || "No reading yet. The machine is still looking."}
-      </p>
-
-      <div className="hidden items-center gap-4 md:flex">
-        {moodEl()}
-        <span className="h-5 w-px bg-chop-border" aria-hidden />
-        <p className="min-w-0 flex-1 truncate font-mono text-[11px] leading-snug text-sheetWhite/85">
-          {line || "No reading yet. The machine is still looking."}
-        </p>
-        {showClock && (
-          <BladeClock
-            execution={execution}
-            nextRunAt={nextRunAt}
-            onZero={onZero}
-            compact
-          />
-        )}
-      </div>
-    </section>
   );
 }

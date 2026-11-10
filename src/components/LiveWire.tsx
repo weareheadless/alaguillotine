@@ -31,7 +31,7 @@ export function LiveWire({ items, bare = false }: { items: RageItem[]; bare?: bo
   const item = items[index % items.length];
 
   return (
-    <div className={bare ? "" : "border-y border-chop-border bg-chop-card/30"}>
+    <div className={bare ? "min-w-0" : "border-y border-chop-border bg-chop-card/30"}>
       <div className={bare ? "flex items-start gap-3" : "mx-auto flex max-w-6xl items-start gap-3 px-4 py-2.5 md:px-6"}>
         <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.25em] text-spiteCrimson">
           <span className="h-1.5 w-1.5 animate-pulse bg-spiteCrimson" />
@@ -39,7 +39,7 @@ export function LiveWire({ items, bare = false }: { items: RageItem[]; bare?: bo
         </span>
 
         <div key={item.id} className="wire-in min-w-0 flex-1">
-          <p className="truncate font-mono text-[13px] leading-snug text-sheetWhite">
+          <p className={`${bare ? "font-mono text-[12px] leading-snug" : "truncate font-mono text-[13px] leading-snug"} text-sheetWhite`}>
             <span className="text-chop-muted">{item.source}</span>
             <span className="mx-2 text-chop-muted">·</span>
             {item.headline}
@@ -51,12 +51,16 @@ export function LiveWire({ items, bare = false }: { items: RageItem[]; bare?: bo
           ) : null}
         </div>
 
-        <span className="hidden shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted sm:inline">
-          {item.rage}
-        </span>
-        <span className="shrink-0 font-mono text-[9px] tabular-nums text-chop-muted">
-          {String(index + 1).padStart(2, "0")}/{String(items.length).padStart(2, "0")}
-        </span>
+        {!bare && (
+          <span className="hidden shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted sm:inline">
+            {item.rage}
+          </span>
+        )}
+        {!bare && (
+          <span className="shrink-0 font-mono text-[9px] tabular-nums text-chop-muted">
+            {String(index + 1).padStart(2, "0")}/{String(items.length).padStart(2, "0")}
+          </span>
+        )}
       </div>
     </div>
   );
