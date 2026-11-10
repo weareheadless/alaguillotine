@@ -212,18 +212,27 @@ export async function researchDossierCase(
 ): Promise<LedgerEntry[]> {
   const results: Result[] = [];
   const seen = new Set<string>();
+  let answered = 0;
 
   for (const q of c.queries) {
-    const data = await post<{ results?: Array<Record<string, unknown>> }>(
-      `${config.searchBase}/v1/tools/search`,
-      {
-        query: `${q} lang:en after:${c.after} before:${c.before}`,
-        count: 8,
-        need_content: false,
-      },
-      config.searchKey,
-      25_000,
-    );
+    let data: { results?: Array<Record<string, unknown>> };
+    try {
+      data = await post<{ results?: Array<Record<string, unknown>> }>(
+        `${config.searchBase}/v1/tools/search`,
+        {
+          query: `${q} lang:en after:${c.after} before:${c.before}`,
+          count: 8,
+          need_content: false,
+        },
+        config.searchKey,
+        35_000,
+      );
+      answered += 1;
+    } catch {
+      // One slow query must not sink the whole look: the other five are
+      // still evidence. If none answered, the pass failed and is retried.
+      continue;
+    }
     for (const r of data.results ?? []) {
       const url = String(r.url ?? "");
       if (!url || !r.summary || seen.has(url)) continue;
@@ -238,6 +247,7 @@ export async function researchDossierCase(
     }
   }
 
+  if (!answered) throw new Error("all searches failed");
   if (!results.length) return [];
 
   // Chunk the evidence so the model extracts acts instead of summarising a

@@ -192,8 +192,8 @@ export async function runCoverageBatch(
         `SELECT * FROM name_investigations
           WHERE status = 'pending'
              OR (status = 'failed' AND attempts < ?)
-          ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END,
-                   priority ASC,
+          ORDER BY priority ASC,
+                   CASE status WHEN 'pending' THEN 0 ELSE 1 END,
                    checked_at ASC
           LIMIT ?`,
       )
