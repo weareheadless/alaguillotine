@@ -14,7 +14,17 @@ export function PersonNumbers({
   numbers?: PersonNumber[];
   limit?: number;
 }) {
-  const rows = (numbers ?? []).slice(0, limit);
+  // One figure per kind: the record can hold several death tolls, but the
+  // strip needs the one that best carries the charge.
+  const seen = new Set<string>();
+  const rows = (numbers ?? [])
+    .filter((n) => {
+      const key = n.kind === "other" ? `other:${n.label.toLowerCase()}` : n.kind;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit);
   if (!rows.length) return null;
 
   return (

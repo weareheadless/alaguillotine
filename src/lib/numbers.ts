@@ -210,7 +210,7 @@ RULES — hard:
 1. Every number must appear in the supplied text. Do not calculate, estimate, extrapolate or infer. If the text does not state it, omit it.
 2. One row per kind. If the results give several numbers of the same kind, choose the most recent or the largest documented one, and give its year.
 3. display is the number as a reader would say it: "$4.2B", "12,000", "$1.1B a year", "38%". Max 24 chars.
-4. label is the thing being counted, max 28 chars: "net worth", "Pentagon contracts", "tax avoided", "deaths attributed".
+4. label is the thing being counted, max 32 chars: "net worth", "Pentagon contracts", "tax avoided", "deaths attributed".
 5. source_url must be copied from the supplied results. Never invent a URL.
 6. evidence_quote must be a verbatim phrase from that result's summary, max 200 chars.
 7. confidence 0-100: 90+ official record or court filing; 70s multiple independent reports; 60s a single credible report. Below 60 do not include.
@@ -345,7 +345,7 @@ export async function researchNumbersCase(
     for (const row of parsed.numbers ?? []) {
       const kind = String(row.kind ?? "other") as NumberKind;
       if (!KIND_SET.has(kind)) continue;
-      const label = String(row.label ?? "").trim().slice(0, 28);
+      const label = String(row.label ?? "").trim().slice(0, 36);
       const display = String(row.display ?? "").trim().slice(0, 24);
       if (!label || !display || !/\d/.test(display)) continue;
       const sourceUrl = String(row.source_url ?? "").trim();
@@ -355,6 +355,9 @@ export async function researchNumbersCase(
       if (!quote || !quoteIsInSummary(quote, src.summary)) continue;
       const confidence = Number(row.confidence);
       if (!Number.isFinite(confidence) || confidence < 60) continue;
+      // "Other" is for the number that does not fit a category, not for
+      // neutral election or macro facts. Keep it to the enraging ones.
+      if (kind === "other" && confidence < 70) continue;
 
       const key = `${kind}|${label.toLowerCase()}`;
       if (seenKinds.has(key)) continue;
@@ -376,7 +379,21 @@ export async function researchNumbersCase(
     }
   }
 
-  return sortNumbers(found);
+  // One figure per kind on the table. The record can hold several death
+  // tolls; the line needs the one that best carries the charge.
+  const byKind = new Map<string, PersonNumber>();
+  for (const n of found) {
+    const key = n.kind === "other" ? `other:${n.label.toLowerCase()}` : n.kind;
+    const prev = byKind.get(key);
+    if (
+      !prev ||
+      n.confidence > prev.confidence ||
+      (n.confidence === prev.confidence && (n.year ?? 0) > (prev.year ?? 0))
+    ) {
+      byKind.set(key, n);
+    }
+  }
+  return sortNumbers([...byKind.values()]);
 }
 
 export async function writeNumbers(
