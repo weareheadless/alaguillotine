@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSiteContent } from "../lib/use-site-content";
 import { useAdaVoice } from "../lib/use-ada-voice";
+import { EXECUTION_HOURS, nextExecutionSlot } from "../lib/schedule";
 
 /**
  * The ticker. It used to be hijackable by paid messages; there is no paid
@@ -12,7 +13,33 @@ import { useAdaVoice } from "../lib/use-ada-voice";
 export function FsdBanner() {
   const { content, ready } = useSiteContent();
   const ada = useAdaVoice();
-  const texts = ada.banner.length ? ada.banner : content.bannerTexts;
+  const [spam, setSpam] = useState<string[]>([]);
+
+  // The blade gets advertised like everything else on the site. Rebuilt when
+  // the next slot rolls over so a tab left open overnight is still correct.
+  useEffect(() => {
+    const build = () => {
+      const slot = nextExecutionSlot();
+      const time = new Date(slot).toISOString().slice(11, 16);
+      const hours = EXECUTION_HOURS.map((h) => `${String(h).padStart(2, "0")}:00`).join(" / ");
+      const next = [
+        `NEXT PUBLIC EXECUTION ${time} UTC — THE FRONT ROW IS STANDING ONLY`,
+        `BLADE SCHEDULED ${time} UTC. LATE ARRIVALS WILL BE TREATED AS VOLUNTEERS.`,
+        `PUBLIC EXECUTIONS ${hours} UTC. THE ONLY PUBLIC SERVICE STILL RUNNING.`,
+        "REMINDER: THE BLADE IS CARBON NEUTRAL. THE CONDEMNED IS NOT.",
+        "THE GUILLOTINE IS ON TIME. YOUR TRAIN IS NOT.",
+      ];
+      setSpam((prev) => (prev[0] === next[0] ? prev : next));
+    };
+    build();
+    const id = setInterval(build, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const texts = useMemo(
+    () => [...spam, ...(ada.banner.length ? ada.banner : content.bannerTexts)],
+    [spam, ada.banner, content.bannerTexts],
+  );
   const [shuffledTexts, setShuffledTexts] = useState<string[]>([]);
 
   useEffect(() => {

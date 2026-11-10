@@ -155,7 +155,7 @@ export function StatusToolbar({
         title={
           execution
             ? `${execution.person}, sentenced at ${new Date(execution.sentencedAt).toISOString().slice(11, 16)} UTC`
-            : `Readings at 00:30 and 12:30 UTC; blades at 01:00 and 13:00 UTC. ${queueNote(figures) || "Estimates can slip."}`
+            : `Readings at 00:30 and 12:30 UTC; blades at 09:00, 13:00, 17:00 and 21:00 UTC. ${queueNote(figures) || "Estimates can slip."}`
         }
       >
         <div className="px-4 py-2.5 md:px-6">

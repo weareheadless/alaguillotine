@@ -235,10 +235,10 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
  * The blade hangs, then falls on schedule.
  *
  * A name that reaches the threshold is sentenced during the half hour before a
- * public execution slot (01:00 or 13:00 UTC). Its countdown runs in public;
- * when it reaches zero the blade drops, the head rolls, the counter resets and
- * the next name comes up. One execution per slot, so the line moves like a
- * ritual and not like a batch job.
+ * public execution slot (09:00, 13:00, 17:00 or 21:00 UTC). Its countdown runs
+ * in public; when it reaches zero the blade drops, the head rolls, the counter
+ * resets and the next name waits for the next hour. One execution per slot, so
+ * the line moves like a ritual and not like a batch job.
  */
 
 export interface Sentence {
@@ -314,46 +314,41 @@ export async function ensureSentence(
   const slot = sentenceSlot(now, readingAt);
   if (slot == null) return null;
 
-  // A session, not a single seat. If four names are over ninety at the same
-  // reading, all four are sentenced for that appointment and the blades fall
-  // two minutes apart, instead of one name every twelve hours. The ritual is
-  // still an appointment; the queue just cannot stretch it into a week.
+  // One name per appointment. The next name over ninety waits for the next
+  // public hour, which is at most four hours away — long enough for the blade
+  // to be an event, short enough that the queue does not become a week.
   //
   // The card rounds the counter for display, so the sentence must use the
   // rounded number too: a name the page shows at 90 is on the block, not
   // silently stuck at 89.6 with no countdown.
-  const eligible = await db
+  const top = await db
     .prepare(
       `SELECT slug, name, score FROM queue_people
        WHERE ROUND(score) >= ?
-       ORDER BY score DESC, mentions DESC`,
+       ORDER BY score DESC, mentions DESC LIMIT 1`,
     )
     .bind(threshold)
-    .all();
+    .first<Record<string, unknown>>();
+  if (!top) return null;
 
   const sentencedAt = new Date(now).toISOString();
   const slotIso = new Date(slot).toISOString();
-  let offset = 0;
-  for (const row of eligible.results ?? []) {
-    const slug = String(row.slug);
-    const executeAt = new Date(slot + offset * 2 * 60_000).toISOString();
-    // The id is deterministic per session, so two simultaneous page loads
-    // cannot put the same name on the block twice.
-    await db
-      .prepare(
-        "INSERT OR IGNORE INTO chop_sentences (id, slug, person, score, sentenced_at, execute_at) VALUES (?, ?, ?, ?, ?, ?)",
-      )
-      .bind(
-        `${slug}:${slotIso}`,
-        slug,
-        String(row.name),
-        Number(row.score),
-        sentencedAt,
-        executeAt,
-      )
-      .run();
-    offset += 1;
-  }
+  const slug = String(top.slug);
+  // Deterministic per person per slot: two simultaneous page loads cannot put
+  // the same name on the block twice.
+  await db
+    .prepare(
+      "INSERT OR IGNORE INTO chop_sentences (id, slug, person, score, sentenced_at, execute_at) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(
+      `${slug}:${slotIso}`,
+      slug,
+      String(top.name),
+      Number(top.score),
+      sentencedAt,
+      slotIso,
+    )
+    .run();
 
   return readSentence(db);
 }

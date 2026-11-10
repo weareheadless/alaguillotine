@@ -5,7 +5,7 @@ import { useSiteContent } from "../lib/use-site-content";
 import { useAdaVoice } from "../lib/use-ada-voice";
 import { useDrawer } from "./drawers";
 import { COIN_ADS } from "@/lib/coin-ads";
-import type { AdContent } from "../lib/content";
+import { executionAds, type RuntimeAd } from "@/lib/execution-ads";
 
 /**
  * The ad stack.
@@ -27,7 +27,7 @@ type Placed = {
   id: number;
   side: "left" | "right";
   format: Format;
-  data: AdContent;
+  data: RuntimeAd;
   rot: number;
 };
 
@@ -38,8 +38,12 @@ export function AdPopups() {
   const { content } = useSiteContent();
   const ada = useAdaVoice();
   const editorial = ada.ads.length ? ada.ads : content.ads;
-  // Coin ads always rotate in, whatever Ada wrote this reading.
-  const ads = useMemo(() => [...editorial, ...COIN_ADS], [editorial]);
+  // Coin ads always rotate in, whatever Ada wrote this reading. The blade
+  // schedule gets its own notices, so the interruption is also the reminder.
+  const ads = useMemo<RuntimeAd[]>(
+    () => [...editorial, ...executionAds(), ...COIN_ADS],
+    [editorial],
+  );
 
   const [stack, setStack] = useState<Placed[]>([]);
   const [leaving, setLeaving] = useState<number[]>([]);
@@ -69,9 +73,12 @@ export function AdPopups() {
       const data = ads[idx];
 
       // Coin ads belong in the ad-shaped formats, not the privacy notice.
+      // Execution notices are announcements, not product pitches.
       const format = data.openFund
         ? pick(["crypto", "card", "breaking"] as const)
-        : pick(FORMATS);
+        : data.notice
+          ? pick(["breaking", "notify", "card"] as const)
+          : pick(FORMATS);
       const side: "left" | "right" =
         format === "notify" || format === "crypto" ? "right" : "left";
       const rot =
@@ -143,6 +150,11 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
 
   // The CTA on a coin ad opens the fund panel; the pump link is in there.
   const act = () => {
+    if (copy.href) {
+      window.location.assign(copy.href);
+      onClose();
+      return;
+    }
     if (copy.openFund) show("fund");
     onClose();
   };
