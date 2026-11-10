@@ -33,6 +33,36 @@ const FALLBACK: Clip[] = [
   { src: "/static/musk_is_presented_with_the_reality.mp4", caption: "archive", kind: "file" },
 ];
 
+/** What this browser has already been shown, so a return visit is not a rerun. */
+const SEEN_KEY = "fye:reel:seen:v1";
+const SEEN_TTL = 30 * 24 * 60 * 60 * 1000;
+
+type Seen = Record<string, number>;
+
+function loadSeen(): Seen {
+  try {
+    const raw = window.localStorage.getItem(SEEN_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Seen;
+    const cutoff = Date.now() - SEEN_TTL;
+    const fresh: Seen = {};
+    for (const [src, at] of Object.entries(parsed)) {
+      if (typeof at === "number" && at > cutoff) fresh[src] = at;
+    }
+    return fresh;
+  } catch {
+    return {};
+  }
+}
+
+function saveSeen(seen: Seen): void {
+  try {
+    window.localStorage.setItem(SEEN_KEY, JSON.stringify(seen));
+  } catch {
+    /* private mode, quota, or storage disabled: the bag still works per visit */
+  }
+}
+
 /**
  * The stream is a shuffle bag, not a die roll.
  *
@@ -83,6 +113,7 @@ function chooseNext(
   current: number,
   bag: number[],
   recent: Recent,
+  seen: Seen,
 ): number {
   if (clips.length < 2) return current;
 
@@ -110,8 +141,15 @@ function chooseNext(
     bag.filter((i) => i !== current),
   ];
 
-  const pool = pools.find((p) => p.length > 0) ?? [current];
-  const next = pool[Math.floor(Math.random() * pool.length)];
+  // A clip this browser has not been shown wins over one it has. Only when
+  // the fresh side of the pool is empty do we replay the oldest memory.
+  const unseen = (i: number) => !seen[clips[i].src];
+  const pool =
+    pools.find((p) => p.some(unseen)) ?? pools.find((p) => p.length > 0) ?? [current];
+  const fresh = pool.filter(unseen);
+  const next = fresh.length
+    ? fresh[Math.floor(Math.random() * fresh.length)]
+    : pool.reduce((a, b) => ((seen[clips[a].src] ?? 0) <= (seen[clips[b].src] ?? 0) ? a : b));
   const at = bag.indexOf(next);
   if (at >= 0) bag.splice(at, 1);
 
@@ -135,6 +173,11 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
   const indexRef = useRef(0);
   const bag = useRef<number[]>([]);
   const recent = useRef<Recent>({ sources: [], topics: [] });
+  const seen = useRef<Seen>({});
+
+  useEffect(() => {
+    seen.current = loadSeen();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -190,7 +233,7 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
       .then((data) => {
         const live = Array.isArray(data?.clips) ? data.clips : [];
         if (!cancelled && live.length) {
-          const list = live.map(
+          const list: Clip[] = live.map(
             (c: { url: string; caption: string; source: string; kind: string }) => ({
               src: c.url,
               caption: c.caption || c.source || "news",
@@ -198,7 +241,12 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
               kind: c.kind === "youtube" ? "youtube" : "file",
             }),
           );
-          const start = Math.floor(Math.random() * list.length);
+          const freshStarts = list
+            .map((_, i) => i)
+            .filter((i) => !seen.current[list[i].src]);
+          const start = freshStarts.length
+            ? freshStarts[Math.floor(Math.random() * freshStarts.length)]
+            : Math.floor(Math.random() * list.length);
           setClips(list);
           // Start somewhere else every visit: a stream, not a front page.
           indexRef.current = start;
@@ -208,6 +256,10 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
             sources: [list[start]?.source ?? ""],
             topics: [topicOf(list[start]?.caption ?? "")],
           };
+          if (list[start]?.src) {
+            seen.current[list[start].src] = Date.now();
+            saveSeen(seen.current);
+          }
           return;
         }
         return fetch("/static/reel/reel.json", { cache: "no-store" })
@@ -249,8 +301,20 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
         glitch = setTimeout(() => {
           if (alive) setTorn(false);
         }, 90 + Math.random() * 130);
-        const next = chooseNext(clips, indexRef.current, bag.current, recent.current);
+        const next = chooseNext(
+          clips,
+          indexRef.current,
+          bag.current,
+          recent.current,
+          seen.current,
+        );
         indexRef.current = next;
+        // A two-second cut-away is not "seen"; only a held shot counts, so a
+        // clip that flashed past still gets a proper showing later.
+        if (!cut && clips[next]?.src) {
+          seen.current[clips[next].src] = Date.now();
+          saveSeen(seen.current);
+        }
         setIndex(next);
         step();
       }, hold);

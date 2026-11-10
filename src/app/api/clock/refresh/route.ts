@@ -1,8 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig, normaliseVoice, runClockPass, type ClockPass } from "@/lib/clock-research";
 import { getDb, readClock, rememberAds, writeClock } from "@/lib/clock-store";
-import { findReelClips } from "@/lib/youtube";
-import { saveReelClip } from "@/lib/reel-store";
+import { refreshReel } from "@/lib/reel-refresh";
 import { archiveItems } from "@/lib/archive-store";
 
 export const dynamic = "force-dynamic";
@@ -70,21 +69,6 @@ async function applyAdaVoice(
   }
 }
 
-async function refreshReel(env: { YOUTUBE_API_KEY?: string }): Promise<number> {
-  if (!env.YOUTUBE_API_KEY) return 0;
-  try {
-    const clips = await findReelClips(env.YOUTUBE_API_KEY);
-    for (const clip of clips) {
-      await saveReelClip(
-        { url: clip.videoId, caption: clip.title, source: clip.channel, kind: "youtube" },
-        `https://www.youtube.com/watch?v=${clip.videoId}`,
-      );
-    }
-    return clips.length;
-  } catch {
-    return 0;
-  }
-}
 
 export async function POST(request: Request) {
   const context = (await getCloudflareContext({ async: true })) as unknown as {
@@ -147,7 +131,7 @@ export async function POST(request: Request) {
         if (fresh?.quip) item.quip = fresh.quip;
       });
       await writeClock(db, { ...previous, voice: pass.voice, computedAt: pass.computedAt });
-      const clips = await refreshReel(context.env ?? {});
+      const clips = await refreshReel(context.env?.YOUTUBE_API_KEY);
       return Response.json({ ok: true, unchanged: true, level: previous.level, clips });
     }
 
@@ -155,7 +139,7 @@ export async function POST(request: Request) {
     await archiveItems(pass.items);
 
     // The reel: whatever video the same search turned up, if any of it plays.
-    const clips = await refreshReel(context.env ?? {});
+    const clips = await refreshReel(context.env?.YOUTUBE_API_KEY);
 
     return Response.json({ ok: true, level: pass.level, composite: pass.composite, clips });
   } catch (error) {
