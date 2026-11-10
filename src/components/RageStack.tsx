@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RageItem } from "../lib/clock";
+import { safeHref } from "@/lib/url";
 
 /**
  * The stack.
@@ -109,7 +110,7 @@ export function RageStack({
                           {item.quip}
                         </p>
                         <a
-                          href={item.sourceUrl}
+                          href={safeHref(item.sourceUrl)}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}

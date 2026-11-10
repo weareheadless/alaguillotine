@@ -1,6 +1,7 @@
 "use client";
 
 import type { Figure } from "../lib/hateometer";
+import { safeHref } from "@/lib/url";
 
 /**
  * The queue.
@@ -81,7 +82,7 @@ export function NextInLineBoard({ figures }: { figures: Figure[] }) {
                   : "first look pending"}{" "}
               ·{" "}
               <a
-                href={f.sourceUrl}
+                href={safeHref(f.sourceUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"

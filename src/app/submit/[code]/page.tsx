@@ -1,10 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NavBar } from "@/components/NavBar";
 import { getSubmissionByCode, submissionDb } from "@/lib/submissions";
 import { slugify } from "@/lib/slug";
+import { safeHref } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Proposal status — A LA GUILLOTINE",
+  description: "The verdict on one proposed name.",
+  robots: { index: false, follow: false },
+};
 
 const STATUS_STYLE: Record<string, string> = {
   pending: "border-hypeNeon bg-hypeNeon/10 text-hypeNeon",
@@ -105,7 +113,7 @@ export default async function SubmissionStatusPage({
                 {submission.sources.map((source) => (
                   <li key={source}>
                     <a
-                      href={source}
+                      href={safeHref(source)}
                       target="_blank"
                       rel="noreferrer noopener"
                       className="break-all font-mono text-[11px] text-hypeNeon underline decoration-hypeNeon/40 hover:decoration-hypeNeon"

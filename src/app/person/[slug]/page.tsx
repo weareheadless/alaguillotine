@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getLedgerFor } from "@/lib/archive-store";
 import { getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
+import { safeHref } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -122,7 +123,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
             {numbers.map((n) => (
               <a
                 key={`${n.kind}-${n.label}`}
-                href={n.sourceUrl}
+                href={safeHref(n.sourceUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group border border-chop-border bg-white/[0.02] p-3 transition-colors hover:border-spiteCrimson"
@@ -178,7 +179,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
                 {entry.sources.slice(0, 3).map((url) => (
                   <a
                     key={url}
-                    href={url}
+                    href={safeHref(url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
@@ -201,7 +202,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
             {person.items.map((item, i) => (
               <li key={i}>
                 <a
-                  href={item.sourceUrl}
+                  href={safeHref(item.sourceUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[13px] text-sheetWhite hover:text-spiteCrimson"

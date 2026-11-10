@@ -1,4 +1,5 @@
 import { listArchive } from "@/lib/archive-store";
+import { safeHref } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ export default async function ArchivePage() {
               </div>
               <h2 className="mt-1.5 text-[15px] font-bold leading-snug text-sheetWhite">
                 <a
-                  href={row.sourceUrl}
+                  href={safeHref(row.sourceUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-spiteCrimson"

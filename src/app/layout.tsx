@@ -8,6 +8,7 @@ import { DrawerProvider } from "../components/drawers";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://alaguillotine.com"),
+  alternates: { canonical: "/" },
   title: "A LA GUILLOTINE — the blade is a metaphor. The list is not.",
   description:
     "Ada reads the news, names the public figures the reporting holds responsible, and keeps the record. At ninety the blade falls. Every score links to its source.",

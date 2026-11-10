@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react";
 import type { Figure } from "../lib/hateometer";
 import { slugify } from "../lib/slug";
 import { PersonNumbers } from "./PersonNumbers";
+import { safeHref } from "@/lib/url";
 
 gsap.registerPlugin(useGSAP);
 
@@ -215,7 +216,7 @@ export function QueueCard({
               {figure.items.slice(0, 2).map((item, i) => (
                 <li key={i} className="font-mono text-[10px] leading-relaxed text-chop-muted">
                   <a
-                    href={item.sourceUrl}
+                    href={safeHref(item.sourceUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sheetWhite underline decoration-chop-border underline-offset-2 hover:decoration-spiteCrimson"

@@ -89,9 +89,16 @@ function clipWords(text: string, limit: number): string {
  * is replaced by the first sentence of the body.
  */
 export function dispatchDescription(post: Dispatch, limit = 155): string {
-  const dek = (post.dek ?? "").trim();
-  if (dek && /[.!?…”"]$/.test(dek)) return clipWords(dek, limit);
-  const first = (post.body ?? "").replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/)[0] ?? "";
+  const dek = (post.dek ?? "").replace(/\s+/g, " ").trim();
+  // A real dek is the best description, even when an older one was cut off
+  // at a word boundary. The old truncated deks are still unique; the body's
+  // first sentence is not (several old posts open with "Right.").
+  if (dek.length >= 60) return clipWords(dek, limit);
+  const sentences = (post.body ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.!?])\s+/);
+  const first = sentences.find((s) => s.trim().length >= 60) ?? sentences[0] ?? "";
   return clipWords(first || dek, limit);
 }
 
