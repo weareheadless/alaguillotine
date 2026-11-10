@@ -313,40 +313,49 @@ export async function ensureSentence(
   const now = Date.now();
   const slot = sentenceSlot(now, readingAt);
   if (slot == null) return null;
+
+  // A session, not a single seat. If four names are over ninety at the same
+  // reading, all four are sentenced for that appointment and the blades fall
+  // two minutes apart, instead of one name every twelve hours. The ritual is
+  // still an appointment; the queue just cannot stretch it into a week.
+  //
   // The card rounds the counter for display, so the sentence must use the
   // rounded number too: a name the page shows at 90 is on the block, not
   // silently stuck at 89.6 with no countdown.
-  const top = await db
+  const eligible = await db
     .prepare(
       `SELECT slug, name, score FROM queue_people
        WHERE ROUND(score) >= ?
-       ORDER BY score DESC, mentions DESC LIMIT 1`,
+       ORDER BY score DESC, mentions DESC`,
     )
     .bind(threshold)
-    .first<Record<string, unknown>>();
-  if (!top) return null;
+    .all();
 
-  const sentence: Sentence = {
-    person: String(top.name),
-    slug: String(top.slug),
-    score: Number(top.score),
-    sentencedAt: new Date(now).toISOString(),
-    executeAt: new Date(slot).toISOString(),
-  };
-  await db
-    .prepare(
-      "INSERT INTO chop_sentences (id, slug, person, score, sentenced_at, execute_at) VALUES (?, ?, ?, ?, ?, ?)",
-    )
-    .bind(
-      `${sentence.slug}:${sentence.sentencedAt}`,
-      sentence.slug,
-      sentence.person,
-      sentence.score,
-      sentence.sentencedAt,
-      sentence.executeAt,
-    )
-    .run();
-  return sentence;
+  const sentencedAt = new Date(now).toISOString();
+  const slotIso = new Date(slot).toISOString();
+  let offset = 0;
+  for (const row of eligible.results ?? []) {
+    const slug = String(row.slug);
+    const executeAt = new Date(slot + offset * 2 * 60_000).toISOString();
+    // The id is deterministic per session, so two simultaneous page loads
+    // cannot put the same name on the block twice.
+    await db
+      .prepare(
+        "INSERT OR IGNORE INTO chop_sentences (id, slug, person, score, sentenced_at, execute_at) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .bind(
+        `${slug}:${slotIso}`,
+        slug,
+        String(row.name),
+        Number(row.score),
+        sentencedAt,
+        executeAt,
+      )
+      .run();
+    offset += 1;
+  }
+
+  return readSentence(db);
 }
 
 /** The blade falls on every sentence whose countdown has run out. */
