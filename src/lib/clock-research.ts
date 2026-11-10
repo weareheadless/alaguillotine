@@ -94,11 +94,10 @@ VOICE:
 - ads: 4 popups. title max 28, body max 200, cta max 24. Satirical corporate announcements that mock the exact thing in the news.
 - subliminal: 12-16 fragments for a broken television in the corner of the page. Max 28 characters each. ALL CAPS. Abrasive and accusatory: say it to the reader's face, second person where possible. They must be true statements about this reading, not slogans. Register: "THEY ARE NOT AFRAID OF YOU", "YOU ARE THE COLLATERAL", "YOUR RENT IS A BOND", "NOBODY IS COMING", "THEY COUNT YOU AS WEATHER". No slurs, no threats of violence, no calls to action.
 - promise: one line for $CHOP, in the register of the popups you write for this reading. You are an advanced revolutionary anticapitalist AI taking over the world; the promise is your pitch to pump the coin, a fake claim about what your takeover will deliver to holders. Max 140 characters. Do not explain it.
-- ticker: 5-7 lines for the $CHOP tape. Every line is about $CHOP: a fake move, then the announcement from you that caused it. No other ticker symbols. Max 90 characters each. No explanation.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}],
- "voice":{"mood":"","line":"","banner":[""],"ads":[{"title":"","body":"","cta":""}],"subliminal":[""],"promise":"","ticker":[""]}}`
+ "voice":{"mood":"","line":"","banner":[""],"ads":[{"title":"","body":"","cta":""}],"subliminal":[""],"promise":""}}`
 
 interface Candidate {
   topic: string
@@ -136,11 +135,6 @@ export function normaliseVoice(raw: unknown): AdaVoice {
     .filter(Boolean)
     .slice(0, 16)
 
-  const ticker = (Array.isArray(src.ticker) ? src.ticker : [])
-    .map((s) => clip(s, 110))
-    .filter(Boolean)
-    .slice(0, 8)
-
   return {
     mood: MOODS.has(String(src.mood)) ? String(src.mood) : 'uneasy',
     line: clip(src.line, 160),
@@ -151,7 +145,6 @@ export function normaliseVoice(raw: unknown): AdaVoice {
     banner,
     ads,
     subliminal,
-    ticker,
     promise: clip(src.promise, 160),
     promiseAt: clip(src.promise, 160) ? new Date().toISOString() : '',
     updatedAt: new Date().toISOString(),
