@@ -33,7 +33,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "voice unavailable" }, { status: 502 });
   }
 
-  const voice = keepDailyPromise(result.voice, row.voice);
+  const force = new URL(request.url).searchParams.get("force") === "1";
+  const voice = force ? result.voice : keepDailyPromise(result.voice, row.voice);
   const items = row.items.map((item, i) => {
     const quip = result.quips[i];
     return quip?.trim() ? { ...item, quip: quip.trim().slice(0, 160) } : item;
