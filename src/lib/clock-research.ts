@@ -93,8 +93,8 @@ VOICE:
 - banner: 6-8 strings for the top bar, max 70 chars each, jokes about the specific numbers.
 - ads: 4 popups. title max 28, body max 200, cta max 24. Satirical corporate announcements that mock the exact thing in the news.
 - subliminal: 12-16 fragments for a broken television in the corner of the page. Max 28 characters each. ALL CAPS. Abrasive and accusatory: say it to the reader's face, second person where possible. They must be true statements about this reading, not slogans. Register: "THEY ARE NOT AFRAID OF YOU", "YOU ARE THE COLLATERAL", "YOUR RENT IS A BOND", "NOBODY IS COMING", "THEY COUNT YOU AS WEATHER". No slurs, no threats of violence, no calls to action.
-- promise: one line for the fund, in the register of the popups you write for this reading. A pitch to the holder, not a slogan and not a comment on the news. Max 140 characters. Do not explain it.
-- ticker: 5-7 invented symbols and headlines about the futuristic technology the fund is supposedly building, each with a fake move. It is a standing tape, not a comment on the reading; do not mention the items. Invent the companies, products and symbols. Max 90 characters each. No explanation.
+- promise: one line for $CHOP, in the register of the popups you write for this reading. You are an advanced revolutionary anticapitalist AI taking over the world; the promise is your pitch to pump the coin, a fake claim about what your takeover will deliver to holders. Max 140 characters. Do not explain it.
+- ticker: 5-7 lines for the $CHOP tape. Every line is about $CHOP: a fake move, then the announcement from you that caused it. No other ticker symbols. Max 90 characters each. No explanation.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}],
