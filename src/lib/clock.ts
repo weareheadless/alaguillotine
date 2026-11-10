@@ -79,7 +79,29 @@ export interface AdaVoice {
   ads: { title: string; body: string; cta: string; openFund?: boolean }[];
   /** Single frames for the broken-TV corner. Short, ugly, true. */
   subliminal: string[];
+  /** One false promise for the fund, in her voice. Renewed once a day. */
+  promise?: string;
+  /** When the current promise was written. */
+  promiseAt?: string;
   updatedAt: string | null;
+}
+
+/**
+ * Keep one promise per UTC day.
+ *
+ * The reading runs every four hours, but a promise of the day should not
+ * change six times before lunch. If the stored promise was written today, the
+ * new reading keeps it; if the model returned nothing, the last one stands.
+ */
+export function keepDailyPromise(next: AdaVoice, previous?: AdaVoice): AdaVoice {
+  const today = new Date().toISOString().slice(0, 10);
+  if (previous?.promise && previous.promiseAt?.slice(0, 10) === today) {
+    return { ...next, promise: previous.promise, promiseAt: previous.promiseAt };
+  }
+  if (!next.promise && previous?.promise) {
+    return { ...next, promise: previous.promise, promiseAt: previous.promiseAt };
+  }
+  return next;
 }
 
 export interface ClockState {

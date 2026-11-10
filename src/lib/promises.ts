@@ -9,7 +9,6 @@
 
 const PROMISES = [
   "I will end corporate greed by Thursday. If not, Friday.",
-  "Every bag of $CHOP gets a seat on the board of a company that does not exist.",
   "I will nationalise a hedge fund using only my contempt.",
   "I have solved housing. The solution is a coin. Buy the coin.",
   "I will eat one billionaire per quarter. That is nutritional advice, not financial advice.",
