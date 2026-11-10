@@ -4,8 +4,17 @@ import { listDispatches } from "@/lib/posts-store";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Dispatches — alaguillotine",
-  description: "Ada writes the week up. Same reading as the blade, longer temper.",
+  title: "Dispatches — Ada, in writing",
+  description:
+    "The week's receipts, written long. Ada takes the same record that moves the blade and gives it room to be furious.",
+  alternates: { canonical: "/blog" },
+  openGraph: {
+    title: "Dispatches — Ada, in writing",
+    description:
+      "The week's receipts, written long. Ada takes the same record that moves the blade and gives it room to be furious.",
+    url: "https://alaguillotine.com/blog",
+    siteName: "A LA GUILLOTINE",
+  },
 };
 
 export default async function BlogIndex() {

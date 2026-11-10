@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLedgerFor } from "@/lib/archive-store";
@@ -5,6 +6,36 @@ import { getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
 
 export const dynamic = "force-dynamic";
+
+function metaDescription(text: string, limit = 155): string {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (clean.length <= limit) return clean;
+  const cut = clean.slice(0, limit - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const person = await getPersonBySlug(slug);
+  if (!person) return { title: "Name not found — A LA GUILLOTINE" };
+  const description = metaDescription(person.reason);
+  return {
+    title: `${person.name} — the record`,
+    description,
+    alternates: { canonical: `/person/${slug}` },
+    openGraph: {
+      title: `${person.name} — the record`,
+      description,
+      url: `https://alaguillotine.com/person/${slug}`,
+      siteName: "A LA GUILLOTINE",
+    },
+  };
+}
 
 /**
  * One name, all of it.

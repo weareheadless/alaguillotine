@@ -6,9 +6,16 @@ import { FORUM_ENABLED } from "@/lib/constants";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "The Forum — A LA GUILLOTINE",
+  title: "The Forum — one person, one voice",
   description:
-    "No email, accounts approved by hand, one person one voice. The fund is argued here.",
+    "No email, accounts approved by hand. The fund is argued here, not advertised.",
+  alternates: { canonical: "/forum" },
+  openGraph: {
+    title: "The Forum — one person, one voice",
+    description: "No email, accounts approved by hand. The fund is argued here.",
+    url: "https://alaguillotine.com/forum",
+    siteName: "A LA GUILLOTINE",
+  },
 };
 
 const COMMUNITIES = new Set(["the_fund", "mutual_aid", "evidence", "meta"]);

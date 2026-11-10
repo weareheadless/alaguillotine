@@ -3,8 +3,16 @@ import { listArchive } from "@/lib/archive-store";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "The archive — alaguillotine",
-  description: "Everything Ada has read. Nothing is deleted.",
+  title: "The Archive — nothing is deleted",
+  description:
+    "Every reading, every charge, every source. The record is the point; the archive is the proof.",
+  alternates: { canonical: "/archive" },
+  openGraph: {
+    title: "The Archive — nothing is deleted",
+    description: "Every reading, every charge, every source. The archive is the proof.",
+    url: "https://alaguillotine.com/archive",
+    siteName: "A LA GUILLOTINE",
+  },
 };
 
 export default async function ArchivePage() {

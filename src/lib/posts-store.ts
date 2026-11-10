@@ -72,6 +72,29 @@ export async function saveDispatch(dispatch: Dispatch): Promise<void> {
     .run();
 }
 
+/** Trim at a word boundary, so a meta description never ends mid-word. */
+function clipWords(text: string, limit: number): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= limit) return clean;
+  const cut = clean.slice(0, limit - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 60 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+/**
+ * The description a dispatch should carry into a meta tag.
+ *
+ * New dispatches write a complete sentence in `dek`. Older ones stored a
+ * truncated first paragraph there, so a dek that does not end like a sentence
+ * is replaced by the first sentence of the body.
+ */
+export function dispatchDescription(post: Dispatch, limit = 155): string {
+  const dek = (post.dek ?? "").trim();
+  if (dek && /[.!?…”"]$/.test(dek)) return clipWords(dek, limit);
+  const first = (post.body ?? "").replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/)[0] ?? "";
+  return clipWords(first || dek, limit);
+}
+
 export async function lastDispatchAt(): Promise<string | null> {
   const db = await getDb();
   if (!db) return null;

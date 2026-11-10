@@ -3,9 +3,17 @@ import { NavBar } from "@/components/NavBar";
 import { NameSubmissionForm } from "@/components/NameSubmissionForm";
 
 export const metadata = {
-  title: "Propose a name — A LA GUILLOTINE",
+  title: "Propose a name — free, no account",
   description:
-    "Free, no account, no email. Put a name on the record; Ada reads every proposal and answers with a real reason.",
+    "Put a name on the record. Ada reads every proposal and answers with a real reason. No email, no account, no fee.",
+  alternates: { canonical: "/submit" },
+  openGraph: {
+    title: "Propose a name — free, no account",
+    description:
+      "Put a name on the record. Ada reads every proposal and answers with a real reason.",
+    url: "https://alaguillotine.com/submit",
+    siteName: "A LA GUILLOTINE",
+  },
 };
 
 export default function SubmitPage() {

@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, readClock } from "@/lib/clock-store";
-import { lastDispatchAt, saveDispatch } from "@/lib/posts-store";
+import { dispatchDescription, lastDispatchAt, saveDispatch } from "@/lib/posts-store";
 
 export const dynamic = "force-dynamic";
 
@@ -88,12 +88,26 @@ export async function POST(request: Request) {
     .replace(/^-|-$/g, "")
     .slice(0, 48)}`;
 
+  const publishedAt = now.toISOString();
+  const title = parsed.title.slice(0, 90);
+  const body = parsed.body.slice(0, 8000);
+  const dek = dispatchDescription(
+    {
+      slug,
+      title,
+      dek: (parsed.dek ?? "").slice(0, 300),
+      body,
+      publishedAt,
+    },
+    155,
+  );
+
   await saveDispatch({
     slug,
-    title: parsed.title.slice(0, 90),
-    dek: (parsed.dek ?? "").slice(0, 200),
-    body: parsed.body.slice(0, 8000),
-    publishedAt: now.toISOString(),
+    title,
+    dek,
+    body,
+    publishedAt,
   });
 
   return Response.json({ ok: true, slug, source: "vps-ada" });

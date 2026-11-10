@@ -8,16 +8,16 @@ import { DrawerProvider } from "../components/drawers";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://alaguillotine.com"),
-  title: "A LA GUILLOTINE — Ada reads the news",
+  title: "A LA GUILLOTINE — the blade is a metaphor. The list is not.",
   description:
-    "Ada reads the news, names the public figures the reporting holds responsible, and keeps the record. Every score links to its source. The blade is a metaphor; the ledger is not.",
+    "Ada reads the news, names the public figures the reporting holds responsible, and keeps the record. At ninety the blade falls. Every score links to its source.",
   openGraph: {
     type: "website",
     url: "https://alaguillotine.com",
     siteName: "A LA GUILLOTINE",
-    title: "A LA GUILLOTINE — Ada reads the news",
+    title: "A LA GUILLOTINE — the blade is a metaphor. The list is not.",
     description:
-      "A doomsday clock for the billionaire class. Ada reads the news, scores the harm, and lowers the blade. Every number is linked to its source.",
+      "A doomsday clock for the owning class. Ada reads the news, scores the harm, and lowers the blade. Every number is linked to its source.",
     images: [
       {
         url: "/og-image.png",
@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "A LA GUILLOTINE — Ada reads the news",
+    title: "A LA GUILLOTINE — the blade is a metaphor. The list is not.",
     description:
-      "The guillotine is a game. Post your beef, move the blade, and join a spite-powered economic experiment.",
+      "A ranked queue of the owners, scored from the documented record. At ninety the blade falls. Every claim links to its source.",
     images: ["/og-image.png"],
   },
   icons: {
