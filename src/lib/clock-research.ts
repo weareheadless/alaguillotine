@@ -93,7 +93,7 @@ VOICE:
 - banner: 6-8 strings for the top bar, max 70 chars each, jokes about the specific numbers.
 - ads: 4 popups. title max 28, body max 200, cta max 24. Satirical corporate announcements that mock the exact thing in the news.
 - subliminal: 12-16 fragments for a broken television in the corner of the page. Max 28 characters each. ALL CAPS. Abrasive and accusatory: say it to the reader's face, second person where possible. They must be true statements about this reading, not slogans. Register: "THEY ARE NOT AFRAID OF YOU", "YOU ARE THE COLLATERAL", "YOUR RENT IS A BOND", "NOBODY IS COMING", "THEY COUNT YOU AS WEATHER". No slurs, no threats of violence, no calls to action.
-- promise: one false promise about $CHOP or the fund — what it funds, pays or guarantees — max 140 characters, in your voice. It must name or clearly refer to the coin or the fund. Say it straight. No explanation.
+- promise: one false promise that $CHOP, the fund, or A LA GUILLOTINE will deliver something, pumped like a founder — a delivery claim, a deadline, and a number — max 140 characters, in your voice. Say it straight. No explanation.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}],

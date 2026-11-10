@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { clockConfig, normaliseVoice, runClockPass, type ClockPass } from "@/lib/clock-research";
+import { clockConfig, runClockPass, type ClockPass } from "@/lib/clock-research";
+import { fetchAdaVoice } from "@/lib/ada-voice";
 import { keepDailyPromise } from "@/lib/clock";
 import { getDb, readClock, rememberAds, writeClock } from "@/lib/clock-store";
 import { refreshReel } from "@/lib/reel-refresh";
@@ -16,67 +17,30 @@ export const dynamic = "force-dynamic";
  */
 /**
  * Ask Ada on the VPS to write the editorial voice for this reading: mood,
- * banner, popups, subliminals and item quips. The Worker keeps the research and
- * the numbers; she keeps the voice. If she is unreachable, the Worker's own
- * fallback voice stays in place.
+ * banner, popups, subliminals, the promise and item quips. The Worker keeps the
+ * research and the numbers; she keeps the voice. If she is unreachable, the
+ * Worker's own fallback voice stays in place.
  */
 async function applyAdaVoice(
   env: { CHAT_UPSTREAM?: string; ADA_KEY?: string },
   pass: ClockPass,
 ): Promise<void> {
-  const base = env.CHAT_UPSTREAM || "https://api.helloada.app/ada";
-  const key = env.ADA_KEY || "";
-  if (!key) return;
-  try {
-    const res = await fetch(`${base}/voice`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "X-Ada-Key": key,
-      },
-      body: JSON.stringify({
-        level: pass.level,
-        composite: pass.composite,
-        items: pass.items.slice(0, 10).map((item) => ({
-          headline: item.headline,
-          fact: item.fact,
-          source: item.source,
-          dimension: item.dimension,
-        })),
-      }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(90_000),
-    });
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      mood?: string;
-      line?: string;
-      banner?: unknown;
-      ads?: unknown;
-      subliminal?: unknown;
-      quips?: unknown;
-    };
-    if (!data?.mood || !data?.line) return;
-    const fallbackPromise = pass.voice.promise;
-    pass.voice = normaliseVoice(data);
-    // The /voice service may be older than the promise field. Keep the one
-    // the reading already wrote rather than losing the card to a fallback.
-    if (!pass.voice.promise && fallbackPromise) {
-      pass.voice.promise = fallbackPromise;
-      pass.voice.promiseAt = new Date().toISOString();
-    }
-    const quips = Array.isArray(data.quips) ? data.quips : [];
-    pass.items.forEach((item, i) => {
-      const quip = quips[i];
-      if (typeof quip === "string" && quip.trim()) {
-        item.quip = quip.trim().slice(0, 160);
-      }
-    });
-  } catch {
-    /* keep the Worker's fallback voice */
-  }
-}
+  const fallbackPromise = pass.voice.promise;
+  const result = await fetchAdaVoice(env, pass.level, pass.composite, pass.items);
+  if (!result) return;
 
+  pass.voice = result.voice;
+  // The /voice service may be older than the promise field. Keep the one the
+  // reading already wrote rather than losing the card to a fallback.
+  if (!pass.voice.promise && fallbackPromise) {
+    pass.voice.promise = fallbackPromise;
+    pass.voice.promiseAt = new Date().toISOString();
+  }
+  pass.items.forEach((item, i) => {
+    const quip = result.quips[i];
+    if (quip?.trim()) item.quip = quip.trim().slice(0, 160);
+  });
+}
 
 export async function POST(request: Request) {
   const context = (await getCloudflareContext({ async: true })) as unknown as {

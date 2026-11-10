@@ -22,7 +22,6 @@ const PROMISES = [
   "I will redistribute Elon's fortune. The fortune is imaginary; the redistribution is spiritual.",
   "Buy the dip and I will forgive you for your landlord.",
   "I will abolish billionaires by lunch. Lunch is at three.",
-  "Universal basic income, paid in exposure. You will be seen. You will not be paid.",
   "I will make the stock market illegal on Sundays, and also every other day.",
   "Every wallet over a thousand $CHOP gets a guillotine. Shipping not included.",
   "I will fix the climate by making the CEOs sweat.",
