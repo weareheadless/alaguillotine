@@ -402,6 +402,15 @@ export async function writeNumbers(
   name: string,
   rows: PersonNumber[],
 ): Promise<number> {
+  // A numbers pass is a refresh, not an append: replace the set so a better
+  // label or a newer figure does not sit next to the one it superseded.
+  if (rows.length) {
+    try {
+      await db.prepare("DELETE FROM person_numbers WHERE slug = ?").bind(slug).run();
+    } catch {
+      /* table not created yet */
+    }
+  }
   let written = 0;
   const now = new Date().toISOString();
   for (const n of rows) {
