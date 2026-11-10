@@ -41,10 +41,30 @@ export default {
       return;
     }
     // One scrape, four hours apart. The page fakes the liveness, not the bill.
-    const paths =
-      event.cron === "30 */12 * * *"
-        ? ["/api/clock/refresh", "/api/hateometer/refresh", "/api/posts/refresh", "/api/manifesto/refresh", "/api/backfill?batch=3", "/api/backfill/person?batch=2", "/api/backfill/person?recent=1&batch=3", "/api/coverage?batch=2", "/api/numbers?batch=2"]
-        : ["/api/clock/refresh"];
+    //
+    // The DeepSeek key is search-only, and the backfill is the largest
+    // consumer: eight cases at six queries each, twice a day. It now runs
+    // once a day at 00:30 UTC with five cases. The clock, coverage and
+    // numbers passes still run every twelve hours.
+    const twelveHour = event.cron === "30 */12 * * *";
+    const midnight = new Date(event.scheduledTime).getUTCHours() === 0;
+    const paths = twelveHour
+      ? [
+          "/api/clock/refresh",
+          "/api/hateometer/refresh",
+          "/api/posts/refresh",
+          "/api/manifesto/refresh",
+          "/api/coverage?batch=2",
+          "/api/numbers?batch=2",
+          ...(midnight
+            ? [
+                "/api/backfill?batch=2",
+                "/api/backfill/person?batch=1",
+                "/api/backfill/person?recent=1&batch=2",
+              ]
+            : []),
+        ]
+      : ["/api/clock/refresh"];
 
     for (const path of paths) {
       context.waitUntil(
