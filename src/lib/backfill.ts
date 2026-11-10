@@ -219,11 +219,17 @@ RULES — hard:
 Return JSON only:
 {"entries":[{"person":"","role":"","act":"","place":"","year":2024,"category":"war","confidence":0,"sources":["https://...","https://..."]}]}`;
 
-async function post<T>(url: string, body: unknown, key: string): Promise<T> {
+async function post<T>(
+  url: string,
+  body: unknown,
+  key: string,
+  timeout = 60_000,
+): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeout),
   });
   if (!res.ok) throw new Error(`${url} -> ${res.status}`);
   return (await res.json()) as T;
@@ -249,6 +255,7 @@ export async function researchCase(config: ClockConfig, c: Case): Promise<Ledger
       `${config.searchBase}/v1/tools/search`,
       { query: `${q} lang:en after:${c.after} before:${c.before}`, count: 6, need_content: false },
       config.searchKey,
+      25_000,
     );
     for (const r of data.results ?? []) {
       if (!r.url || !r.summary) continue;
@@ -279,6 +286,7 @@ export async function researchCase(config: ClockConfig, c: Case): Promise<Ledger
       ],
     },
     config.chatKey,
+    90_000,
   );
 
   const parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {

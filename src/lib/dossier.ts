@@ -180,11 +180,17 @@ RULES — hard:
 Return JSON only:
 {"entries":[{"person":"","role":"","act":"","place":"","year":2024,"category":"finance","confidence":0,"sources":["https://..."],"evidence_quote":""}]}`;
 
-async function post<T>(url: string, body: unknown, key: string): Promise<T> {
+async function post<T>(
+  url: string,
+  body: unknown,
+  key: string,
+  timeout = 60_000,
+): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
     headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeout),
   });
   if (!res.ok) throw new Error(`${url} -> ${res.status} ${(await res.text()).slice(0, 200)}`);
   return (await res.json()) as T;
@@ -216,6 +222,7 @@ export async function researchDossierCase(
         need_content: false,
       },
       config.searchKey,
+      25_000,
     );
     for (const r of data.results ?? []) {
       const url = String(r.url ?? "");
@@ -264,6 +271,7 @@ export async function researchDossierCase(
         ],
       },
       config.chatKey,
+      90_000,
     );
 
     const parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {
