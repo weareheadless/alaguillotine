@@ -33,6 +33,95 @@ const FALLBACK: Clip[] = [
   { src: "/static/musk_is_presented_with_the_reality.mp4", caption: "archive", kind: "file" },
 ];
 
+/**
+ * The stream is a shuffle bag, not a die roll.
+ *
+ * Random picks from a pool this small keep landing on the same cluster — four
+ * protests, three floods, then a Reuters clip you have already seen. Each cycle
+ * now plays every clip once, and the picker refuses the same source or the same
+ * kind of story twice in a row while it still has an alternative.
+ */
+const TOPIC_RULES: Array<[string, RegExp]> = [
+  ["labour", /workers?|union|walkout|wage|job|strike over|pay dispute|layoff/i],
+  ["war", /airstrike|missile|troops|army|military|gaza|ukraine|israel|war|bomb|ceasefire|refugee camp/i],
+  ["climate", /flood|storm|heatwave|heat wave|drought|wildfire|climate|torrential|rain|disaster area/i],
+  ["migration", /migrant|border|asylum|refugee|deport|detention|ceuta/i],
+  ["unrest", /protest|clash|crackdown|demonstrat|police|riot|arrest/i],
+  ["courts", /court|trial|verdict|judge|indict|sentence|lawsuit|ruling|convict/i],
+  ["corruption", /corruption|bribe|graft|fraud|scandal|sleaze|embezzl/i],
+  ["economy", /inflation|price|interest rate|econom|recession|bank|market|cost of living|rent|housing|budget/i],
+  ["health", /nhs|hospital|health|vaccine|drug|medic|waiting list/i],
+  ["tech", /artificial intelligence|\bai\b|tech|google|meta|apple|amazon|musk|tesla|spacex|chip|data privacy|monopol/i],
+  ["politics", /election|vote|parliament|president|prime minister|minister|party|congress|senate/i],
+  ["arms", /arms|weapons|defence|defense|military aid|missile sale/i],
+  ["food", /food|famine|hunger|agricultur|crop|harvest/i],
+];
+
+function topicOf(caption: string): string {
+  for (const [topic, pattern] of TOPIC_RULES) {
+    if (pattern.test(caption)) return topic;
+  }
+  return "other";
+}
+
+function shuffle<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+interface Recent {
+  sources: string[];
+  topics: string[];
+}
+
+function chooseNext(
+  clips: Clip[],
+  current: number,
+  bag: number[],
+  recent: Recent,
+): number {
+  if (clips.length < 2) return current;
+
+  if (!bag.length) {
+    bag.push(...shuffle(clips.map((_, i) => i).filter((i) => i !== current)));
+  }
+
+  const now = clips[current];
+  const currentSource = now?.source ?? "";
+  const currentTopic = topicOf(now?.caption ?? "");
+  const lastSource = recent.sources[recent.sources.length - 1] ?? "";
+  const lastTopic = recent.topics[recent.topics.length - 1] ?? "";
+
+  const pools = [
+    bag.filter(
+      (i) =>
+        i !== current &&
+        (clips[i].source ?? "") !== currentSource &&
+        (clips[i].source ?? "") !== lastSource &&
+        topicOf(clips[i].caption) !== currentTopic &&
+        topicOf(clips[i].caption) !== lastTopic,
+    ),
+    bag.filter((i) => i !== current && (clips[i].source ?? "") !== currentSource),
+    bag.filter((i) => i !== current && topicOf(clips[i].caption) !== currentTopic),
+    bag.filter((i) => i !== current),
+  ];
+
+  const pool = pools.find((p) => p.length > 0) ?? [current];
+  const next = pool[Math.floor(Math.random() * pool.length)];
+  const at = bag.indexOf(next);
+  if (at >= 0) bag.splice(at, 1);
+
+  recent.sources.push(clips[next]?.source ?? "");
+  recent.topics.push(topicOf(clips[next]?.caption ?? ""));
+  if (recent.sources.length > 4) recent.sources.shift();
+  if (recent.topics.length > 3) recent.topics.shift();
+  return next;
+}
+
 export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutIn }) {
   const [clips, setClips] = useState<Clip[]>(FALLBACK);
   const [index, setIndex] = useState(0);
@@ -43,6 +132,9 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
   const [cutBroken, setCutBroken] = useState(false);
   const [reduced, setReduced] = useState(false);
   const video = useRef<HTMLVideoElement | null>(null);
+  const indexRef = useRef(0);
+  const bag = useRef<number[]>([]);
+  const recent = useRef<Recent>({ sources: [], topics: [] });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -106,9 +198,16 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
               kind: c.kind === "youtube" ? "youtube" : "file",
             }),
           );
+          const start = Math.floor(Math.random() * list.length);
           setClips(list);
           // Start somewhere else every visit: a stream, not a front page.
-          setIndex(Math.floor(Math.random() * list.length));
+          indexRef.current = start;
+          setIndex(start);
+          bag.current = [];
+          recent.current = {
+            sources: [list[start]?.source ?? ""],
+            topics: [topicOf(list[start]?.caption ?? "")],
+          };
           return;
         }
         return fetch("/static/reel/reel.json", { cache: "no-store" })
@@ -116,6 +215,13 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
           .then((fallback) => {
             if (!cancelled && Array.isArray(fallback?.clips) && fallback.clips.length) {
               setClips(fallback.clips);
+              indexRef.current = 0;
+              setIndex(0);
+              bag.current = [];
+              recent.current = {
+                sources: [fallback.clips[0]?.source ?? ""],
+                topics: [topicOf(fallback.clips[0]?.caption ?? "")],
+              };
             }
           });
       })
@@ -127,7 +233,7 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
   }, []);
 
   // Channel surfing: hold a shot, or cut away almost immediately. The next clip
-  // is drawn at random, never the one already playing.
+  // comes from the shuffle bag, so the whole pool is played before a repeat.
   useEffect(() => {
     if (clips.length < 2) return;
     let alive = true;
@@ -143,12 +249,9 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
         glitch = setTimeout(() => {
           if (alive) setTorn(false);
         }, 90 + Math.random() * 130);
-        setIndex((i) => {
-          if (clips.length < 2) return i;
-          let n = Math.floor(Math.random() * clips.length);
-          if (n === i) n = (n + 1) % clips.length;
-          return n;
-        });
+        const next = chooseNext(clips, indexRef.current, bag.current, recent.current);
+        indexRef.current = next;
+        setIndex(next);
         step();
       }, hold);
     };
@@ -159,7 +262,7 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
       clearTimeout(timer);
       clearTimeout(glitch);
     };
-  }, [clips.length]);
+  }, [clips]);
 
   const clip = clips[index] ?? FALLBACK[0];
 
