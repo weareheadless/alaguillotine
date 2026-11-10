@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLedgerFor } from "@/lib/archive-store";
-import { getPersonBySlug } from "@/lib/hate-store";
+import { getDb, getPersonBySlug } from "@/lib/hate-store";
+import { readNumbersFor } from "@/lib/numbers";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,8 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   if (!person) notFound();
 
   const ledger = await getLedgerFor(person.name);
+  const db = await getDb();
+  const numbers = db ? await readNumbersFor(db, slug) : [];
   const chopped = (person.timesChopped ?? 0) > 0;
   const crosses = Math.min(person.timesChopped ?? 0, 40);
 
@@ -78,6 +81,45 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
       )}
 
       <p className="mt-6 font-mono text-[12px] leading-relaxed text-chop-muted">{person.reason}</p>
+
+      {numbers.length > 0 && (
+        <section className="mt-8">
+          <h2 className="border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
+            the numbers
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {numbers.map((n) => (
+              <a
+                key={`${n.kind}-${n.label}`}
+                href={n.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group border border-chop-border bg-white/[0.02] p-3 transition-colors hover:border-spiteCrimson"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-2xl font-black tabular-nums text-spiteCrimson">
+                    {n.display}
+                  </span>
+                  {n.year ? (
+                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted">
+                      {n.year}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-sheetWhite/80">
+                  {n.label}
+                </div>
+                <p className="mt-2 font-mono text-[10px] leading-snug text-chop-muted">
+                  {n.evidenceQuote}
+                </p>
+                <span className="mt-2 inline-block font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted underline decoration-chop-border underline-offset-2 group-hover:text-sheetWhite">
+                  source ↗
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <h2 className="mt-10 border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
         the record

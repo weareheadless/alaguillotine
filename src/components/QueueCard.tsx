@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import type { Figure } from "../lib/hateometer";
 import { slugify } from "../lib/slug";
+import { PersonNumbers } from "./PersonNumbers";
 
 gsap.registerPlugin(useGSAP);
 
@@ -206,6 +207,8 @@ export function QueueCard({
           <p className="mt-3 font-mono text-[11px] leading-relaxed text-chop-muted">
             {figure.reason}
           </p>
+
+          <PersonNumbers numbers={figure.numbers} />
 
           {figure.items.length > 0 ? (
             <ul className="mt-3 space-y-2 border-t border-chop-border/60 pt-3">

@@ -3,6 +3,7 @@ import { slugify } from "@/lib/slug";
 import { emptyHate, itemMentions, type HateState } from "@/lib/hateometer";
 import { DROP_THRESHOLD } from "@/lib/hateometer";
 import { coverageBySlug } from "@/lib/coverage";
+import { readAllNumbers } from "@/lib/numbers";
 import {
   ensureSentence,
   executeDueSentences,
@@ -58,6 +59,7 @@ export async function GET() {
     const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
     const summaries = await readLedgerSummaries();
     const coverage = await coverageBySlug(db);
+    const allNumbers = await readAllNumbers(db);
 
     const withCounts = (queue.length ? queue : (row?.figures ?? [])).map((f) => {
       const slug = slugify(f.name);
@@ -85,6 +87,7 @@ export async function GET() {
         topCharges: summary?.top ?? [],
         timesChopped: chop?.count ?? f.timesChopped ?? 0,
         lastChoppedAt: chop?.lastAt ?? f.lastChoppedAt ?? null,
+        numbers: allNumbers[slug] ?? [],
       };
     });
 

@@ -11,6 +11,7 @@
  */
 
 import { nextLevel, shrink } from "./clock";
+import type { PersonNumber } from "./numbers";
 
 export type HateKey = "war" | "civilian" | "repression" | "arms" | "incitement";
 
@@ -89,6 +90,8 @@ export interface Figure {
   };
   /** When the blade last fell on this name. */
   lastChoppedAt?: string | null;
+  /** The sourced numbers behind the name, when the numbers pass has run. */
+  numbers?: PersonNumber[];
 }
 
 export interface HateState {

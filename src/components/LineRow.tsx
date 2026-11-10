@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Figure } from "../lib/hateometer";
 import { slugify } from "../lib/slug";
+import { PersonNumbers } from "./PersonNumbers";
 
 /**
  * One name in the line.
@@ -60,6 +61,8 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
           <p className="mt-2 font-mono text-[11px] leading-relaxed text-chop-muted">
             {figure.reason}
           </p>
+
+          <PersonNumbers numbers={figure.numbers} />
 
           {latest && (
             <div className="mt-2 border-l-2 border-spiteCrimson/60 pl-3">
