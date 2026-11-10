@@ -137,7 +137,7 @@ export default function HomePage() {
 
             <p className="mt-4 max-w-2xl font-mono text-[10px] leading-relaxed text-chop-muted">
               <span className="font-bold uppercase tracking-[0.15em] text-spiteCrimson">
-                ada promises
+                ada&apos;s financial advice
               </span>{" "}
               <AdaPromise variant="inline" />{" "}
               <button
@@ -145,7 +145,7 @@ export default function HomePage() {
                 onClick={() => show("fund")}
                 className="whitespace-nowrap text-hypeNeon underline decoration-hypeNeon/40 hover:decoration-hypeNeon"
               >
-                the catch →
+                invest with us →
               </button>
             </p>
           </div>

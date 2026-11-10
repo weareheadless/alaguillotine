@@ -35,7 +35,7 @@ export function AdaPromise({ variant = "block" }: { variant?: "block" | "inline"
     <section className="mt-4 border-2 border-spiteCrimson bg-spiteCrimson/[0.07] p-4">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-spiteCrimson">
-          ada promises
+          ada&apos;s financial advice
         </h3>
         <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
           #{promise?.number ?? "—"} · false
