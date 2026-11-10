@@ -93,7 +93,7 @@ function MiniBlade({ dropped }: { dropped: boolean }) {
   return (
     <div
       ref={box}
-      className="relative z-10 shrink-0 self-stretch w-[118px] min-h-[300px] md:w-[168px] md:min-h-[360px]"
+      className="relative z-10 shrink-0 self-start w-full h-[180px] min-h-0 overflow-hidden sm:self-stretch sm:w-[118px] sm:min-h-[300px] sm:overflow-visible md:w-[168px] md:min-h-[360px]"
     >
       <div
         className="absolute left-1/2 top-0 origin-top"
@@ -153,7 +153,7 @@ export function QueueCard({
         aria-hidden
       />
 
-      <div className="flex min-h-[200px] gap-4 p-4 md:gap-6 md:p-5">
+      <div className="flex min-h-[200px] flex-col gap-4 p-4 sm:flex-row md:gap-6 md:p-5">
         <MiniBlade dropped={dropped} />
 
         <div className="min-w-0 flex-1">

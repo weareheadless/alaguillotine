@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { DROP_THRESHOLD, type Figure } from "@/lib/hateometer";
 
 /**
- * One bar for the whole pulse: Ada's mood, her line, and the next event.
+ * The blade clock, and the mood that goes with it.
  *
- * When a name is sentenced it counts to the blade (crimson). Otherwise it
- * counts to the next reading (green), when the queue is rewritten. The old
- * two full-width bands said the same thing with more air.
+ * The countdown belongs to the blade, not to a separate status strip: it sits
+ * in the queue header, next to the name it is counting down to. The mood, the
+ * wire and the fund line live in one panel underneath.
  */
 export interface StatusExecution {
   person: string;
@@ -26,6 +26,8 @@ export interface StatusToolbarProps {
   nextRunAt: string | null;
   figures: Figure[];
   onZero: (slug: string) => void;
+  /** The queue header owns the clock; the pulse panel only needs the mood. */
+  showClock?: boolean;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -61,14 +63,17 @@ export function queueNote(figures: Figure[]): string {
   return `top ${top.name} ${top.score} · ${gap} from ${DROP_THRESHOLD}`;
 }
 
-export function StatusToolbar({
-  mood,
-  line,
+export function BladeClock({
   execution,
   nextRunAt,
-  figures,
   onZero,
-}: StatusToolbarProps) {
+  compact = false,
+}: {
+  execution?: StatusExecution | null;
+  nextRunAt: string | null;
+  onZero: (slug: string) => void;
+  compact?: boolean;
+}) {
   const target = execution
     ? Date.parse(execution.executeAt)
     : (() => {
@@ -124,6 +129,37 @@ export function StatusToolbar({
       ? "reading now"
       : "until the next reading";
 
+  return (
+    <div className="shrink-0 text-right">
+      <div
+        className={`font-mono font-black tabular-nums leading-none ${accent} ${
+          compact ? "text-xl md:text-2xl" : "text-2xl md:text-3xl"
+        }`}
+      >
+        {left == null ? "--:--" : running ? "—" : clock(left)}
+      </div>
+      <div className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.18em] text-chop-muted">
+        {label}
+      </div>
+      <div className="mt-1 h-1 w-full bg-chop-border">
+        <div
+          className={`h-full transition-[width] duration-500 ease-linear ${bar}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function StatusToolbar({
+  mood,
+  line,
+  execution,
+  nextRunAt,
+  figures,
+  onZero,
+  showClock = true,
+}: StatusToolbarProps) {
   const moodEl = () => (
     <div className="flex shrink-0 items-baseline gap-2">
       <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
@@ -135,56 +171,37 @@ export function StatusToolbar({
     </div>
   );
 
-  const clockEl = () => (
-    <div className="shrink-0 text-right">
-      <div
-        className={`font-mono text-2xl font-black tabular-nums leading-none md:text-3xl ${accent}`}
-      >
-        {left == null ? "--:--" : running ? "—" : clock(left)}
-      </div>
-      <div className="mt-0.5 font-mono text-[8px] uppercase tracking-[0.18em] text-chop-muted">
-        {label}
-      </div>
-    </div>
-  );
-
   return (
-    <section className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
-      <div
-        className="border-2 border-chop-border bg-sheetWhite/[0.02]"
-        title={
-          execution
-            ? `${execution.person}, sentenced at ${new Date(execution.sentencedAt).toISOString().slice(11, 16)} UTC`
-            : `Readings at 00:30 and 12:30 UTC; blades at 09:00, 13:00, 17:00 and 21:00 UTC. ${queueNote(figures) || "Estimates can slip."}`
-        }
-      >
-        <div className="px-4 py-2.5 md:px-6">
-          {/* Phone: mood and clock on one line, her sentence underneath. */}
-          <div className="flex items-center justify-between gap-3 md:hidden">
-            {moodEl()}
-            {clockEl()}
-          </div>
-          <p className="mt-1.5 font-mono text-[11px] leading-snug text-sheetWhite/85 md:hidden">
-            {line || "No reading yet. The machine is still looking."}
-          </p>
-
-          {/* Desktop: everything on one line. */}
-          <div className="hidden items-center gap-4 md:flex">
-            {moodEl()}
-            <span className="h-5 w-px bg-chop-border" aria-hidden />
-            <p className="min-w-0 flex-1 truncate font-mono text-[11px] leading-snug text-sheetWhite/85">
-              {line || "No reading yet. The machine is still looking."}
-            </p>
-            {clockEl()}
-          </div>
-        </div>
-
-        <div className="h-1 w-full bg-chop-border">
-          <div
-            className={`h-full transition-[width] duration-500 ease-linear ${bar}`}
-            style={{ width: `${pct}%` }}
+    <section className="min-w-0">
+      <div className="flex items-center justify-between gap-3 md:hidden">
+        {moodEl()}
+        {showClock && (
+          <BladeClock
+            execution={execution}
+            nextRunAt={nextRunAt}
+            onZero={onZero}
+            compact
           />
-        </div>
+        )}
+      </div>
+      <p className="mt-1.5 font-mono text-[11px] leading-snug text-sheetWhite/85 md:hidden">
+        {line || "No reading yet. The machine is still looking."}
+      </p>
+
+      <div className="hidden items-center gap-4 md:flex">
+        {moodEl()}
+        <span className="h-5 w-px bg-chop-border" aria-hidden />
+        <p className="min-w-0 flex-1 truncate font-mono text-[11px] leading-snug text-sheetWhite/85">
+          {line || "No reading yet. The machine is still looking."}
+        </p>
+        {showClock && (
+          <BladeClock
+            execution={execution}
+            nextRunAt={nextRunAt}
+            onZero={onZero}
+            compact
+          />
+        )}
       </div>
     </section>
   );

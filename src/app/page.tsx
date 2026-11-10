@@ -8,7 +8,7 @@ import { RulesBanner } from "../components/RulesBanner";
 import { useClock } from "../components/DoomsdayClock";
 import { useCallback, useEffect, useState } from "react";
 import { useHateometer } from "../components/Hateometer";
-import { StatusToolbar, queueNote } from "../components/StatusToolbar";
+import { BladeClock, queueNote } from "../components/StatusToolbar";
 import { slugify } from "../lib/slug";
 import { QueueCard } from "../components/QueueCard";
 import type { Figure } from "../lib/hateometer";
@@ -18,7 +18,7 @@ import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
-import { AdaPromise } from "../components/AdaPromise";
+import { PulsePanel } from "../components/PulsePanel";
 
 /**
  * The archive cut-in. The gesture and the words are both on the record, so the
@@ -100,108 +100,106 @@ export default function HomePage() {
       <NavBar />
 
       <main className="relative z-10 pb-20 md:pb-8">
-        <div className="mx-auto mt-8 grid max-w-6xl items-start gap-6 px-4 md:px-6 lg:grid-cols-[1fr_420px]">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
-              {content.hero.badge}
-            </p>
-            <h1 className="mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
-              {heroHeadline}
-            </h1>
-            <p className="mt-5 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted md:text-[13px]">
-              {heroSubheadline}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => show("propose")}
-                className="border-2 border-black bg-spiteCrimson px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-              >
-                Propose a name
-              </button>
-              <button
-                type="button"
-                onClick={() => show("fund")}
-                className="border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon"
-              >
-                The fund
-              </button>
-              <button
-                type="button"
-                onClick={() => show("fund")}
-                className="border-2 border-hypeNeon px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
-              >
-                Buy $CHOP
-              </button>
+        <div className="mx-auto mt-8 grid max-w-6xl items-start gap-6 px-4 md:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Left: the editorial and the blade. */}
+          <div className="min-w-0">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
+                {content.hero.badge}
+              </p>
+              <h1 className="mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
+                {heroHeadline}
+              </h1>
+              <p className="mt-5 hidden max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted md:block md:text-[13px]">
+                {heroSubheadline}
+              </p>
+              <p className="mt-4 max-w-2xl font-mono text-[11px] leading-snug text-chop-muted md:hidden">
+                Ada reads the record. At ninety, the blade falls. Every claim links
+                to its source.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => show("propose")}
+                  className="border-2 border-black bg-spiteCrimson px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                >
+                  Propose a name
+                </button>
+                <button
+                  type="button"
+                  onClick={() => show("fund")}
+                  className="border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon"
+                >
+                  The fund
+                </button>
+                <button
+                  type="button"
+                  onClick={() => show("fund")}
+                  className="border-2 border-hypeNeon px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
+                >
+                  Buy $CHOP
+                </button>
+              </div>
             </div>
 
-            <p className="mt-4 max-w-2xl font-mono text-[10px] leading-relaxed text-chop-muted">
-              <span className="font-bold uppercase tracking-[0.15em] text-spiteCrimson">
-                ada&apos;s financial advice
-              </span>{" "}
-              <AdaPromise variant="inline" />{" "}
-              <button
-                type="button"
-                onClick={() => show("fund")}
-                className="whitespace-nowrap text-hypeNeon underline decoration-hypeNeon/40 hover:decoration-hypeNeon"
-              >
-                invest with us →
-              </button>
-            </p>
-          </div>
-
-          <NewsReel
-            cutIn={CUT_IN}
-            messages={
-              state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
-            }
-          />
-        </div>
-
-        {/* ── The wire: between readings, the page still moves ─────────── */}
-        <div className="mt-6">
-          <LiveWire items={state.items} />
-        </div>
-
-        {/* ── The pulse: mood, line and the next event in one bar ──────── */}
-        <StatusToolbar
-          mood={state.voice.mood}
-          line={state.voice.line}
-          execution={hate.execution}
-          nextRunAt={hate.nextRunAt}
-          figures={standing}
-          onZero={onZero}
-        />
-
-        {/* ── The blades ──────────────────────────────────────────────── */}
-        <div className="mx-auto mt-8 max-w-6xl px-4 md:px-6">
-          <section id="queue">
-            <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
-                on the block
-              </h2>
-              <span className="text-right font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                {standing.length} waiting
-                {queueNote(standing) ? (
-                  <span className="hidden sm:inline"> · {queueNote(standing)}</span>
-                ) : null}
-              </span>
-            </div>
-
-            {atTheBlock && (
-              <div className="mt-4">
-                <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-                  <span>{hate.execution ? "next to be executed" : "top of the line"}</span>
-                  <span>promoted from the line</span>
+            <section id="queue" className="mt-8">
+              <div className="flex items-end justify-between gap-4 border-b border-chop-border pb-2">
+                <div>
+                  <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
+                    on the block
+                  </h2>
+                  <span className="mt-1 block font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                    {standing.length} waiting
+                    {queueNote(standing) ? ` · ${queueNote(standing)}` : ""}
+                  </span>
                 </div>
-                <QueueCard
-                  figure={atTheBlock}
-                  dropped={chopped === slugify(atTheBlock.name)}
+                <BladeClock
+                  execution={hate.execution}
+                  nextRunAt={hate.nextRunAt}
+                  onZero={onZero}
+                  compact
                 />
               </div>
-            )}
 
-            <div className="mt-10 flex items-baseline justify-between border-b border-chop-border pb-2">
+              {atTheBlock && (
+                <div className="mt-4">
+                  <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
+                    <span>{hate.execution ? "next to be executed" : "top of the line"}</span>
+                    <span>promoted from the line</span>
+                  </div>
+                  <QueueCard
+                    figure={atTheBlock}
+                    dropped={chopped === slugify(atTheBlock.name)}
+                  />
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Right: the monitor and the pulse, in a narrow column. */}
+          <aside className="min-w-0 space-y-4">
+            <NewsReel
+              cutIn={CUT_IN}
+              messages={
+                state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
+              }
+            />
+            <PulsePanel
+              mood={state.voice.mood}
+              line={state.voice.line}
+              execution={hate.execution}
+              nextRunAt={hate.nextRunAt}
+              figures={standing}
+              onZero={onZero}
+              items={state.items}
+            />
+          </aside>
+        </div>
+
+        {/* ── The crosses ─────────────────────────────────────────────── */}
+        <div className="mx-auto mt-10 max-w-6xl px-4 md:px-6">
+          <section>
+            <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
               <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
                 the crosses
               </h2>
@@ -211,7 +209,6 @@ export default function HomePage() {
             </div>
 
             <CrossesWall chops={hate.chops} figures={hate.figures} />
-
           </section>
         </div>
 

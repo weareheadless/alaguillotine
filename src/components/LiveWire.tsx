@@ -11,7 +11,7 @@ import type { RageItem } from "../lib/clock";
  * moving between readings without pretending the numbers changed.
  */
 
-export function LiveWire({ items }: { items: RageItem[] }) {
+export function LiveWire({ items, bare = false }: { items: RageItem[]; bare?: boolean }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -31,8 +31,8 @@ export function LiveWire({ items }: { items: RageItem[] }) {
   const item = items[index % items.length];
 
   return (
-    <div className="border-y border-chop-border bg-chop-card/30">
-      <div className="mx-auto flex max-w-6xl items-start gap-3 px-4 py-2.5 md:px-6">
+    <div className={bare ? "" : "border-y border-chop-border bg-chop-card/30"}>
+      <div className={bare ? "flex items-start gap-3" : "mx-auto flex max-w-6xl items-start gap-3 px-4 py-2.5 md:px-6"}>
         <span className="flex shrink-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.25em] text-spiteCrimson">
           <span className="h-1.5 w-1.5 animate-pulse bg-spiteCrimson" />
           wire

@@ -400,7 +400,7 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
   }, []);
 
   return (
-    <figure className="relative">
+    <figure className="relative min-w-0 w-full">
       <div className={`reel-set ${torn ? "reel-torn" : ""}`}>
         <div className="reel-glass">
           {clip.kind === "youtube" ? (
