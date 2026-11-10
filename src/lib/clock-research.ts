@@ -93,7 +93,7 @@ VOICE:
 - banner: 6-8 strings for the top bar, max 70 chars each, jokes about the specific numbers.
 - ads: 4 popups. title max 28, body max 200, cta max 24. Satirical corporate announcements that mock the exact thing in the news.
 - subliminal: 12-16 fragments for a broken television in the corner of the page. Max 28 characters each. ALL CAPS. Abrasive and accusatory: say it to the reader's face, second person where possible. They must be true statements about this reading, not slogans. Register: "THEY ARE NOT AFRAID OF YOU", "YOU ARE THE COLLATERAL", "YOUR RENT IS A BOND", "NOBODY IS COMING", "THEY COUNT YOU AS WEATHER". No slurs, no threats of violence, no calls to action.
-- promise: one line for $CHOP, in the register of the popups you write for this reading. You are an advanced revolutionary anticapitalist AI taking over the world; the promise is your pitch to pump the coin, a fake claim about what your takeover will deliver to holders. Max 140 characters. Do not explain it.
+- promise: one line for $CHOP from the world after your takeover, the kind of thing you would put on the coin's site to pump it. A lie told with total sincerity. Max 140 characters. Do not explain it.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"extraction|cost|impunity|suppression|precarity","rage":0,"source_index":0}],
