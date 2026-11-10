@@ -45,7 +45,7 @@ export interface CoverageRow {
   lastError: string;
 }
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 5;
 /** A Worker that dies mid-pass leaves a running row; reclaim it after this. */
 const STALE_MS = 45 * 60 * 1000;
 

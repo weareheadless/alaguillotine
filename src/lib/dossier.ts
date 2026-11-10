@@ -251,9 +251,10 @@ export async function researchDossierCase(
   if (!results.length) return [];
 
   // Chunk the evidence so the model extracts acts instead of summarising a
-  // wall of text. 32 results per call is roughly 30k characters.
+  // wall of text. 20 results per call keeps the prompt short enough that a
+  // heavy name does not spend the whole extraction budget in one response.
   const chunks: Result[][] = [];
-  for (let i = 0; i < results.length; i += 32) chunks.push(results.slice(i, i + 32));
+  for (let i = 0; i < results.length; i += 20) chunks.push(results.slice(i, i + 20));
 
   const entries: LedgerEntry[] = [];
   const seenActs = new Set<string>();
@@ -281,7 +282,7 @@ export async function researchDossierCase(
         ],
       },
       config.chatKey,
-      90_000,
+      120_000,
     );
 
     const parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {
