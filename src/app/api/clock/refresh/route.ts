@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig, runClockPass, type ClockPass } from "@/lib/clock-research";
 import { fetchAdaVoice } from "@/lib/ada-voice";
-import { keepDailyPromise } from "@/lib/clock";
+import { keepPromise } from "@/lib/clock";
 import { getDb, readClock, rememberAds, writeClock } from "@/lib/clock-store";
 import { refreshReel } from "@/lib/reel-refresh";
 import { archiveItems } from "@/lib/archive-store";
@@ -78,8 +78,8 @@ export async function POST(request: Request) {
     // She rewrites the front page when she has something to say. On the
     // readings where she does not, the last headline she wrote stands.
     if (pass.voice) {
-      // A promise of the day does not change six times before lunch.
-      pass.voice = keepDailyPromise(pass.voice, previous?.voice);
+      // The promise moves with the reading; only a failed write carries over.
+      pass.voice = keepPromise(pass.voice, previous?.voice);
       if (!pass.voice.headline && previous?.voice.headline) {
         pass.voice.headline = previous.voice.headline;
       }

@@ -100,7 +100,7 @@ export const COIN_ADS: AdContent[] = [
     openFund: true,
   },
   {
-    title: "PROMISE OF THE DAY",
+    title: "PROMISE OF THE READING",
     body: "I will end corporate greed by Friday. I said that last Friday. The Friday before that, I meant it. Not financial advice.",
     cta: "BUY THE PROMISE",
     openFund: true,

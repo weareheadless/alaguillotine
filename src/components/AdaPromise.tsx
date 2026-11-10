@@ -1,27 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { promiseOfTheDay, type DailyPromise } from "@/lib/promises";
+import { promiseOfTheReading, readingNumber, type PromiseEntry } from "@/lib/promises";
 import { useAdaVoice } from "../lib/use-ada-voice";
 
 /**
- * Ada's false promise, renewed with the first reading of the day.
+ * Ada's false promise, renewed with each reading.
  *
  * Rendered after mount so the server and the browser never disagree about which
- * day it is. `inline` is the single line in the hero; `block` is the card in
- * the fund panel.
+ * reading it is. `inline` is the single line in the hero; `block` is the card
+ * in the fund panel.
  */
 export function AdaPromise({ variant = "block" }: { variant?: "block" | "inline" }) {
-  const [promise, setPromise] = useState<DailyPromise | null>(null);
+  const [fallback, setFallback] = useState<PromiseEntry | null>(null);
   const ada = useAdaVoice();
 
   useEffect(() => {
-    setPromise(promiseOfTheDay());
+    setFallback(promiseOfTheReading());
   }, []);
 
-  // Ada writes the promise. The daily list is only the fallback for a reading
-  // that has not landed yet, or a voice old enough to predate the field.
-  const text = ada.promise || promise?.text || "";
+  // Ada writes the promise. The list is only the fallback for a reading that
+  // has not landed yet, or a voice old enough to predate the field.
+  const text = ada.promise || fallback?.text || "";
+  const number = ada.promise
+    ? readingNumber(new Date(ada.promiseAt || Date.now()))
+    : fallback?.number;
 
   if (variant === "inline") {
     return (
@@ -38,15 +41,15 @@ export function AdaPromise({ variant = "block" }: { variant?: "block" | "inline"
           ada&apos;s financial advice
         </h3>
         <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
-          #{promise?.number ?? "—"} · false
+          #{number ?? "—"} · false
         </span>
       </div>
       <p className="mt-2 text-[15px] font-black uppercase leading-tight tracking-tight text-sheetWhite">
         {text ? `“${text}”` : "Loading the promise…"}
       </p>
       <p className="mt-3 border-t border-spiteCrimson/30 pt-2 font-mono text-[9px] leading-relaxed text-chop-muted">
-        A false promise, renewed once a day. She will deny saying it. Not a
-        guarantee, not financial advice.
+        A false promise, renewed with each reading. She will deny saying it. Not
+        a guarantee, not financial advice.
       </p>
     </section>
   );

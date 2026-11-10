@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { fetchAdaVoice } from "@/lib/ada-voice";
 import { isAdminAuthed } from "@/lib/admin-auth";
-import { keepDailyPromise } from "@/lib/clock";
+import { keepPromise } from "@/lib/clock";
 import { getDb, readClock, writeClock } from "@/lib/clock-store";
 
 export const dynamic = "force-dynamic";
@@ -33,8 +33,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "voice unavailable" }, { status: 502 });
   }
 
-  const force = new URL(request.url).searchParams.get("force") === "1";
-  const voice = force ? result.voice : keepDailyPromise(result.voice, row.voice);
+  // The promise moves with the reading, so a fresh voice always wins; only a
+  // failed write carries the previous one forward.
+  const voice = keepPromise(result.voice, row.voice);
   const items = row.items.map((item, i) => {
     const quip = result.quips[i];
     return quip?.trim() ? { ...item, quip: quip.trim().slice(0, 160) } : item;

@@ -46,7 +46,7 @@ export async function fetchAdaVoice(
         })),
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(90_000),
+      signal: AbortSignal.timeout(180_000),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as {

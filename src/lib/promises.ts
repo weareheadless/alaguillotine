@@ -1,10 +1,10 @@
 /**
- * Ada's promise of the day.
+ * Ada's promise of the reading.
  *
- * One false promise, renewed at midnight UTC. She means none of them, which is
- * the point: the whole coin is a bit about promises that never ship. Picking by
- * date (not at random) means everyone sees the same promise on the same day,
- * and reloading does not shop for a better one.
+ * One false promise, renewed with each four-hour reading. She means none of
+ * them, which is the point: the whole coin is a bit about promises that never
+ * ship. Picking by reading slot (not at random) means everyone sees the same
+ * promise in the same window, and reloading does not shop for a better one.
  */
 
 const PROMISES = [
@@ -32,27 +32,29 @@ const PROMISES = [
   "This is the last coin you will ever need to buy. I say this every day.",
 ] as const;
 
+/** The reading cadence: four hours, on the hour, matching the clock cron. */
+const SLOT_MS = 4 * 60 * 60 * 1000;
 const EPOCH = Date.UTC(2026, 0, 1);
+const EPOCH_SLOT = Math.floor(EPOCH / SLOT_MS);
 
-export interface DailyPromise {
+export interface PromiseEntry {
   text: string;
-  /** Stable number for the day, so it reads like an entry in a ledger. */
+  /** Stable number for the reading, so it reads like an entry in a ledger. */
   number: number;
 }
 
-export function promiseOfTheDay(now: Date = new Date()): DailyPromise {
-  const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const day = Math.floor((start - EPOCH) / 86_400_000);
-  const index = ((day % PROMISES.length) + PROMISES.length) % PROMISES.length;
-  return { text: PROMISES[index], number: day + 1 };
+/** The ledger number of the reading that contains `now`. */
+export function readingNumber(now: Date = new Date()): number {
+  return Math.floor(now.getTime() / SLOT_MS) - EPOCH_SLOT + 1;
 }
 
-/** Milliseconds until the next promise, at midnight UTC. */
+export function promiseOfTheReading(now: Date = new Date()): PromiseEntry {
+  const number = readingNumber(now);
+  const index = ((number - 1) % PROMISES.length + PROMISES.length) % PROMISES.length;
+  return { text: PROMISES[index], number };
+}
+
+/** Milliseconds until the next promise, at the next four-hour boundary. */
 export function msUntilNextPromise(now: Date = new Date()): number {
-  const next = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-  );
-  return next - now.getTime();
+  return (Math.floor(now.getTime() / SLOT_MS) + 1) * SLOT_MS - now.getTime();
 }
