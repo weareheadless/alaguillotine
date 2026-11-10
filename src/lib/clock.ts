@@ -81,6 +81,8 @@ export interface AdaVoice {
   subliminal: string[];
   /** One false promise for the fund, in her voice. Renewed once a day. */
   promise?: string;
+  /** Fake financial-newswire headlines for the fund's futuristic technology. */
+  ticker?: string[];
   /** When the current promise was written. */
   promiseAt?: string;
   updatedAt: string | null;

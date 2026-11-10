@@ -63,6 +63,7 @@ export async function readClock(db: D1): Promise<ClockRow | null> {
       banner: [],
       ads: [],
       subliminal: [],
+      ticker: [],
       updatedAt: null,
     }),
     sourceHash: typeof row.source_hash === 'string' ? row.source_hash : null,

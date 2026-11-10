@@ -19,6 +19,7 @@ import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
 import { ControlDeck } from "../components/ControlDeck";
+import { MarketTicker } from "../components/MarketTicker";
 
 /**
  * The archive cut-in. The gesture and the words are both on the record, so the
@@ -182,6 +183,11 @@ export default function HomePage() {
               </div>
             )}
           </section>
+        </div>
+
+        {/* ── The tape: fake technology, real ticker ──────────────────── */}
+        <div className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
+          <MarketTicker />
         </div>
 
         {/* ── The control deck: three different shapes, one row ───────── */}
