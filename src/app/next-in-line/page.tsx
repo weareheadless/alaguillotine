@@ -44,9 +44,9 @@ export default function NextInLinePage() {
             Next <span className="text-spiteCrimson">in line.</span>
           </h1>
           <p className="mt-3 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
-            Ada ranks the people the record keeps returning to. The top of the
-            line is promoted, sentenced and chopped in public, then it climbs
-            back. Click a name for its charges and sources.
+            Ada ranks the people the record keeps returning to. The blade takes
+            the next appointment, not necessarily the top of the list — ranking
+            is not a schedule. Click a name for its charges and sources.
           </p>
         </section>
 
