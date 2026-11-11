@@ -84,10 +84,10 @@ export async function POST(request: Request) {
         composite: String(reading.composite ?? ""),
       }),
       cache: "no-store",
-      // She drafts through the long-form scratchpad process now: one pass
-      // of 550-650 words plus the naming. That is a slow generation, and a
-      // cron tick can afford to wait for it — a cut call loses the dispatch.
-      signal: AbortSignal.timeout(240_000),
+      // She writes on a reasoning model now: it thinks before it writes,
+      // and a 600-word dispatch can take three or four minutes. A cron tick
+      // can afford to wait; a cut call loses the piece.
+      signal: AbortSignal.timeout(480_000),
     });
     if (!res.ok) {
       return Response.json(
