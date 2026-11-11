@@ -202,9 +202,32 @@ export function numbersQueries(person: { name: string }): string[] {
   ];
 }
 
+/**
+ * The guardrail the model keeps failing.
+ *
+ * A number can be true, sourced and completely useless: "Covid aid pledged"
+ * is a fact about a government, not a charge against the man. The prompt asks
+ * for indicted numbers; this keeps the neutral ones out even when the model
+ * forgets. Keep it blunt.
+ */
+const NEUTRAL_LABEL = /(aid pledged|aid delivered|charity|relief fund|salary|pension|election (result|win|victory|margin|poll|seat)|vote margin|seats? won|approval rating|inflation|\bgdp\b|growth rate|exchange rate|valuation|market value|share price|acquisition|annual sales|revenue forecast|proposed|capital required|assets managed|five-year spending|planned spending|furlough|transfer spend|collateral)/i;
+
+const OTHER_HARM = /(kill|death|casualt|displac|refugee|strike|sentenced|murder|war crime|untaxed|underpaid|secret|trade halted|vessels? targeted|reserves|gold|smuggl|sanction|evasion|corrupt|bribe|fraud)/i;
+
+function isHarmful(kind: NumberKind, label: string): boolean {
+  const l = label.toLowerCase();
+  if (NEUTRAL_LABEL.test(l)) return false;
+  if (kind === "other" && !OTHER_HARM.test(l)) return false;
+  return true;
+}
+
 const SYSTEM = `You are Ada, extracting hard numbers from the public record for A LA GUILLOTINE.
 
-You will receive search results about ONE person. Return the numbers that make the record concrete: wealth, public money, tax, deaths, displacement, fines, political donations, layoffs, emissions, workers killed, profit, and any other number a reader would find enraging.
+You will receive search results about ONE person. Return only the numbers that indict: what the harm cost, what was taken, what was avoided, what was handed over. A number that is neutral context is not a number for this site.
+
+KEEP: deaths, injuries, displacement, strikes, sieges; public money captured (contracts, bailouts, subsidies to the subject or their organisation, slush funds, lobbying, foreign payments); tax avoided, evaded, deferred, cut or a conspicuously low effective rate; fines, penalties, settlements, fraud, corruption; political donations, PAC money, gifts; layoffs, emissions, profits from harm; personal wealth, assets, property, hidden money.
+
+DROP: aid pledged or delivered, charity, disaster relief; salaries, pensions, official budgets, routine government spending; election results, vote margins, seat counts, approval ratings; inflation, GDP, growth, exchange rates; company valuations, share prices, acquisitions, sales, revenue forecasts; proposed taxes or policies that did not happen; capital requirements, fees for services, assets under management; routine contracts that are not capture. If a number is neutral, omit it.
 
 RULES — hard:
 1. Every number must appear in the supplied text. Do not calculate, estimate, extrapolate or infer. If the text does not state it, omit it.
@@ -216,9 +239,10 @@ RULES — hard:
 7. confidence 0-100: 90+ official record or court filing; 70s multiple independent reports; 60s a single credible report. Below 60 do not include.
 8. Never include a number about a victim, witness, critic or private person.
 9. The number must be about the subject or an organisation the subject controls. Say so in the label when it is the organisation.
+10. harm must be true. If the number is neutral context, do not return it at all — the site only keeps what indicts.
 
 Return JSON only:
-{"numbers":[{"kind":"wealth|public_money|tax|deaths|displacement|fines|donations|layoffs|emissions|workers|profit|other","label":"","display":"","value":0,"unit":"","year":0,"source_url":"https://...","evidence_quote":"","confidence":0}]}`;
+{"numbers":[{"kind":"wealth|public_money|tax|deaths|displacement|fines|donations|layoffs|emissions|workers|profit|other","label":"","display":"","value":0,"unit":"","year":0,"source_url":"https://...","evidence_quote":"","confidence":0,"harm":true}]}`;
 
 interface SearchResult {
   title: string;
@@ -355,9 +379,10 @@ export async function researchNumbersCase(
       if (!quote || !quoteIsInSummary(quote, src.summary)) continue;
       const confidence = Number(row.confidence);
       if (!Number.isFinite(confidence) || confidence < 60) continue;
-      // "Other" is for the number that does not fit a category, not for
-      // neutral election or macro facts. Keep it to the enraging ones.
-      if (kind === "other" && confidence < 70) continue;
+      // The model has to say the number indicts, and the label has to survive
+      // the neutral-context guard. A true number about nothing is still noise.
+      if (row.harm !== true && row.harm !== "true") continue;
+      if (!isHarmful(kind, label)) continue;
 
       const key = `${kind}|${label.toLowerCase()}`;
       if (seenKinds.has(key)) continue;
