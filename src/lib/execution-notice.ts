@@ -23,6 +23,13 @@ export interface ExecutionNotice {
   timeLabel: string;
   /** True when a sentence is already waiting, false when it is the next slot. */
   confirmed: boolean;
+  /** The next name in the line, at the following public hour. */
+  following?: {
+    name: string;
+    slug: string;
+    dateLabel: string;
+    timeLabel: string;
+  } | null;
 }
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -66,6 +73,23 @@ export function executionNotice(
   const at = execution?.executeAt ?? new Date(nextExecutionSlot(now)).toISOString();
   const { dateLabel, timeLabel } = label(at);
 
+  // The line is the schedule: the next name after this one takes the next
+  // public hour. It is a programme, not a single booking.
+  const index = state.figures.findIndex(
+    (f) => slugify(f.name) === slugify(figure.name),
+  );
+  const nextFigure = index >= 0 ? state.figures[index + 1] ?? null : null;
+  const nextAt = new Date(nextExecutionSlot(Date.parse(at))).toISOString();
+  const nextLabel = label(nextAt);
+  const following = nextFigure
+    ? {
+        name: nextFigure.name,
+        slug: slugify(nextFigure.name),
+        dateLabel: nextLabel.dateLabel,
+        timeLabel: nextLabel.timeLabel,
+      }
+    : null;
+
   return {
     name: figure.name,
     slug: execution?.slug ?? slugify(figure.name),
@@ -74,6 +98,7 @@ export function executionNotice(
     dateLabel,
     timeLabel,
     confirmed: Boolean(execution),
+    following,
   };
 }
 

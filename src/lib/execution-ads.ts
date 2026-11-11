@@ -32,7 +32,11 @@ export function executionAds(
   return [
     {
       title: "PUBLIC EXECUTION NOTICE",
-      body: `${who} is scheduled for ${date} at ${time} UTC. Charge: ${why}. Attendance is mandatory for everyone who can still be drafted.`,
+      body: `${who} is scheduled for ${date} at ${time} UTC. Charge: ${why}.${
+        notice?.following
+          ? ` Then ${notice.following.name} at ${notice.following.timeLabel}.`
+          : " Attendance is mandatory for everyone who can still be drafted."
+      }`,
       cta: "SEE THE LINE",
       href: "/next-in-line",
       notice: true,

@@ -97,6 +97,12 @@ export function ExecutionTicker() {
           — {notice.reason}
         </span>
 
+        {notice.following && (
+          <span className="hidden text-sheetWhite/70 xl:inline">
+            then {notice.following.name} {notice.following.timeLabel}
+          </span>
+        )}
+
         <span className="ml-auto flex items-center gap-2 tabular-nums">
           <span className="text-sheetWhite/70">blade in</span>
           <span className="font-black">{countdown(seconds)}</span>

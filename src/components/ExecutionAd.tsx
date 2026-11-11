@@ -66,6 +66,17 @@ export function ExecutionAd({ notice }: { notice: ExecutionNotice | null }) {
         </p>
       </div>
 
+      {notice.following && (
+        <div className="mt-3 border-t-2 border-black/20 pt-2">
+          <p className="font-mono text-[8px] font-bold uppercase tracking-[0.28em] text-black/60">
+            then
+          </p>
+          <p className="mt-0.5 font-mono text-[10px] font-black uppercase leading-tight tracking-[0.1em]">
+            {notice.following.timeLabel.replace(" UTC", "")} · {notice.following.name}
+          </p>
+        </div>
+      )}
+
       <div className="mt-5">
         <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-black/60">
           arrive early. leave vertically.
