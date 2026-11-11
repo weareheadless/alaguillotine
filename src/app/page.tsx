@@ -19,6 +19,8 @@ import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
 import { ControlDeck } from "../components/ControlDeck";
+import { ExecutionAd } from "../components/ExecutionAd";
+import { executionNotice } from "../lib/execution-notice";
 
 /**
  * The archive cut-in. The gesture and the words are both on the record, so the
@@ -57,7 +59,13 @@ export default function HomePage() {
   // Nobody leaves the line: a chop is a tally, and the counter resets so the
   // name climbs back. The wall below is where the executions accumulate.
   const standing = hate.figures;
-  const atTheBlock = frozen ?? standing[0];
+  // The card belongs to the name under the blade, not to whoever is first in
+  // the line. When a sentence is waiting, that name is the appointment.
+  const sentenced = hate.execution
+    ? standing.find((f) => slugify(f.name) === hate.execution!.slug) ?? null
+    : null;
+  const atTheBlock = frozen ?? sentenced ?? standing[0];
+  const notice = executionNotice(hate);
 
   // The countdown reaches zero: drop the blade, let the head roll, then ask
   // the server for the line after the chop.
@@ -170,15 +178,18 @@ export default function HomePage() {
             </div>
 
             {atTheBlock && (
-              <div className="mt-4">
-                <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-                  <span>{hate.execution ? "next to be executed" : "top of the line"}</span>
-                  <span>promoted from the line</span>
+              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+                <div>
+                  <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
+                    <span>{hate.execution ? "next to be executed" : "top of the line"}</span>
+                    <span>promoted from the line</span>
+                  </div>
+                  <QueueCard
+                    figure={atTheBlock}
+                    dropped={chopped === slugify(atTheBlock.name)}
+                  />
                 </div>
-                <QueueCard
-                  figure={atTheBlock}
-                  dropped={chopped === slugify(atTheBlock.name)}
-                />
+                <ExecutionAd notice={notice} />
               </div>
             )}
           </section>
@@ -229,7 +240,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <AdPopups />
+      <AdPopups notice={notice} />
 
       <footer className="relative z-10 border-t-4 border-black py-6 text-center">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-chop-muted">

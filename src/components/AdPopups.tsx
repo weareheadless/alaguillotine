@@ -6,6 +6,7 @@ import { useAdaVoice } from "../lib/use-ada-voice";
 import { useDrawer } from "./drawers";
 import { COIN_ADS } from "@/lib/coin-ads";
 import { executionAds, type RuntimeAd } from "@/lib/execution-ads";
+import type { ExecutionNotice } from "@/lib/execution-notice";
 
 /**
  * The ad stack.
@@ -34,15 +35,15 @@ type Placed = {
 const pick = <T,>(list: readonly T[]): T =>
   list[Math.floor(Math.random() * list.length)];
 
-export function AdPopups() {
+export function AdPopups({ notice }: { notice?: ExecutionNotice | null }) {
   const { content } = useSiteContent();
   const ada = useAdaVoice();
   const editorial = ada.ads.length ? ada.ads : content.ads;
   // Coin ads always rotate in, whatever Ada wrote this reading. The blade
   // schedule gets its own notices, so the interruption is also the reminder.
   const ads = useMemo<RuntimeAd[]>(
-    () => [...editorial, ...executionAds(), ...COIN_ADS],
-    [editorial],
+    () => [...editorial, ...executionAds(Date.now(), notice), ...COIN_ADS],
+    [editorial, notice],
   );
 
   const [stack, setStack] = useState<Placed[]>([]);

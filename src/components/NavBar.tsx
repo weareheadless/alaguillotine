@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useDrawer } from "./drawers";
 import { useSiteContent } from "../lib/use-site-content";
 import { FORUM_ENABLED } from "@/lib/constants";
+import { ExecutionTicker } from "./ExecutionTicker";
 
 export function NavBar() {
   const { content } = useSiteContent();
@@ -115,6 +116,9 @@ export function NavBar() {
           </button>
         </div>
       </div>
+
+      {/* The blade has a published time. It gets the breaking-news bar. */}
+      <ExecutionTicker />
 
       {/* ─── Portable dropdown menu (phones + tablets) ───────────────── */}
       {menuOpen && (
