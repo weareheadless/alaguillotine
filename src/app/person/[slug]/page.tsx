@@ -117,8 +117,11 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
       {numbers.length > 0 && (
         <section className="mt-8">
           <h2 className="border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
-            the numbers
+            the receipts
           </h2>
+          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
+            a charge, not a biography
+          </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {numbers.map((n) => (
               <a
