@@ -48,7 +48,16 @@ export default async function DispatchPage({
   if (!post) notFound();
 
   const s = dispatchStyle(post.category);
-  const paragraphs = post.body.split(/\n{2,}/).filter(Boolean);
+  // A dispatch can be a document — a notice, a listing, a review — where
+  // every line is a field. Treat any newline as a break so those forms keep
+  // their shape instead of collapsing into one paragraph.
+  const paragraphs = post.body
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const tight =
+    paragraphs.length > 10 &&
+    paragraphs.filter((line) => line.length < 140).length > paragraphs.length * 0.6;
   const date = new Date(post.publishedAt).toUTCString().slice(5, 16);
 
   return (
@@ -92,10 +101,28 @@ export default async function DispatchPage({
           {dispatchDescription(post)}
         </p>
 
-        <article className="mt-10 space-y-5 text-[15px] leading-relaxed text-sheetWhite/90">
-          {paragraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
+        <article
+          className={
+            tight
+              ? "mt-10 space-y-2.5 border-l-2 border-chop-border pl-4 font-mono text-[13px] leading-relaxed text-sheetWhite/90"
+              : "mt-10 space-y-5 text-[15px] leading-relaxed text-sheetWhite/90"
+          }
+        >
+          {paragraphs.map((p, i) => {
+            const section = /^\d+\.\s/.test(p);
+            return (
+              <p
+                key={i}
+                className={
+                  section
+                    ? "pt-3 font-black uppercase tracking-[0.08em] text-sheetWhite"
+                    : undefined
+                }
+              >
+                {p}
+              </p>
+            );
+          })}
         </article>
 
         <div className="mt-12 border-t-2 border-black pt-5">
