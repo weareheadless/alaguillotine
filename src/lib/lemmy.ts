@@ -31,6 +31,23 @@ const COMMUNITIES: Source[] = [
   { instance: "https://sopuli.xyz", name: "collapse", sort: "Hot" },
 ];
 
+// The feed reads wider than the clock does: the clock needs a balanced
+// reading, the feed needs volume. These are added on top, never instead.
+const FEED_EXTRA: Source[] = [
+  { instance: "https://lemmy.world", name: "news" },
+  { instance: "https://lemmy.world", name: "technology" },
+  { instance: "https://lemmy.world", name: "environment" },
+  { instance: "https://lemmy.world", name: "economics" },
+  { instance: "https://lemmy.world", name: "workreform" },
+  { instance: "https://lemmy.world", name: "antiwork" },
+  { instance: "https://lemmy.world", name: "climate" },
+  { instance: "https://lemmy.world", name: "privacy" },
+  { instance: "https://lemmy.ml", name: "technology" },
+  { instance: "https://lemmy.ml", name: "environment" },
+];
+
+const FEED_COMMUNITIES = [...COMMUNITIES, ...FEED_EXTRA];
+
 export interface LemmyPost {
   topic: string;
   title: string;
@@ -39,6 +56,9 @@ export interface LemmyPost {
   date: string | null;
   summary: string;
   authority: number;
+  /** The community's own ranking, kept for the feed. */
+  score: number;
+  comments: number;
 }
 
 interface ApiPost {
@@ -54,12 +74,12 @@ interface ApiPost {
 
 const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 
-async function fetchCommunity({ instance, name, sort = "TopDay" }: Source): Promise<LemmyPost[]> {
+async function fetchCommunity({ instance, name, sort = "TopDay" }: Source, limit = 12): Promise<LemmyPost[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
     const res = await fetch(
-      `${instance}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=${sort}&limit=12`,
+      `${instance}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=${sort}&limit=${limit}`,
       { signal: controller.signal, headers: { accept: "application/json" } },
     );
     if (!res.ok) return [];
@@ -79,6 +99,8 @@ async function fetchCommunity({ instance, name, sort = "TopDay" }: Source): Prom
           date: post.published ?? null,
           summary: clip(post.body || post.name, 900),
           authority: Math.min(4, 1 + Math.floor(score / 50)),
+          score,
+          comments: Math.max(0, Number(p.counts?.comments ?? 0)),
         },
       ];
     });
@@ -114,4 +136,26 @@ export async function fetchLemmyCandidates(): Promise<LemmyPost[]> {
   }
 
   return picked.sort((a, b) => b.authority - a.authority).slice(0, 60);
+}
+
+/**
+ * The firehose behind the feed.
+ *
+ * `fetchLemmyCandidates` asks each community for its best three so the clock
+ * gets a balanced reading. The feed has no such restraint: it takes the lot,
+ * every fifteen minutes, and lets the ranking sort it out. Duplicate links are
+ * collapsed here; duplicate *stories* are clustered later, in the feed.
+ */
+export async function fetchLemmyFeed(limit = 18): Promise<LemmyPost[]> {
+  const results = await Promise.all(
+    FEED_COMMUNITIES.map((community) => fetchCommunity(community, limit)),
+  );
+  const byUrl = new Map<string, LemmyPost>();
+  for (const post of results.flat()) {
+    const prev = byUrl.get(post.url);
+    if (!prev || post.authority > prev.authority) byUrl.set(post.url, post);
+  }
+  return [...byUrl.values()]
+    .sort((a, b) => b.authority - a.authority)
+    .slice(0, 240);
 }

@@ -40,6 +40,23 @@ export default {
       console.error("clock_cron_misconfigured");
       return;
     }
+    // The feed is the only thing on the site that has to feel alive: pull the
+    // federated wire every fifteen minutes and let the ranking sort it out.
+    if (event.cron === "*/15 * * * *") {
+      context.waitUntil(
+        invokeApp(
+          "/api/feed/refresh",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/feed/refresh returned HTTP ${response.status}.`);
+          }
+        }),
+      );
+      return;
+    }
     // One scrape, four hours apart. The page fakes the liveness, not the bill.
     //
     // The DeepSeek key is search-only, and the backfill is the largest

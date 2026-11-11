@@ -13,7 +13,10 @@ export function NavBar() {
   const pathname = usePathname();
   const { show } = useDrawer();
   const [menuOpen, setMenuOpen] = useState(false);
-  const links = content.nav.filter((link) => FORUM_ENABLED || link.href !== "/forum");
+  const links = [
+    ...content.nav.filter((link) => FORUM_ENABLED || link.href !== "/forum"),
+    { href: "/feed", label: "The Feed" },
+  ];
 
   // Close the portable menu whenever the route changes
   useEffect(() => {
