@@ -21,6 +21,18 @@ type DispatchPayload = {
   category?: string;
 };
 
+/** A URL slug that stops at a word, not in the middle of one. */
+function slugFromTitle(title: string, limit = 48): string {
+  const raw = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (raw.length <= limit) return raw;
+  const cut = raw.slice(0, limit);
+  const last = cut.lastIndexOf("-");
+  return (last > 12 ? cut.slice(0, last) : cut).replace(/-+$/, "");
+}
+
 type RefreshEnv = {
   CRON_SECRET?: string;
   CHAT_UPSTREAM?: string;
@@ -88,11 +100,7 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const slug = `${now.toISOString().slice(0, 10)}-${parsed.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48)}`;
+  const slug = `${now.toISOString().slice(0, 10)}-${slugFromTitle(parsed.title)}`;
 
   const publishedAt = now.toISOString();
   const title = parsed.title.slice(0, 90);
