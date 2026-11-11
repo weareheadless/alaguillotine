@@ -22,9 +22,11 @@ type DispatchPayload = {
 };
 
 /** A URL slug that stops at a word, not in the middle of one. */
-function slugFromTitle(title: string, limit = 48): string {
+function slugFromTitle(title: string, limit = 64): string {
   const raw = title
     .toLowerCase()
+    // "That's" should be "thats", not "that-s".
+    .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   if (raw.length <= limit) return raw;
@@ -82,7 +84,10 @@ export async function POST(request: Request) {
         composite: String(reading.composite ?? ""),
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(120_000),
+      // She drafts through the long-form scratchpad process now: one pass
+      // of 550-650 words plus the naming. That is a slow generation, and a
+      // cron tick can afford to wait for it — a cut call loses the dispatch.
+      signal: AbortSignal.timeout(240_000),
     });
     if (!res.ok) {
       return Response.json(
