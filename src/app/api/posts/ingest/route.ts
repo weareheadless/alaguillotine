@@ -1,5 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { saveDispatch } from "@/lib/posts-store";
+import { normaliseCategory } from "@/lib/dispatch-style";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
     dek?: string;
     body?: string;
     publishedAt?: string;
+    category?: string;
   } | null;
 
   const slug = String(payload?.slug ?? "")
@@ -54,13 +56,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid publishedAt" }, { status: 400 });
   }
 
+  const category = normaliseCategory(payload?.category);
+
   await saveDispatch({
     slug,
     title,
     dek: String(payload?.dek ?? "").trim().slice(0, 300),
     body,
     publishedAt: publishedAt.toISOString(),
+    category,
   });
 
-  return Response.json({ ok: true, slug });
+  return Response.json({ ok: true, slug, category });
 }

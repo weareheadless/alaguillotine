@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { normaliseCategory, type DispatchCategory } from "./dispatch-style";
 
 type D1Statement = {
   bind: (...values: unknown[]) => D1Statement;
@@ -14,6 +15,8 @@ export interface Dispatch {
   dek: string;
   body: string;
   publishedAt: string;
+  /** The mechanism the piece names; the blog's colour. */
+  category: DispatchCategory;
 }
 
 async function getDb(): Promise<D1 | null> {
@@ -28,7 +31,7 @@ export async function listDispatches(limit = 20): Promise<Dispatch[]> {
   if (!db) return [];
   const rows = await db
     .prepare(
-      "SELECT slug, title, dek, body, published_at FROM dispatches ORDER BY published_at DESC LIMIT ?",
+      "SELECT slug, title, dek, body, published_at, category FROM dispatches ORDER BY published_at DESC LIMIT ?",
     )
     .bind(limit)
     .all();
@@ -38,6 +41,7 @@ export async function listDispatches(limit = 20): Promise<Dispatch[]> {
     dek: String(r.dek ?? ""),
     body: String(r.body ?? ""),
     publishedAt: String(r.published_at),
+    category: normaliseCategory(r.category),
   }));
 }
 
@@ -45,7 +49,7 @@ export async function getDispatch(slug: string): Promise<Dispatch | null> {
   const db = await getDb();
   if (!db) return null;
   const row = await db
-    .prepare("SELECT slug, title, dek, body, published_at FROM dispatches WHERE slug = ?")
+    .prepare("SELECT slug, title, dek, body, published_at, category FROM dispatches WHERE slug = ?")
     .bind(slug)
     .first<Record<string, unknown>>();
   if (!row) return null;
@@ -55,6 +59,7 @@ export async function getDispatch(slug: string): Promise<Dispatch | null> {
     dek: String(row.dek ?? ""),
     body: String(row.body ?? ""),
     publishedAt: String(row.published_at),
+    category: normaliseCategory(row.category),
   };
 }
 
@@ -63,12 +68,20 @@ export async function saveDispatch(dispatch: Dispatch): Promise<void> {
   if (!db) return;
   await db
     .prepare(
-      `INSERT INTO dispatches (slug, title, dek, body, published_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO dispatches (slug, title, dek, body, published_at, category)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(slug) DO UPDATE SET
-         title = excluded.title, dek = excluded.dek, body = excluded.body`,
+         title = excluded.title, dek = excluded.dek, body = excluded.body,
+         category = excluded.category`,
     )
-    .bind(dispatch.slug, dispatch.title, dispatch.dek, dispatch.body, dispatch.publishedAt)
+    .bind(
+      dispatch.slug,
+      dispatch.title,
+      dispatch.dek,
+      dispatch.body,
+      dispatch.publishedAt,
+      dispatch.category,
+    )
     .run();
 }
 

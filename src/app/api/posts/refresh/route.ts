@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, readClock } from "@/lib/clock-store";
 import { dispatchDescription, lastDispatchAt, saveDispatch } from "@/lib/posts-store";
+import { normaliseCategory } from "@/lib/dispatch-style";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,12 @@ export const dynamic = "force-dynamic";
  * blog keeps the last dispatch rather than publishing a ghostwriter's voice.
  */
 
-type DispatchPayload = { title?: string; dek?: string; body?: string };
+type DispatchPayload = {
+  title?: string;
+  dek?: string;
+  body?: string;
+  category?: string;
+};
 
 type RefreshEnv = {
   CRON_SECRET?: string;
@@ -91,6 +97,7 @@ export async function POST(request: Request) {
   const publishedAt = now.toISOString();
   const title = parsed.title.slice(0, 90);
   const body = parsed.body.slice(0, 8000);
+  const category = normaliseCategory(parsed.category);
   const dek = dispatchDescription(
     {
       slug,
@@ -98,6 +105,7 @@ export async function POST(request: Request) {
       dek: (parsed.dek ?? "").slice(0, 300),
       body,
       publishedAt,
+      category,
     },
     155,
   );
@@ -108,7 +116,8 @@ export async function POST(request: Request) {
     dek,
     body,
     publishedAt,
+    category,
   });
 
-  return Response.json({ ok: true, slug, source: "vps-ada" });
+  return Response.json({ ok: true, slug, category, source: "vps-ada" });
 }

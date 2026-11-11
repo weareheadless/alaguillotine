@@ -1091,3 +1091,21 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .wire-in { animation: none; }
 }
+
+/* ─── Dispatches: the board of charges ──────────────────────────────────── */
+.dispatch-card {
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.dispatch-card:hover {
+  transform: rotate(0deg) translateY(-4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dispatch-card {
+    transform: none;
+    transition: none;
+  }
+  .dispatch-card:hover {
+    transform: none;
+  }
+}
