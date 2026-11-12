@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, readClock } from "@/lib/clock-store";
-import { dispatchDescription, lastDispatchAt, saveDispatch } from "@/lib/posts-store";
+import { dispatchDescription, lastDispatchAt, listDispatches, saveDispatch, normaliseEditorial } from "@/lib/posts-store";
+import { listArchive } from "@/lib/archive-store";
 import { normaliseCategory } from "@/lib/dispatch-style";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ type DispatchPayload = {
   dek?: string;
   body?: string;
   category?: string;
+  editorial?: unknown;
 };
 
 /** A URL slug that stops at a word, not in the middle of one. */
@@ -65,10 +67,15 @@ export async function POST(request: Request) {
   const reading = await readClock(db);
   if (!reading) return Response.json({ error: "no clock reading yet" }, { status: 409 });
 
-  const material = reading.items
-    .slice(0, 10)
-    .map((i) => `- ${i.headline} (${i.source}) ${i.fact}`)
-    .join("\n");
+  const [archive, recent] = await Promise.all([listArchive(40), listDispatches(10)]);
+  const material = JSON.stringify({
+    candidates: reading.items.slice(0, 30).map(i => ({
+      title: i.headline, summary: i.fact, url: i.sourceUrl, source: i.source,
+      published_at: i.publishedAt,
+    })),
+    archive: archive.map(i => ({ title: i.headline, summary: i.fact, url: i.sourceUrl, published_at: i.publishedAt })),
+    recent_dispatches: recent.map(i => ({ title: i.title, dek: i.dek, slug: i.slug, published_at: i.publishedAt })),
+  });
 
   let parsed: DispatchPayload;
   try {
@@ -84,9 +91,8 @@ export async function POST(request: Request) {
         composite: String(reading.composite ?? ""),
       }),
       cache: "no-store",
-      // She writes on a reasoning model now: it thinks before it writes,
-      // and a 600-word dispatch can take three or four minutes. A cron tick
-      // can afford to wait; a cut call loses the piece.
+      // The editorial beta checkpoints eight bounded stages. Its internal
+      // 420s deadline must remain shorter than this upstream timeout.
       signal: AbortSignal.timeout(480_000),
     });
     if (!res.ok) {
@@ -109,8 +115,12 @@ export async function POST(request: Request) {
 
   const publishedAt = now.toISOString();
   const title = parsed.title.slice(0, 90);
-  const body = parsed.body.slice(0, 8000);
+  const body = parsed.body.slice(0, 16000);
   const category = normaliseCategory(parsed.category);
+  const editorial = normaliseEditorial(parsed.editorial);
+  if (!editorial) {
+    return Response.json({ error: "dispatch has no verified provenance" }, { status: 502 });
+  }
   const dek = dispatchDescription(
     {
       slug,
@@ -130,6 +140,7 @@ export async function POST(request: Request) {
     body,
     publishedAt,
     category,
+    editorial,
   });
 
   return Response.json({ ok: true, slug, category, source: "vps-ada" });

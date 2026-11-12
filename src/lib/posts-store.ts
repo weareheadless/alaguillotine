@@ -17,6 +17,26 @@ export interface Dispatch {
   publishedAt: string;
   /** The mechanism the piece names; the blog's colour. */
   category: DispatchCategory;
+  editorial?: DispatchEditorial;
+}
+
+export interface DispatchEditorial {
+  version: number;
+  whatHappened: string;
+  pullQuote: string;
+  sources: Array<{ title: string; url: string; quote: string }>;
+  correction?: string;
+}
+
+export function normaliseEditorial(value: unknown): DispatchEditorial | undefined {
+  try {
+    const data = (typeof value === "string" ? JSON.parse(value) : value) as Partial<DispatchEditorial> | null;
+    if (!data || data.version !== 1 || !Array.isArray(data.sources)) return undefined;
+    const sources = data.sources.filter(s => s && typeof s.url === "string" && /^https?:\/\//.test(s.url))
+      .slice(0, 6).map(s => ({ title: String(s.title ?? "Source").slice(0, 240), url: s.url.slice(0, 2000), quote: String(s.quote ?? "").slice(0, 600) }));
+    if (!sources.length) return undefined;
+    return { version: 1, whatHappened: String(data.whatHappened ?? "").slice(0, 700), pullQuote: String(data.pullQuote ?? "").slice(0, 240), sources, correction: data.correction ? String(data.correction).slice(0, 1000) : undefined };
+  } catch { return undefined; }
 }
 
 async function getDb(): Promise<D1 | null> {
@@ -31,7 +51,7 @@ export async function listDispatches(limit = 20): Promise<Dispatch[]> {
   if (!db) return [];
   const rows = await db
     .prepare(
-      "SELECT slug, title, dek, body, published_at, category FROM dispatches ORDER BY published_at DESC LIMIT ?",
+      "SELECT slug, title, dek, body, published_at, category, editorial FROM dispatches ORDER BY published_at DESC LIMIT ?",
     )
     .bind(limit)
     .all();
@@ -42,6 +62,7 @@ export async function listDispatches(limit = 20): Promise<Dispatch[]> {
     body: String(r.body ?? ""),
     publishedAt: String(r.published_at),
     category: normaliseCategory(r.category),
+    editorial: normaliseEditorial(r.editorial),
   }));
 }
 
@@ -49,7 +70,7 @@ export async function getDispatch(slug: string): Promise<Dispatch | null> {
   const db = await getDb();
   if (!db) return null;
   const row = await db
-    .prepare("SELECT slug, title, dek, body, published_at, category FROM dispatches WHERE slug = ?")
+    .prepare("SELECT slug, title, dek, body, published_at, category, editorial FROM dispatches WHERE slug = ?")
     .bind(slug)
     .first<Record<string, unknown>>();
   if (!row) return null;
@@ -60,6 +81,7 @@ export async function getDispatch(slug: string): Promise<Dispatch | null> {
     body: String(row.body ?? ""),
     publishedAt: String(row.published_at),
     category: normaliseCategory(row.category),
+    editorial: normaliseEditorial(row.editorial),
   };
 }
 
@@ -68,11 +90,12 @@ export async function saveDispatch(dispatch: Dispatch): Promise<void> {
   if (!db) return;
   await db
     .prepare(
-      `INSERT INTO dispatches (slug, title, dek, body, published_at, category)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO dispatches (slug, title, dek, body, published_at, category, editorial)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(slug) DO UPDATE SET
          title = excluded.title, dek = excluded.dek, body = excluded.body,
-         category = excluded.category`,
+          category = excluded.category,
+          editorial = CASE WHEN excluded.editorial = '{}' THEN dispatches.editorial ELSE excluded.editorial END`,
     )
     .bind(
       dispatch.slug,
@@ -81,6 +104,7 @@ export async function saveDispatch(dispatch: Dispatch): Promise<void> {
       dispatch.body,
       dispatch.publishedAt,
       dispatch.category,
+      JSON.stringify(normaliseEditorial(dispatch.editorial) ?? {}),
     )
     .run();
 }
