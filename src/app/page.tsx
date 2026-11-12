@@ -109,9 +109,9 @@ export default function HomePage() {
 
       <NavBar />
 
-      <main className="relative z-10 pb-20 md:pb-8">
+      <main className="relative z-10 flex flex-col pb-20 md:pb-8">
         {/* ── The front page: the argument, and the set ───────────────── */}
-        <div className="mt-8 grid items-center gap-6 px-[clamp(1rem,2vw,2rem)] lg:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]">
+        <div className="order-1 mt-5 grid items-center gap-6 px-[clamp(1rem,2vw,2rem)] lg:mt-8 lg:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
               {content.hero.badge}
@@ -137,7 +137,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => show("fund")}
-                className="border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon"
+                className="hidden border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon sm:block"
               >
                 The fund
               </button>
@@ -150,16 +150,18 @@ export default function HomePage() {
               </button>
             </div>
           </div>
-          <NewsReel
-            cutIn={CUT_IN}
-            messages={
-              state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
-            }
-          />
+          <div className="hidden lg:block">
+            <NewsReel
+              cutIn={CUT_IN}
+              messages={
+                state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
+              }
+            />
+          </div>
         </div>
 
         {/* ── The blade: full width, the main piece ───────────────────── */}
-        <div className="mt-8 px-[clamp(1rem,2vw,2rem)]">
+        <div className="order-2 mt-6 px-[clamp(1rem,2vw,2rem)] lg:mt-8">
           <section id="queue">
             <div className="flex items-end justify-between gap-4 border-b border-chop-border pb-2">
               <div>
@@ -221,7 +223,7 @@ export default function HomePage() {
         </div>
 
         {/* ── The control deck: three different shapes, one row ───────── */}
-        <div className="mt-6 px-[clamp(1rem,2vw,2rem)]">
+        <div className="order-4 mt-6 px-[clamp(1rem,2vw,2rem)] lg:order-3">
           <ControlDeck
             mood={state.voice.mood}
             line={state.voice.line}
@@ -230,9 +232,11 @@ export default function HomePage() {
         </div>
 
         {/* ── The evidence ────────────────────────────────────────────── */}
-        <FeedMosaic />
+        <div className="order-3 lg:order-4">
+          <FeedMosaic />
+        </div>
 
-        <div className="mt-10 px-[clamp(1rem,2vw,2rem)]">
+        <div className="order-5 mt-10 px-[clamp(1rem,2vw,2rem)]">
           <RulesBanner />
         </div>
       </main>

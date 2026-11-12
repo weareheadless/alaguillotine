@@ -38,10 +38,13 @@ export function ReserveSeat({
   at,
   name,
   slug,
+  compact = false,
 }: {
   at: string;
   name: string;
   slug: string;
+  /** The execution ticket: a smaller button and a single-line status. */
+  compact?: boolean;
 }) {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
     "unsupported",
@@ -125,7 +128,9 @@ export function ReserveSeat({
         onClick={reserve}
         disabled={!ready}
         aria-pressed={Boolean(reserved)}
-        className={`block w-full border-2 border-black px-3 py-3 text-center font-mono text-[11px] font-black uppercase tracking-widest transition-colors ${
+        className={`block w-full border-2 border-black px-2 text-center font-mono font-black uppercase tracking-widest transition-colors ${
+          compact ? "py-2 text-[10px]" : "py-3 text-[11px]"
+        } ${
           reserved
             ? "bg-sheetWhite text-canvasBlack hover:bg-black hover:text-sheetWhite"
             : "bg-canvasBlack text-hypeNeon hover:bg-spiteCrimson hover:text-sheetWhite"
@@ -141,17 +146,25 @@ export function ReserveSeat({
       </button>
       <p
         aria-live="polite"
-        className="mt-2 min-h-[2.75rem] font-mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-black/70"
+        className={`font-mono uppercase text-black/70 ${
+          compact
+            ? "mt-1 min-h-[1.25rem] text-[7px] leading-tight tracking-[0.1em]"
+            : "mt-2 min-h-[2.75rem] text-[8px] leading-relaxed tracking-[0.12em]"
+        }`}
       >
         {note ||
-          `Warns you five minutes before the blade · ${seatAlertLabel(at)}. Keep this page open.`}
+          (compact
+            ? `5-min alert · ${seatAlertLabel(at)} · keep page open`
+            : `Warns you five minutes before the blade · ${seatAlertLabel(at)}. Keep this page open.`)}
       </p>
-      <Link
-        href="/next-in-line"
-        className="font-mono text-[8px] uppercase tracking-[0.12em] text-black/60 underline underline-offset-2 hover:text-black"
-      >
-        See the full line ↗
-      </Link>
+      {!compact && (
+        <Link
+          href="/next-in-line"
+          className="font-mono text-[8px] uppercase tracking-[0.12em] text-black/60 underline underline-offset-2 hover:text-black"
+        >
+          See the full line ↗
+        </Link>
+      )}
     </div>
   );
 }

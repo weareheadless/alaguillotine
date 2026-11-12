@@ -51,6 +51,7 @@ function Tile({ item, index }: { item: FeedItem; index: number }) {
   </>;
   const className = [styles.tile, lead ? styles.lead : "", feature ? styles.feature : "",
     receipt ? styles.receipt : "", dispatch ? styles.dispatch : "",
+    index >= 6 ? styles.late : "",
     index === 4 || index === 9 ? styles.wide : ""].filter(Boolean).join(" ");
   const style = { "--mosaic-accent": palette.accent } as CSSProperties;
 

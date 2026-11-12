@@ -75,3 +75,7 @@
   .media img, .lead .media img { height: 190px; }
   .skeleton { min-height: 230px; }
 }
+
+@media (max-width: 639px) {
+  .late { display: none; }
+}

@@ -16,27 +16,24 @@ export function ExecutionAd({ notice, compact = false }: { notice: ExecutionNoti
   if (!notice) return null;
 
   if (compact) return (
-    <aside aria-label="Next public execution, presented by $CHOP" className="mt-4 grid min-w-0 border-2 border-black bg-hypeNeon text-canvasBlack shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:grid-cols-[minmax(150px,0.8fr)_minmax(0,2fr)_minmax(190px,1fr)]">
-      <div className="p-5 md:border-r-2 md:border-black">
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-black/70">Presented by $CHOP</p>
-        <p className="mt-2 text-4xl font-black uppercase leading-[0.85] tracking-tighter">The Blade</p>
-        <p className="mt-4 font-mono text-[9px] font-bold uppercase tracking-widest">Next performance</p>
-        <p className="mt-1 text-5xl font-black leading-none tabular-nums tracking-tighter">{notice.timeLabel.replace(" UTC", "")}</p>
-        <p className="mt-2 font-mono text-[10px] font-bold uppercase">{notice.dateLabel} · UTC</p>
+    <aside aria-label="Next public execution, presented by $CHOP" className="mt-4 grid min-w-0 grid-cols-[6rem_minmax(0,1fr)] border-2 border-black bg-hypeNeon text-canvasBlack shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:grid-cols-[9rem_minmax(0,1fr)_10.5rem]">
+      <div className="border-r-2 border-black p-3">
+        <p className="font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-black/70">Presented by $CHOP</p>
+        <p className="mt-0.5 text-lg font-black uppercase leading-[0.85] tracking-tighter md:text-xl">The Blade</p>
+        <p className="mt-1.5 font-mono text-[7px] font-bold uppercase tracking-widest">Next performance</p>
+        <p className="mt-0.5 text-3xl font-black leading-none tabular-nums tracking-tighter md:text-4xl">{notice.timeLabel.replace(" UTC", "")}</p>
+        <p className="mt-1 font-mono text-[8px] font-bold uppercase">{notice.dateLabel} · UTC</p>
       </div>
-      <div className="min-w-0 border-t-2 border-black p-5 md:border-t-0">
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-black/70">Featuring</p>
-        <Link href={`/person/${notice.slug}`} className="mt-2 block break-words text-3xl font-black uppercase leading-none tracking-tighter underline decoration-black/30 underline-offset-4 lg:text-4xl">{notice.name}</Link>
-        <p className="mt-3 max-w-3xl font-mono text-[12px] leading-relaxed text-black">{notice.reason}.</p>
-        {notice.following && <p className="mt-4 border-t-2 border-black/25 pt-3 font-mono text-[10px] font-bold uppercase">Then · {notice.following.timeLabel} · {notice.following.name}</p>}
+      <div className="min-w-0 p-3">
+        <p className="font-mono text-[8px] font-bold uppercase tracking-[0.25em] text-black/70">Featuring</p>
+        <Link href={`/person/${notice.slug}`} className="mt-0.5 block break-words text-lg font-black uppercase leading-none tracking-tighter underline decoration-black/30 underline-offset-4 md:text-xl">{notice.name}</Link>
+        <p className="mt-1 line-clamp-2 font-mono text-[10px] leading-snug text-black">{notice.reason}.</p>
+        {notice.following && <p className="mt-1.5 border-t-2 border-black/25 pt-1 font-mono text-[8px] font-bold uppercase">Then · {notice.following.timeLabel} · {notice.following.name}</p>}
       </div>
-      <div className="flex min-w-0 flex-col justify-between gap-4 border-t-2 border-dashed border-black/50 p-5 md:border-l-2 md:border-t-0">
-        <p className="text-xl font-black uppercase leading-tight tracking-tight">Arrive early.<br />Leave vertically.</p>
-        <ReserveSeat at={notice.at} name={notice.name} slug={notice.slug} />
-        <div>
-          <div aria-hidden className="h-7 w-full" style={{ backgroundImage: "repeating-linear-gradient(90deg,#000 0 2px,transparent 2px 4px,#000 4px 5px,transparent 5px 9px,#000 9px 12px,transparent 12px 14px)" }} />
-          <p className="mt-2 font-mono text-[8px] uppercase leading-relaxed text-black/70">Tickets free · standing room only<br />No refunds · no survivors</p>
-        </div>
+      <div className="col-span-2 border-t-2 border-dashed border-black/50 p-3 md:col-span-1 md:border-l-2 md:border-t-0">
+        <ReserveSeat at={notice.at} name={notice.name} slug={notice.slug} compact />
+        <div aria-hidden className="mt-2 h-2 w-full opacity-80" style={{ backgroundImage: "repeating-linear-gradient(90deg,#000 0 2px,transparent 2px 4px,#000 4px 5px,transparent 5px 9px,#000 9px 12px,transparent 12px 14px)" }} />
+        <p className="mt-1 font-mono text-[7px] uppercase leading-tight text-black/70">Arrive early. Leave vertically.</p>
       </div>
     </aside>
   );
