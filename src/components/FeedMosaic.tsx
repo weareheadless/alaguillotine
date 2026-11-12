@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useState, type CSSProperties } from "react";
 import type { FeedItem } from "@/lib/feed";
 import { dispatchStyle } from "@/lib/dispatch-style";
 import { mosaicDate, mosaicItems } from "@/lib/feed-mosaic";
+import { usePromise } from "@/lib/use-promise";
 import { safeHref } from "@/lib/url";
+import { useDrawer } from "./drawers";
 import styles from "./FeedMosaic.module.css";
 
 function Tile({ item, index }: { item: FeedItem; index: number }) {
@@ -59,6 +61,33 @@ function Tile({ item, index }: { item: FeedItem; index: number }) {
   </article>;
 }
 
+function PromoTile() {
+  const { text, number } = usePromise();
+  const { show } = useDrawer();
+
+  return <article className={`${styles.tile} ${styles.promo}`}>
+    <button
+      type="button"
+      onClick={() => show("fund")}
+      className={`${styles.cardLink} w-full text-left`}
+    >
+      <div className={styles.meta}>
+        <span className={styles.category}>Sponsored</span>
+        <span>Ada · financial advice</span>
+      </div>
+      <div className={styles.body}>
+        <p className={styles.promoLabel}>The pitch · #{number ?? "—"}</p>
+        <h3 className={styles.title}>{text ? `“${text}”` : "Loading the pitch…"}</h3>
+      </div>
+      <div className={styles.footer}>
+        <span className={styles.source}>$CHOP · the fund</span>
+        <span aria-hidden="true">→</span>
+      </div>
+      <p className={styles.caveat}>Paid placement · satire · not financial advice</p>
+    </button>
+  </article>;
+}
+
 export function FeedMosaic() {
   const [attempt, setAttempt] = useState(0);
   const [items, setItems] = useState<FeedItem[]>([]);
@@ -101,7 +130,10 @@ export function FeedMosaic() {
       <p>The feed didn’t load.</p><button onClick={() => setAttempt(value => value + 1)}>Try again</button>
       <Link href="/feed">Open the full feed →</Link>
     </div> : items.length ? <div className={styles.grid}>{items.map((item, index) =>
-      <Tile key={item.id} item={item} index={index} />)}</div>
+      <Fragment key={item.id}>
+        <Tile item={item} index={index} />
+        {index === 2 && <PromoTile />}
+      </Fragment>)}</div>
       : <div className={styles.empty}><p>No feed items available yet.</p><Link href="/feed">Explore the feed →</Link></div>}
     {status === "ready" && items.length > 0 && <footer className={styles.continue}>
       <span>A selection, not the whole story.</span><Link href="/feed">Continue in the full feed →</Link>

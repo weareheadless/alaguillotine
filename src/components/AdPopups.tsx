@@ -7,6 +7,7 @@ import { useDrawer } from "./drawers";
 import { COIN_ADS } from "@/lib/coin-ads";
 import { executionAds, type RuntimeAd } from "@/lib/execution-ads";
 import type { ExecutionNotice } from "@/lib/execution-notice";
+import { PromiseAd } from "./PromiseAd";
 
 /**
  * The ad stack.
@@ -197,6 +198,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
             ×
           </button>
         </div>
+        {copy.openFund && <PromiseAd variant="popup" />}
       </div>
     );
   }
@@ -268,6 +270,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           >
             {copy.cta}
           </button>
+          {copy.openFund && <PromiseAd variant="popup" />}
         </div>
       </div>
     );
@@ -301,6 +304,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
           >
             {copy.cta}
           </button>
+          {copy.openFund && <PromiseAd variant="popup" />}
         </div>
       </div>
     );
@@ -332,6 +336,7 @@ function Popup({ ad, onClose }: { ad: Placed; onClose: () => void }) {
         >
           {copy.cta}
         </button>
+        {copy.openFund && <div className="mt-3 bg-black"><PromiseAd variant="popup" /></div>}
       </div>
     </div>
   );

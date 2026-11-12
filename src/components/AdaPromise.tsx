@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { promiseOfTheReading, readingNumber, type PromiseEntry } from "@/lib/promises";
-import { useAdaVoice } from "../lib/use-ada-voice";
+import { usePromise } from "@/lib/use-promise";
 
 /**
  * Ada's false promise, renewed with each reading.
@@ -12,19 +10,7 @@ import { useAdaVoice } from "../lib/use-ada-voice";
  * in the fund panel.
  */
 export function AdaPromise({ variant = "block" }: { variant?: "block" | "inline" }) {
-  const [fallback, setFallback] = useState<PromiseEntry | null>(null);
-  const ada = useAdaVoice();
-
-  useEffect(() => {
-    setFallback(promiseOfTheReading());
-  }, []);
-
-  // Ada writes the promise. The list is only the fallback for a reading that
-  // has not landed yet, or a voice old enough to predate the field.
-  const text = ada.promise || fallback?.text || "";
-  const number = ada.promise
-    ? readingNumber(new Date(ada.promiseAt || Date.now()))
-    : fallback?.number;
+  const { text, number } = usePromise();
 
   if (variant === "inline") {
     return (

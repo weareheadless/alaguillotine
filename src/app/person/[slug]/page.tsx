@@ -5,6 +5,7 @@ import { getLedgerFor } from "@/lib/archive-store";
 import { getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
+import { PromiseAd } from "@/components/PromiseAd";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,8 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
       )}
 
       <p className="mt-6 font-mono text-[12px] leading-relaxed text-chop-muted">{person.reason}</p>
+
+      <PromiseAd variant="panel" />
 
       {numbers.length > 0 && (
         <section className="mt-8">

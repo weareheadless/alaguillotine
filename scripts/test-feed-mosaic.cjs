@@ -57,12 +57,15 @@ async function testLoading(response, mode = "normal") {
         return [initial, value => { states[index] = value; updates.push(index); }];
       },
       useEffect: effect => effects.push(effect),
+      Fragment: "fragment",
     },
     "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
     "next/link": { __esModule: true, default: "link" },
     "@/lib/feed-mosaic": { mosaicItems, mosaicDate },
     "@/lib/dispatch-style": {},
     "@/lib/url": {},
+    "@/lib/use-promise": { usePromise: () => ({ text: "Solar-powered guillotine production starts on the moon next week. Buy $CHOP.", number: 7 }) },
+    "./drawers": { useDrawer: () => ({ show: () => {} }) },
     "./FeedMosaic.module.css": { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) },
   };
   const source = ts.transpileModule(fs.readFileSync("src/components/FeedMosaic.tsx", "utf8"), {

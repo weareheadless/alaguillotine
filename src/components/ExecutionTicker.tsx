@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { HateState } from "@/lib/hateometer";
 import { countdown, executionNotice } from "@/lib/execution-notice";
+import { usePromise } from "@/lib/use-promise";
+import { useDrawer } from "./drawers";
 
 const DISMISS_KEY = "ala:execution-ticker:dismissed";
 
@@ -19,6 +21,9 @@ export function ExecutionTicker() {
   const [state, setState] = useState<HateState | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [promo, setPromo] = useState(false);
+  const { text: promise } = usePromise();
+  const { show } = useDrawer();
 
   useEffect(() => {
     try {
@@ -50,6 +55,13 @@ export function ExecutionTicker() {
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // The sponsor gets the same strip as the execution, but only every other
+  // half-minute. The countdown never moves.
+  useEffect(() => {
+    const id = setInterval(() => setPromo((value) => !value), 30_000);
     return () => clearInterval(id);
   }, []);
 
@@ -93,9 +105,22 @@ export function ExecutionTicker() {
           {notice.dateLabel} · {notice.timeLabel}
         </span>
 
-        <span className="hidden min-w-0 flex-1 truncate text-sheetWhite/70 lg:inline">
-          — {notice.reason}
-        </span>
+        {promo && promise ? (
+          <button
+            type="button"
+            onClick={() => show("fund")}
+            className="hidden min-w-0 flex-1 items-center gap-2 truncate text-left text-sheetWhite hover:text-white lg:flex"
+          >
+            <span className="shrink-0 bg-black px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.15em] text-hypeNeon">
+              ada’s advice
+            </span>
+            <span className="truncate">“{promise}” →</span>
+          </button>
+        ) : (
+          <span className="hidden min-w-0 flex-1 truncate text-sheetWhite/70 lg:inline">
+            — {notice.reason}
+          </span>
+        )}
 
         {notice.following && (
           <span className="hidden text-sheetWhite/70 xl:inline">
