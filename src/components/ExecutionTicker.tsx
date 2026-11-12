@@ -82,6 +82,38 @@ export function ExecutionTicker() {
     }
   };
 
+  if (promo && promise) {
+    return (
+      <div
+        role="note"
+        aria-label="Ada’s financial advice"
+        className="border-t-2 border-black bg-spiteCrimson text-sheetWhite"
+      >
+        <div className="mx-auto flex max-w-6xl items-start gap-2 px-4 py-1.5 font-mono md:px-6 md:py-2">
+          <span className="mt-0.5 shrink-0 bg-black px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.15em] text-hypeNeon">
+            <span className="md:hidden">advice</span>
+            <span className="hidden md:inline">ada’s financial advice</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => show("fund")}
+            className="min-w-0 flex-1 text-left text-[9px] normal-case leading-snug tracking-[0.02em] text-sheetWhite hover:underline md:text-[10px]"
+          >
+            “{promise}” <span className="whitespace-nowrap text-[9px] uppercase tracking-[0.15em] text-sheetWhite/80 underline decoration-sheetWhite/50 underline-offset-2">invest →</span>
+          </button>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Dismiss financial advice"
+            className="shrink-0 px-1 text-sheetWhite/70 hover:text-sheetWhite"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       role="note"
@@ -105,22 +137,9 @@ export function ExecutionTicker() {
           {notice.dateLabel} · {notice.timeLabel}
         </span>
 
-        {promo && promise ? (
-          <button
-            type="button"
-            onClick={() => show("fund")}
-            className="hidden min-w-0 flex-1 items-center gap-2 truncate text-left text-sheetWhite hover:text-white lg:flex"
-          >
-            <span className="shrink-0 bg-black px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.15em] text-hypeNeon">
-              ada’s advice
-            </span>
-            <span className="truncate">“{promise}” →</span>
-          </button>
-        ) : (
-          <span className="hidden min-w-0 flex-1 truncate text-sheetWhite/70 lg:inline">
-            — {notice.reason}
-          </span>
-        )}
+        <span className="hidden min-w-0 flex-1 truncate text-sheetWhite/70 lg:inline">
+          — {notice.reason}
+        </span>
 
         {notice.following && (
           <span className="hidden text-sheetWhite/70 xl:inline">
