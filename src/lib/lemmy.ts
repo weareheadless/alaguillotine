@@ -44,6 +44,8 @@ const FEED_EXTRA: Source[] = [
   { instance: "https://lemmy.world", name: "privacy" },
   { instance: "https://lemmy.ml", name: "technology" },
   { instance: "https://lemmy.ml", name: "environment" },
+  // Hosted on lemmy.ml; Hot because TopDay leaves only a handful of posts.
+  { instance: "https://lemmy.ml", name: "palestine", sort: "Hot" },
 ];
 
 const FEED_COMMUNITIES = [...COMMUNITIES, ...FEED_EXTRA];
@@ -59,6 +61,7 @@ export interface LemmyPost {
   /** The community's own ranking, kept for the feed. */
   score: number;
   comments: number;
+  image?: string;
 }
 
 interface ApiPost {
@@ -68,6 +71,8 @@ interface ApiPost {
     body?: string;
     published?: string;
     ap_id?: string;
+    thumbnail_url?: string;
+    nsfw?: boolean;
   };
   counts?: { score?: number; comments?: number };
 }
@@ -101,6 +106,8 @@ async function fetchCommunity({ instance, name, sort = "TopDay" }: Source, limit
           authority: Math.min(4, 1 + Math.floor(score / 50)),
           score,
           comments: Math.max(0, Number(p.counts?.comments ?? 0)),
+          image: !post.nsfw && post.thumbnail_url?.startsWith("https://")
+            ? clip(post.thumbnail_url, 1500) : "",
         },
       ];
     });
