@@ -74,7 +74,11 @@ export async function POST(request: Request) {
       published_at: i.publishedAt,
     })),
     archive: archive.map(i => ({ title: i.headline, summary: i.fact, url: i.sourceUrl, published_at: i.publishedAt })),
-    recent_dispatches: recent.map(i => ({ title: i.title, dek: i.dek, slug: i.slug, published_at: i.publishedAt })),
+    // Her own recent voice is context for the writer, not evidence.
+    recent_dispatches: recent.slice(0, 3).map(i => ({
+      title: i.title, dek: i.dek, slug: i.slug, published_at: i.publishedAt,
+      body: (i.body ?? "").slice(0, 4000),
+    })),
   });
 
   let parsed: DispatchPayload;
