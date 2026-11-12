@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { DROPPED_LINE, parsePayload } from "@/lib/chat-payload";
 
 /**
  * /api/chat — proxy to Ada's chat server on the VPS.
@@ -65,18 +66,32 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({ message, user_id, name }),
       cache: "no-store",
-      signal: AbortSignal.timeout(60_000),
+      // Her slow turns run 45–60s. Cloudflare cuts the visitor off at 100s, so
+      // wait 90 and still return our own message rather than a gateway page.
+      signal: AbortSignal.timeout(90_000),
     });
 
-    const data = await upstreamRes.json();
+    const raw = await upstreamRes.text();
+    const data = parsePayload(raw);
+    if (!data) {
+      console.error(
+        "chat upstream returned non-JSON",
+        upstreamRes.status,
+        raw.slice(0, 200),
+      );
+      return Response.json(
+        { ok: false, error: DROPPED_LINE, offline: true },
+        { status: 502, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     return Response.json(data, {
       status: upstreamRes.status,
       headers: { "Cache-Control": "no-store" },
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "chat failed";
+    console.error("chat upstream failed", err);
     return Response.json(
-      { ok: false, error: msg, offline: true },
+      { ok: false, error: DROPPED_LINE, offline: true },
       { status: 502, headers: { "Cache-Control": "no-store" } },
     );
   }
@@ -94,15 +109,27 @@ export async function GET(req: Request) {
         signal: AbortSignal.timeout(15_000),
       },
     );
-    const data = await upstreamRes.json();
+    const raw = await upstreamRes.text();
+    const data = parsePayload(raw);
+    if (!data) {
+      console.error(
+        "chat meta upstream returned non-JSON",
+        upstreamRes.status,
+        raw.slice(0, 200),
+      );
+      return Response.json(
+        { ok: false, error: DROPPED_LINE, offline: true },
+        { status: 502, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     return Response.json(data, {
       status: upstreamRes.status,
       headers: { "Cache-Control": "no-store" },
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "meta failed";
+    console.error("chat meta upstream failed", err);
     return Response.json(
-      { ok: false, error: msg, offline: true },
+      { ok: false, error: DROPPED_LINE, offline: true },
       { status: 502, headers: { "Cache-Control": "no-store" } },
     );
   }

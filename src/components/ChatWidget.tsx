@@ -30,6 +30,7 @@ interface ChatResponse {
   limit?: number;
   donation_needed?: boolean;
   error?: string;
+  offline?: boolean;
 }
 
 const WELCOME: ChatMsg = {
@@ -150,11 +151,18 @@ export function ChatWidget() {
         headers: { "Content-Type": "application/json", "X-User-Id": uidRef.current },
         body: JSON.stringify({ message: text }),
       });
-      const data: ChatResponse = await res.json();
+      // A proxy error page is text, not JSON. Never print its parse failure.
+      let data: ChatResponse = {};
+      try {
+        data = (await res.json()) as ChatResponse;
+      } catch {
+        data = { ok: false, offline: true };
+      }
       const reply =
         data.reply ||
-        data.error ||
-        "My mouth just glitched. Try that again in a second.";
+        (data.offline
+          ? "Ada's line dropped mid-sentence. Nothing you wrote was lost. Ask again."
+          : data.error || "My mouth just glitched. Try that again in a second.");
       push({ id: `a_${Date.now()}`, role: "ada", text: reply });
       if (typeof data.remaining === "number") {
         setMeta((prev) => ({ ...prev, remaining: data.remaining, limit: data.limit }));
