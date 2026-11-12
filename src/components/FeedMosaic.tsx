@@ -133,7 +133,8 @@ export function FeedMosaic() {
     </div> : items.length ? <div className={styles.grid}>{items.map((item, index) =>
       <Fragment key={item.id}>
         <Tile item={item} index={index} />
-        {index === 2 && <PromoTile />}
+        {/* 2×2 sponsored slot: the grid's cell count is balanced around it. */}
+        {index === 1 && <PromoTile />}
       </Fragment>)}</div>
       : <div className={styles.empty}><p>No feed items available yet.</p><Link href="/feed">Explore the feed →</Link></div>}
     {status === "ready" && items.length > 0 && <footer className={styles.continue}>
