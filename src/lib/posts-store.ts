@@ -119,6 +119,17 @@ function clipWords(text: string, limit: number): string {
 }
 
 /**
+ * The dek as the author wrote it, when it reads as a finished sentence.
+ * Older dispatches stored a truncated first paragraph, so those still fall
+ * back to the description builder instead of surfacing a cut-off line.
+ */
+export function dispatchDek(post: Dispatch, limit = 300): string {
+  const dek = (post.dek ?? "").replace(/\s+/g, " ").trim();
+  if (dek.length >= 60 && /[.!?…]["')\]]?$/.test(dek)) return clipWords(dek, limit);
+  return dispatchDescription(post);
+}
+
+/**
  * The description a dispatch should carry into a meta tag.
  *
  * New dispatches write a complete sentence in `dek`. Older ones stored a
