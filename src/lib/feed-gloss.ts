@@ -83,9 +83,10 @@ Also file each item under one charge:
 
 Severity is 0-100: how much harm the mechanism named in the headline does, not how loud the story is.
 
-Return JSON only:
+Return JSON only, exactly one object:
 {"items":[{"id":"...","actor":"who did it","category":"extraction|cost|impunity|suppression|precarity|wire","severity":0,"gloss":"..."}]}
-{"items":[{"id":"...","actor":"","category":"wire","severity":0,"gloss":""}]}
+
+If the headline names no actor, that item is {"id":"...","actor":"","category":"wire","severity":0,"gloss":""}.
 
 ITEMS:
 `;
@@ -108,7 +109,7 @@ export async function glossFeed(
     .prepare(
       `SELECT id, title, source, community FROM feed_items
        WHERE kind = 'wire' AND gloss = ''
-       ORDER BY first_seen_at DESC LIMIT ?`,
+       ORDER BY first_seen_at ASC LIMIT ?`,
     )
     .bind(limit)
     .all();
@@ -163,9 +164,12 @@ export async function glossFeed(
     const reply = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
-    const text = reply.choices?.[0]?.message?.content;
-    parsed = text
-      ? (JSON.parse(text) as { items?: Array<Record<string, unknown>> })
+    const raw = reply.choices?.[0]?.message?.content ?? "";
+    const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    parsed = start > -1 && end > start
+      ? (JSON.parse(text.slice(start, end + 1)) as { items?: Array<Record<string, unknown>> })
       : null;
   } catch {
     return 0;
