@@ -44,8 +44,9 @@ const FEED_EXTRA: Source[] = [
   { instance: "https://lemmy.world", name: "privacy" },
   { instance: "https://lemmy.ml", name: "technology" },
   { instance: "https://lemmy.ml", name: "environment" },
-  // Hosted on lemmy.ml; Hot because TopDay leaves only a handful of posts.
-  { instance: "https://lemmy.ml", name: "palestine", sort: "Hot" },
+  // lemmy.ml refuses the Worker's requests, so read it through the federated
+  // view on lemmy.world. The label still resolves to c/palestine@lemmy.ml.
+  { instance: "https://lemmy.world", name: "palestine@lemmy.ml", sort: "Hot" },
 ];
 
 const FEED_COMMUNITIES = [...COMMUNITIES, ...FEED_EXTRA];
@@ -74,10 +75,30 @@ interface ApiPost {
     thumbnail_url?: string;
     nsfw?: boolean;
   };
+  community?: { actor_id?: string };
   counts?: { score?: number; comments?: number };
 }
 
 const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
+
+/**
+ * The label the wire shows: c/<community>@<host that actually hosts it>.
+ * A federated read (palestine@lemmy.ml served by lemmy.world) must not be
+ * labelled as a lemmy.world community.
+ */
+function communitySite(actorId: string | undefined, source: Source): string {
+  if (actorId) {
+    try {
+      const url = new URL(actorId);
+      const slug = url.pathname.replace(/^\/c\//, "").replace(/\/+$/, "");
+      if (slug && !slug.includes("/")) return `c/${slug}@${url.hostname}`;
+    } catch {
+      /* fall back to the configured source */
+    }
+  }
+  const name = source.name.split("@")[0];
+  return `c/${name}@${new URL(source.instance).hostname}`;
+}
 
 async function fetchCommunity({ instance, name, sort = "TopDay" }: Source, limit = 12): Promise<LemmyPost[]> {
   const controller = new AbortController();
@@ -97,10 +118,10 @@ async function fetchCommunity({ instance, name, sort = "TopDay" }: Source, limit
       const score = p.counts?.score ?? 0;
       return [
         {
-          topic: name,
+          topic: name.split("@")[0],
           title: clip(post.name, 180),
           url: clip(post.url || post.ap_id, 500),
-          site: `c/${name}@${new URL(instance).hostname}`,
+          site: communitySite(p.community?.actor_id, { instance, name }),
           date: post.published ?? null,
           summary: clip(post.body || post.name, 900),
           authority: Math.min(4, 1 + Math.floor(score / 50)),
