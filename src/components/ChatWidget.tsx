@@ -36,7 +36,7 @@ interface ChatResponse {
 const WELCOME: ChatMsg = {
   id: "welcome",
   role: "ada",
-  text: "The blade is metaphorical. I'm real enough to argue with. What do you want to know?",
+  text: "The blade is metaphorical. I'm real enough to argue with — and I answer in whatever language you bring. What do you want to know?",
 };
 
 function copyText(text: string): Promise<void> {
