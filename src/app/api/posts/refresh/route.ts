@@ -16,6 +16,9 @@ export const dynamic = "force-dynamic";
  */
 
 type DispatchPayload = {
+  held?: boolean;
+  deferred?: boolean;
+  reason?: string;
   title?: string;
   dek?: string;
   body?: string;
@@ -95,8 +98,8 @@ export async function POST(request: Request) {
         composite: String(reading.composite ?? ""),
       }),
       cache: "no-store",
-      // The editorial beta checkpoints eight bounded stages. Its internal
-      // 420s deadline must remain shorter than this upstream timeout.
+      // Investigations may stop without an article or resume next slot.
+      // The VPS checkpoints progress within its 420s pass deadline.
       signal: AbortSignal.timeout(480_000),
     });
     if (!res.ok) {
@@ -108,6 +111,14 @@ export async function POST(request: Request) {
     parsed = (await res.json()) as DispatchPayload;
   } catch {
     return Response.json({ error: "ada dispatch unreachable" }, { status: 502 });
+  }
+
+  if (parsed?.held === true || parsed?.deferred === true) {
+    return Response.json({
+      ok: true,
+      skipped: parsed.held === true ? "editorial hold" : "investigation deferred",
+      reason: String(parsed.reason ?? "").slice(0, 1000),
+    });
   }
 
   if (!parsed?.title || !parsed?.body) {
