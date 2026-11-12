@@ -83,6 +83,9 @@ interface ApiPost {
 
 const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 
+/** Image-only posts have no text to analyse, so they are not wire stories. */
+const IMAGE_URL = /^https?:\/\/\S+\.(?:jpe?g|png|gif|webp|avif)(?:[?#]\S*)?$/i;
+
 /**
  * The label the wire shows: c/<community>@<host that actually hosts it>.
  * A federated read (palestine@lemmy.ml served by lemmy.world) must not be
@@ -116,13 +119,18 @@ async function fetchCommunity({ instance, name, sort = "TopDay" }: Source, limit
     return (data.posts ?? []).flatMap((p) => {
       const post = p.post;
       if (!post?.name) return [];
-      if (!post.url && !post.body) return [];
+      const target = post.url && !IMAGE_URL.test(post.url)
+        ? post.url
+        : post.body
+          ? post.ap_id
+          : "";
+      if (!target) return [];
       const score = p.counts?.score ?? 0;
       return [
         {
           topic: name.split("@")[0],
           title: clip(post.name, 180),
-          url: clip(post.url || post.ap_id, 500),
+          url: clip(target, 500),
           site: communitySite(p.community?.actor_id, { instance, name }),
           date: post.published ?? null,
           summary: clip(post.body || post.name, 900),

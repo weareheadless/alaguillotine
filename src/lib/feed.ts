@@ -99,14 +99,14 @@ export async function readFeedPage(
   const rows = await db
     .prepare(
       `${SELECT}
-       WHERE cluster = id AND (kind != 'wire' OR gloss != '')
+       WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'))
        ORDER BY heat DESC, first_seen_at DESC LIMIT ? OFFSET ?`,
     )
     .bind(limit, offset)
     .all();
   const count = await db
     .prepare(
-      "SELECT COUNT(*) AS n FROM feed_items WHERE cluster = id AND (kind != 'wire' OR gloss != '')",
+      "SELECT COUNT(*) AS n FROM feed_items WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'))",
     )
     .first<{ n?: number }>();
   return {
@@ -128,7 +128,7 @@ export async function feedStats(db: D1): Promise<{
       `SELECT
         (SELECT COUNT(*) FROM feed_items) AS items,
         (SELECT COUNT(*) FROM feed_items WHERE kind = 'wire') AS wire,
-        (SELECT COUNT(*) FROM feed_items WHERE kind = 'wire' AND gloss = '') AS discarded,
+        (SELECT COUNT(*) FROM feed_items WHERE kind = 'wire' AND (gloss = '' OR gloss LIKE '∅%')) AS discarded,
         (SELECT COUNT(*) FROM queue_people) AS names,
         (SELECT COUNT(*) FROM person_numbers) AS receipts,
         (SELECT COUNT(*) FROM dispatches) AS dispatches`,

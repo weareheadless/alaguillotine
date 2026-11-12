@@ -17,9 +17,62 @@ const CATEGORIES = new Set([
   "precarity",
 ]);
 
+/**
+ * Written into `gloss` when a wire story names no actor to hold responsible.
+ * The feed query excludes these, and the glosser never retries them.
+ */
+export const UNGROUNDED_GLOSS = "∅ ungrounded";
+
+/**
+ * Accusations that are not actors. "Profiteers extract from genocide" tells a
+ * reader nothing they can check or hold to account; a charge has to name who.
+ */
+const GENERIC_ACTORS = new Set([
+  "profiteer",
+  "profiteers",
+  "elite",
+  "elites",
+  "capitalism",
+  "capital",
+  "capitalists",
+  "system",
+  "systems",
+  "power",
+  "powerful",
+  "rich",
+  "wealthy",
+  "forces",
+  "interests",
+  "corporations",
+  "corporation",
+  "companies",
+  "company",
+  "institutions",
+  "institution",
+  "markets",
+  "market",
+]);
+
+/**
+ * A charge is publishable only when the named actor actually appears in it.
+ * The glosser sees the headline alone, so an unnamed headline must produce an
+ * empty actor rather than a slogan with a villain-shaped hole in it.
+ */
+export function glossIsGrounded(gloss: string, actor: string): boolean {
+  const charge = (gloss || "").replace(/\s+/g, " ").trim();
+  const who = (actor || "").replace(/\s+/g, " ").trim();
+  if (charge.length < 30 || who.length < 3) return false;
+  const key = who.toLowerCase().replace(/^the\s+/, "");
+  const head = key.split(/\s+/)[0] ?? "";
+  if (!head || head.length < 3 || GENERIC_ACTORS.has(head)) return false;
+  return charge.toLowerCase().includes(head);
+}
+
 const PROMPT = `You are Ada Guillotine, an anticapitalist AI reading a federated news wire.
 
-For each item below, write the charge — not a summary. One sentence, max 140 characters, that names the mechanism and who pays for it. Deadpan, exact, no outrage, no exclamation marks. Do not invent facts, numbers, names, dates or events: use only what the headline and community already say. If the headline supports no charge, return an empty gloss and the category "wire".
+For each item below, write the charge — not a summary. One sentence, max 140 characters, that names the actor, what they gain or do, and who pays for it. Deadpan, exact, no outrage, no exclamation marks. Do not invent facts, numbers, names, dates or events: use only what the headline and community already say.
+
+The actor must be a specific person, company, institution, state or organised interest named or unambiguously implied by the headline. "Profiteers", "the powerful", "the rich", "capitalism" are not actors. If the headline does not let you name one, return an empty actor and an empty gloss. A story that cannot say who did it gets no charge and does not enter the feed.
 
 Also file each item under one charge:
 - extraction: someone took money, land, labour or a public asset.
@@ -31,7 +84,8 @@ Also file each item under one charge:
 Severity is 0-100: how much harm the mechanism named in the headline does, not how loud the story is.
 
 Return JSON only:
-{"items":[{"id":"...","category":"extraction|cost|impunity|suppression|precarity|wire","severity":0,"gloss":"..."}]}
+{"items":[{"id":"...","actor":"who did it","category":"extraction|cost|impunity|suppression|precarity|wire","severity":0,"gloss":"..."}]}
+{"items":[{"id":"...","actor":"","category":"wire","severity":0,"gloss":""}]}
 
 ITEMS:
 `;
@@ -122,6 +176,10 @@ export async function glossFeed(
   for (const entry of parsed?.items ?? []) {
     const id = String(entry.id ?? "");
     if (!known.has(id)) continue;
+    const actor = String(entry.actor ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80);
     const gloss = String(entry.gloss ?? "")
       .replace(/\s+/g, " ")
       .trim()
@@ -137,7 +195,17 @@ export async function glossFeed(
       0,
       Math.min(100, Math.round(Number(entry.severity ?? 0))),
     );
-    if (!gloss && category === "wire") continue;
+    if (!glossIsGrounded(gloss, actor)) {
+      // No actor, no charge. Mark it so it neither enters the feed nor gets
+      // re-glossed on every refresh.
+      await db
+        .prepare(
+          "UPDATE feed_items SET gloss = ?, category = 'wire', severity = 0 WHERE id = ?",
+        )
+        .bind(UNGROUNDED_GLOSS, id)
+        .run();
+      continue;
+    }
     await db
       .prepare(
         "UPDATE feed_items SET gloss = ?, category = ?, severity = ? WHERE id = ?",
