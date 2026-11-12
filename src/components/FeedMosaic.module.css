@@ -7,7 +7,7 @@
 .tile { min-width: 0; background: #18181b; color: #f4f4f5; position: relative; }
 .lead { grid-column: span 2; grid-row: span 2; }
 .feature, .wide { grid-column: span 2; }
-.tile.lead { background: #18181b; color: #f4f4f5; border-top: 3px solid #e11d48; }
+.tile.lead { background: #e11d48; color: #fff; }
 .tile.receipt { background: #f4f4f5; color: #0b0b0c; }
 .tile.dispatch { background: #07130b; border-top: 4px solid #22c55e; }
 .cardLink { height: 100%; display: flex; flex-direction: column; color: inherit; text-decoration: none; }
