@@ -15,7 +15,8 @@ interface Source {
   sort?: string;
 }
 
-// Two instances, so no single server decides what Ada reads.
+// lemmy.ml refuses the Worker's requests, so its communities are read through
+// the federated view on lemmy.world. Labels resolve from each post's actor.
 const COMMUNITIES: Source[] = [
   { instance: "https://lemmy.world", name: "world" },
   { instance: "https://lemmy.world", name: "fuck_ai" },
@@ -25,9 +26,9 @@ const COMMUNITIES: Source[] = [
   { instance: "https://lemmy.world", name: "enshittification" },
   { instance: "https://lemmy.world", name: "enoughmuskspam" },
   { instance: "https://lemmy.world", name: "eattherich" },
-  { instance: "https://lemmy.ml", name: "worldnews" },
-  { instance: "https://lemmy.ml", name: "nottheonion" },
-  { instance: "https://lemmy.ml", name: "unions" },
+  { instance: "https://lemmy.world", name: "worldnews@lemmy.ml" },
+  { instance: "https://lemmy.world", name: "nottheonion@lemmy.ml", sort: "Hot" },
+  { instance: "https://lemmy.world", name: "unions@lemmy.ml", sort: "Hot" },
   { instance: "https://sopuli.xyz", name: "collapse", sort: "Hot" },
 ];
 
@@ -42,8 +43,9 @@ const FEED_EXTRA: Source[] = [
   { instance: "https://lemmy.world", name: "antiwork" },
   { instance: "https://lemmy.world", name: "climate" },
   { instance: "https://lemmy.world", name: "privacy" },
-  { instance: "https://lemmy.ml", name: "technology" },
-  { instance: "https://lemmy.ml", name: "environment" },
+  { instance: "https://lemmy.world", name: "technology@lemmy.ml" },
+  // lemmy.ml/c/environment no longer exists (no posts, no federation view), so
+  // environmental coverage comes from lemmy.world/c/environment above.
   // lemmy.ml refuses the Worker's requests, so read it through the federated
   // view on lemmy.world. The label still resolves to c/palestine@lemmy.ml.
   { instance: "https://lemmy.world", name: "palestine@lemmy.ml", sort: "Hot" },
