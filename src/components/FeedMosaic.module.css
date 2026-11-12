@@ -18,13 +18,16 @@
 .lead .meta > span:last-child, .lead .commentary > span { opacity: 1; }
 .body { padding: 1rem 1.25rem 1.5rem; flex: 1; }
 .title { margin: 0; font-size: clamp(1.2rem, 1.7vw, 1.9rem); line-height: 1.16; font-weight: 800; letter-spacing: -.045em; overflow-wrap: anywhere; text-wrap: pretty; }
+.tile:not(.lead) .title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
 .lead .title { font-size: clamp(2rem, 3.5vw, 4.3rem); line-height: 1.05; letter-spacing: -.06em; }
+.lead .body { display: flex; flex-direction: column; justify-content: center; }
 .wide .title, .feature .title { font-size: clamp(1.5rem, 2.2vw, 2.6rem); }
 .name { margin: 0 0 .8rem; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .amount { font-size: clamp(2rem, 4vw, 4.5rem); font-weight: 800; line-height: 1; letter-spacing: -.07em; overflow-wrap: anywhere; }
 .commentary { margin-top: 1.2rem; }
 .commentary > span { display: block; margin-bottom: .4rem; font-size: .5625rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; opacity: .7; }
 .commentary p { margin: 0; font-size: .75rem; line-height: 1.65; color: #d4d4d8; }
+.tile:not(.lead) .commentary p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .lead .commentary p { color: #fff; font-size: .9rem; line-height: 1.55; }
 .receipt .commentary p { color: #3f3f46; max-width: 65ch; }
 .footer { display: flex; align-items: end; gap: 1rem; justify-content: space-between; margin: 0 1.25rem; padding: .9rem 0; border-top: 1px solid #ffffff24; font-size: .625rem; line-height: 1.5; }
@@ -63,6 +66,8 @@
   .lead, .feature, .wide { grid-column: auto; grid-row: auto; }
   .title, .wide .title, .feature .title { font-size: 1.55rem; }
   .lead .title { font-size: 2rem; }
+  .lead .body { display: block; }
+  .tile:not(.lead) .title { -webkit-line-clamp: 6; }
   .meta, .body { padding-left: 1.1rem; padding-right: 1.1rem; }
   .media img, .lead .media img { height: 190px; }
   .skeleton { min-height: 230px; }
