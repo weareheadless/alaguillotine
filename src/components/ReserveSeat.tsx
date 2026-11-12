@@ -115,7 +115,7 @@ export function ReserveSeat({
     const next = { at, name, slug };
     writeStorage(next);
     setReserved(next);
-    setNote(`Alert set for ${seatAlertLabel(at)}. Keep this tab open.`);
+    setNote(`Alert set for ${seatAlertLabel(at)}. Keep this page open.`);
   }
 
   return (
@@ -144,7 +144,7 @@ export function ReserveSeat({
         className="mt-2 min-h-[2.75rem] font-mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-black/70"
       >
         {note ||
-          `Warns you five minutes before the blade · ${seatAlertLabel(at)}. Keep this tab open.`}
+          `Warns you five minutes before the blade · ${seatAlertLabel(at)}. Keep this page open.`}
       </p>
       <Link
         href="/next-in-line"
