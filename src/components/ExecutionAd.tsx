@@ -11,8 +11,16 @@ import type { ExecutionNotice } from "@/lib/execution-notice";
  * the headliner, the charge and the small print. It is an ad for an execution,
  * which is the most honest ad on the site.
  */
-export function ExecutionAd({ notice }: { notice: ExecutionNotice | null }) {
+export function ExecutionAd({ notice, compact = false }: { notice: ExecutionNotice | null; compact?: boolean }) {
   if (!notice) return null;
+
+  if (compact) return (
+    <aside aria-label="Next public execution, presented by $CHOP" className="mt-4 flex flex-wrap items-center justify-between gap-3 border-y border-chop-border py-3 font-mono text-[10px] text-chop-muted">
+      <p>Presented by <span className="font-bold text-hypeNeon">$CHOP</span> · {notice.timeLabel} · {notice.dateLabel}</p>
+      <p className="text-sheetWhite">Arrive early. Leave vertically.</p>
+      <Link href={`/person/${notice.slug}`} className="text-hypeNeon underline underline-offset-4">Reserve a seat ↗</Link>
+    </aside>
+  );
 
   return (
     <aside

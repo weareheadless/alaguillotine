@@ -1,0 +1,35 @@
+.railBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(225, 29, 72, 0.45) transparent;
+}
+
+.railBody::-webkit-scrollbar {
+  width: 6px;
+}
+
+.railBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.railBody::-webkit-scrollbar-thumb {
+  background: rgba(225, 29, 72, 0.4);
+  border-radius: 999px;
+}
+
+.railBody::-webkit-scrollbar-thumb:hover {
+  background: rgba(225, 29, 72, 0.75);
+}
+
+@media (min-width: 1024px) {
+  .railBody {
+    position: absolute;
+    inset: 58px 0 0;
+    max-height: none;
+    overscroll-behavior: contain;
+  }
+}

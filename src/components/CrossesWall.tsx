@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Figure, HateState } from "../lib/hateometer";
 import { slugify } from "../lib/slug";
+import styles from "./CrossesWall.module.css";
 
 /**
  * The crosses wall.
@@ -22,9 +23,12 @@ function shortDate(iso: string) {
 export function CrossesWall({
   chops,
   figures,
+  compact = false,
 }: {
   chops: HateState["chops"];
   figures: Figure[];
+  /** The rail beside the blade: one column, own scroll, no repeat header. */
+  compact?: boolean;
 }) {
   const bySlug = new Map(figures.map((f) => [slugify(f.name), f]));
   const total = chops.reduce((n, c) => n + c.count, 0);
@@ -32,25 +36,27 @@ export function CrossesWall({
 
   if (chops.length === 0) {
     return (
-      <div className="mt-4 border border-dashed border-chop-border p-10 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted">
+      <div className={`${compact ? "p-6" : "mt-4 p-10"} border border-dashed border-chop-border text-center font-mono text-[11px] uppercase tracking-[0.25em] text-chop-muted`}>
         no cross has been nailed up yet — the machine is still reading
       </div>
     );
   }
 
   return (
-    <div className="mt-4">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-chop-border pb-2">
-        <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-chop-muted">
-          <span className="text-3xl font-black tabular-nums text-spiteCrimson">{total}</span>{" "}
-          blade{total === 1 ? "" : "s"} fallen
-        </p>
-        <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-          {chops.length} name{chops.length === 1 ? "" : "s"} on the wall · click a name for the record
-        </p>
-      </div>
+    <div className={compact ? styles.railBody : "mt-4"}>
+      {!compact && (
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-chop-border pb-2">
+          <p className="font-mono text-[9px] uppercase tracking-[0.25em] text-chop-muted">
+            <span className="text-3xl font-black tabular-nums text-spiteCrimson">{total}</span>{" "}
+            blade{total === 1 ? "" : "s"} fallen
+          </p>
+          <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+            {chops.length} name{chops.length === 1 ? "" : "s"} on the wall · click a name for the record
+          </p>
+        </div>
+      )}
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
         {chops.map((chop) => {
           const figure = bySlug.get(chop.slug);
           const isRecent = Date.parse(chop.lastAt) > recent;
@@ -60,7 +66,9 @@ export function CrossesWall({
             <Link
               key={chop.slug}
               href={`/person/${chop.slug}`}
-              className={`group relative flex items-start justify-between gap-3 border-2 p-3 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-spiteCrimson ${
+              className={`group relative flex min-w-0 items-start justify-between gap-3 border-2 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:border-spiteCrimson ${
+                compact ? "p-2.5" : "p-3"
+              } ${
                 isRecent
                   ? "border-spiteCrimson/70 bg-spiteCrimson/[0.07] shadow-[0_0_22px_rgba(225,29,72,0.14)]"
                   : "border-chop-border bg-white/[0.02]"
@@ -68,7 +76,12 @@ export function CrossesWall({
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <h3 className="truncate text-[13px] font-black uppercase leading-tight tracking-tight text-sheetWhite group-hover:text-spiteCrimson">
+                  <h3
+                    title={chop.person}
+                    className={`text-[13px] font-black uppercase leading-tight tracking-tight text-sheetWhite group-hover:text-spiteCrimson ${
+                      compact ? "break-words" : "truncate"
+                    }`}
+                  >
                     {chop.person}
                   </h3>
                   {isRecent && (

@@ -39,7 +39,8 @@ const CUT_IN: CutIn = {
  *
  * Ada's mood, the gauge, and the blades. The queue is the page: everyone
  * standing under their own blade, each counter built from the reports that name
- * them. Below it, the feed opens out into the wire and the public record.
+ * them. The crosses hang beside the blade, so the record stays in view without
+ * pushing the feed down the page.
  */
 export default function HomePage() {
   const { content } = useSiteContent();
@@ -57,8 +58,9 @@ export default function HomePage() {
   // swap it out mid-animation.
   const [frozen, setFrozen] = useState<Figure | null>(null);
   // Nobody leaves the line: a chop is a tally, and the counter resets so the
-  // name climbs back. The wall below is where the executions accumulate.
+  // name climbs back. The wall beside the blade is where executions accumulate.
   const standing = hate.figures;
+  const chopTotal = hate.chops.reduce((n, c) => n + c.count, 0);
   // The card belongs to the name under the blade, not to whoever is first in
   // the line. When a sentence is waiting, that name is the appointment.
   const sentenced = hate.execution
@@ -109,7 +111,7 @@ export default function HomePage() {
 
       <main className="relative z-10 pb-20 md:pb-8">
         {/* ── The front page: the argument, and the set ───────────────── */}
-        <div className="mx-auto mt-8 grid max-w-6xl items-center gap-6 px-4 md:px-6 lg:grid-cols-[1fr_420px]">
+        <div className="mt-8 grid items-center gap-6 px-[clamp(1rem,2vw,2rem)] lg:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
               {content.hero.badge}
@@ -157,7 +159,7 @@ export default function HomePage() {
         </div>
 
         {/* ── The blade: full width, the main piece ───────────────────── */}
-        <div className="mx-auto mt-8 max-w-6xl px-4 md:px-6">
+        <div className="mt-8 px-[clamp(1rem,2vw,2rem)]">
           <section id="queue">
             <div className="flex items-end justify-between gap-4 border-b border-chop-border pb-2">
               <div>
@@ -177,26 +179,49 @@ export default function HomePage() {
               />
             </div>
 
-            {atTheBlock && (
-              <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-                <div>
-                  <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
-                    <span>{hate.execution ? "next to be executed" : "top of the line"}</span>
-                    <span>promoted from the line</span>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)]">
+              {atTheBlock && (
+                <div className="min-w-0">
+                  <div className="min-w-0">
+                    <div className="mb-2 flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.3em] text-chop-muted">
+                      <span>{hate.execution ? "next to be executed" : "top of the line"}</span>
+                      <span>promoted from the line</span>
+                    </div>
+                    <QueueCard
+                      figure={atTheBlock}
+                      dropped={chopped === slugify(atTheBlock.name)}
+                    />
                   </div>
-                  <QueueCard
-                    figure={atTheBlock}
-                    dropped={chopped === slugify(atTheBlock.name)}
-                  />
                 </div>
-                <ExecutionAd notice={notice} />
-              </div>
-            )}
+              )}
+
+              {/* The record sits beside the blade instead of below it. Its own
+                  scroll keeps every name reachable without stretching the page. */}
+              <aside
+                aria-labelledby="crosses-title"
+                className="relative flex min-w-0 flex-col border border-chop-border lg:min-h-0"
+              >
+                <div className="flex min-h-[58px] flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-chop-border px-3 py-2">
+                  <h2
+                    id="crosses-title"
+                    className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite"
+                  >
+                    the crosses
+                  </h2>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                    {chopTotal} blade{chopTotal === 1 ? "" : "s"} · {hate.chops.length} name
+                    {hate.chops.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <CrossesWall chops={hate.chops} figures={hate.figures} compact />
+              </aside>
+            </div>
+            <ExecutionAd notice={notice} compact />
           </section>
         </div>
 
         {/* ── The control deck: three different shapes, one row ───────── */}
-        <div className="mx-auto mt-6 max-w-6xl px-4 md:px-6">
+        <div className="mt-6 px-[clamp(1rem,2vw,2rem)]">
           <ControlDeck
             mood={state.voice.mood}
             line={state.voice.line}
@@ -204,26 +229,10 @@ export default function HomePage() {
           />
         </div>
 
-        {/* ── The crosses ─────────────────────────────────────────────── */}
-        <div className="mx-auto mt-10 max-w-6xl px-4 md:px-6">
-          <section>
-            <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
-                the crosses
-              </h2>
-              <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                every name, every time
-              </span>
-            </div>
-
-            <CrossesWall chops={hate.chops} figures={hate.figures} />
-          </section>
-        </div>
-
         {/* ── The evidence ────────────────────────────────────────────── */}
         <FeedMosaic />
 
-        <div className="mx-auto mt-10 max-w-6xl px-4 md:px-6">
+        <div className="mt-10 px-[clamp(1rem,2vw,2rem)]">
           <RulesBanner />
         </div>
       </main>
