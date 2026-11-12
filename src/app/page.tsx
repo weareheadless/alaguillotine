@@ -13,7 +13,7 @@ import { slugify } from "../lib/slug";
 import { QueueCard } from "../components/QueueCard";
 import type { Figure } from "../lib/hateometer";
 import { CrossesWall } from "../components/CrossesWall";
-import { RageStack } from "../components/RageStack";
+import { FeedMosaic } from "../components/FeedMosaic";
 import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
@@ -39,12 +39,12 @@ const CUT_IN: CutIn = {
  *
  * Ada's mood, the gauge, and the blades. The queue is the page: everyone
  * standing under their own blade, each counter built from the reports that name
- * them. The stack underneath is the evidence.
+ * them. Below it, the feed opens out into the wire and the public record.
  */
 export default function HomePage() {
   const { content } = useSiteContent();
   const { show } = useDrawer();
-  const { state, pulls, pull } = useClock();
+  const { state } = useClock();
   // Ada rewrites the front page when she has something to say; otherwise the
   // standing copy holds.
   const heroHeadline = state.voice.headline || content.hero.headline;
@@ -221,19 +221,7 @@ export default function HomePage() {
         </div>
 
         {/* ── The evidence ────────────────────────────────────────────── */}
-        <section className="mx-auto mt-12 max-w-6xl px-4 md:px-6">
-          <div className="flex items-baseline justify-between border-b border-chop-border pb-2">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-sheetWhite">
-              the stack
-            </h2>
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-              what the counters are made of
-            </span>
-          </div>
-          <div className="mt-5">
-            <RageStack items={state.items} onPull={pull} bare />
-          </div>
-        </section>
+        <FeedMosaic />
 
         <div className="mx-auto mt-10 max-w-6xl px-4 md:px-6">
           <RulesBanner />
