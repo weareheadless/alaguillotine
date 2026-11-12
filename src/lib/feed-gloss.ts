@@ -23,6 +23,9 @@ const CATEGORIES = new Set([
  */
 export const UNGROUNDED_GLOSS = "∅ ungrounded";
 
+/** One-run diagnostics for the cron path; safe to leave empty in normal use. */
+export const glossDiagnostics: Record<string, unknown> = {};
+
 /**
  * Accusations that are not actors. "Profiteers extract from genocide" tells a
  * reader nothing they can check or hold to account; a charge has to name who.
@@ -103,6 +106,7 @@ export async function glossFeed(
   limit = 12,
 ): Promise<number> {
   const key = env.SITE_AGENT_LLM_API_KEY;
+  glossDiagnostics.key = Boolean(key);
   if (!key) return 0;
 
   const rows = await db
@@ -138,6 +142,7 @@ export async function glossFeed(
       body: JSON.stringify({
         model,
         temperature: 0.6,
+        max_tokens: 4000,
         response_format: { type: "json_object" },
         messages: [
           {
@@ -158,9 +163,15 @@ export async function glossFeed(
           },
         ],
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(120_000),
     });
-    if (!res.ok) return 0;
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 300);
+      glossDiagnostics.status = res.status;
+      glossDiagnostics.body = body;
+      console.error("gloss_http", res.status, body);
+      return 0;
+    }
     const reply = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
@@ -171,9 +182,13 @@ export async function glossFeed(
     parsed = start > -1 && end > start
       ? (JSON.parse(text.slice(start, end + 1)) as { items?: Array<Record<string, unknown>> })
       : null;
-  } catch {
+  } catch (error) {
+    glossDiagnostics.error = String(error);
+    console.error("gloss_failed", error);
     return 0;
   }
+  glossDiagnostics.parsed = parsed?.items?.length ?? -1;
+  console.error("gloss_parsed", parsed?.items?.length ?? -1, "known", items.length);
 
   const known = new Set(items.map((item) => item.id));
   let filed = 0;
@@ -218,5 +233,8 @@ export async function glossFeed(
       .run();
     filed += 1;
   }
+  glossDiagnostics.filed = filed;
+  glossDiagnostics.rows = items.length;
+  console.error("gloss_done", filed, "of", items.length);
   return filed;
 }

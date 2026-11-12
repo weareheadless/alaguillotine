@@ -36,6 +36,6 @@ export async function POST(request: Request) {
   if (!db) return Response.json({ error: "D1 unavailable" }, { status: 500 });
 
   const result = await refreshFeed(db);
-  const glossed = await glossFeed(db, env, 24);
+  const glossed = await glossFeed(db, env, 12);
   return Response.json({ ok: true, ...result, glossed });
 }
