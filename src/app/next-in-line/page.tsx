@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { useHateometer } from "@/components/Hateometer";
@@ -27,13 +28,19 @@ export default function NextInLinePage() {
   const charges =
     hate.ledgerTotal ?? hate.figures.reduce((n, f) => n + (f.ledgerCount ?? 0), 0);
 
+  // A ranked list of names with no charge reads as "least harmful", which is
+  // the opposite of what a zero means: nothing proven inside the window. They
+  // keep their pages and their record; they leave the ranking.
+  const charged = useMemo(() => standing.filter((f) => f.score > 0), [standing]);
+  const uncharged = useMemo(() => standing.filter((f) => f.score <= 0), [standing]);
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return standing;
-    return standing.filter((f) =>
+    if (!needle) return charged;
+    return charged.filter((f) =>
       `${f.name} ${f.role} ${f.country} ${f.reason}`.toLowerCase().includes(needle),
     );
-  }, [standing, query]);
+  }, [charged, query]);
 
   // Where the cooling block starts. The line is sorted so names serving their
   // three days sit at the foot of it; the divider is what tells a reader that
@@ -141,6 +148,31 @@ export default function NextInLinePage() {
                 ))
               )}
             </div>
+
+            {uncharged.length > 0 && (
+              <section className="mt-6 border-t border-chop-border pt-4">
+                <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
+                  on the record, no charge in the last 180 days · {uncharged.length}
+                </p>
+                <p className="mt-1 font-mono text-[10px] leading-relaxed text-chop-muted/80">
+                  Nothing here is proven inside the window, so nothing here can be
+                  sentenced. They keep their pages and their receipts, and a zero
+                  is not an acquittal — it is the absence of a recent receipt.
+                </p>
+                <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                  {uncharged.map((f) => (
+                    <li key={f.name}>
+                      <Link
+                        href={`/person/${f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`}
+                        className="font-mono text-[11px] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+                      >
+                        {f.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
 
           {/* The work arriving. Research files batches; this is the batch, so a
