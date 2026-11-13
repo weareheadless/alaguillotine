@@ -1,4 +1,4 @@
-import { countLedger, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
+import { ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { slugify } from "@/lib/slug";
 import { emptyHate, itemMentions, type HateState } from "@/lib/hateometer";
 import { coverageBySlug } from "@/lib/coverage";
@@ -35,25 +35,6 @@ export async function GET() {
       return Response.json(emptyHate(), { headers: { "Cache-Control": "no-store" } });
     }
 
-    let counts: Record<string, number> = {};
-    let countRows: Array<{ person: string; count: number }> = [];
-    try {
-      const rows = await db
-        .prepare(
-          "SELECT lower(person) AS n, COUNT(*) AS c FROM ledger_entries GROUP BY lower(person)",
-        )
-        .all();
-      counts = Object.fromEntries(
-        (rows.results ?? []).map((r) => [String(r.n), Number(r.c)]),
-      );
-      countRows = (rows.results ?? []).map((r) => ({
-        person: String(r.n),
-        count: Number(r.c),
-      }));
-    } catch {
-      counts = {};
-    }
-
     const chops = await listChops(db);
     const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
     const summaries = await readLedgerSummaries();
@@ -81,8 +62,9 @@ export async function GET() {
         sourceUrl:
           items[0]?.sourceUrl ??
           `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(f.name)}`,
-        ledgerCount:
-          countRows.length > 0 ? countLedger(countRows, f.name) : counts[f.name.toLowerCase()] ?? 0,
+        // The exact number of entries behind this name, not a token sum:
+        // overlapping names were inflating the total by hundreds.
+        ledgerCount: summary?.count ?? 0,
         // The number is the window, so the card shows what is inside it.
         windowActs: summary?.windowActs ?? 0,
         latestAct: summary?.newest ?? null,

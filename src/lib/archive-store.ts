@@ -1,10 +1,12 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { evidenceFor } from "./evidence";
+import { actDate, evidenceFor } from "./evidence";
+import { slugify } from "./slug";
 
 type Stmt = {
   bind: (...v: unknown[]) => Stmt;
   run: () => Promise<unknown>;
   all: <T = { results?: Array<Record<string, unknown>> }>() => Promise<T>;
+  first: <T = Record<string, unknown>>() => Promise<T | null>;
 };
 type D1 = { prepare: (q: string) => Stmt };
 
@@ -292,4 +294,87 @@ export function ledgerSummaryFor(
     }
   }
   return best;
+}
+
+export interface RecentCharge {
+  person: string;
+  slug: string;
+  act: string;
+  place: string;
+  year: number;
+  category: string;
+  confidence: number;
+  /** ISO date when the act text gives one, otherwise null. */
+  date: string | null;
+  /** When the charge was filed. */
+  createdAt: string;
+}
+
+export interface ChargeStats {
+  total: number;
+  last24h: number;
+}
+
+/**
+ * The newest charge filed for each name.
+ *
+ * A rail that showed the twelve latest rows would be one person's dossier on a
+ * good day. Research files in batches, so the newest row per person is the
+ * honest unit: what was just added to whose record.
+ */
+export async function recentCharges(limit = 10): Promise<RecentCharge[]> {
+  const d = await db();
+  if (!d) return [];
+  const rows = await d
+    .prepare(
+      `SELECT lower(person) AS key, person, act, place, year, category, confidence, created_at
+         FROM ledger_entries
+        ORDER BY created_at DESC, rowid DESC
+        LIMIT 240`,
+    )
+    .bind()
+    .all();
+
+  const seen = new Set<string>();
+  const out: RecentCharge[] = [];
+  for (const r of rows.results ?? []) {
+    const key = String(r.key ?? "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const year = Number(r.year ?? 0);
+    const act = String(r.act ?? "");
+    const stamp = actDate(act, year);
+    out.push({
+      person: String(r.person ?? ""),
+      slug: slugify(String(r.person ?? "")),
+      act,
+      place: String(r.place ?? ""),
+      year,
+      category: String(r.category ?? ""),
+      confidence: Number(r.confidence ?? 0),
+      date: stamp?.precise ? stamp.at.toISOString().slice(0, 10) : null,
+      createdAt: String(r.created_at ?? ""),
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+export async function chargeStats(): Promise<ChargeStats> {
+  const d = await db();
+  if (!d) return { total: 0, last24h: 0 };
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const row = await d
+      .prepare(
+        `SELECT COUNT(*) AS total,
+                SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS recent
+           FROM ledger_entries`,
+      )
+      .bind(since)
+      .first<{ total?: number; recent?: number }>();
+    return { total: Number(row?.total ?? 0), last24h: Number(row?.recent ?? 0) };
+  } catch {
+    return { total: 0, last24h: 0 };
+  }
 }
