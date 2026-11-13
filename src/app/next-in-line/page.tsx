@@ -68,7 +68,9 @@ export default function NextInLinePage() {
           <p className="mt-3 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
             Every name is scored on the five heaviest acts the record documents
             inside the last 180 days — a sixth does not make it worse, it makes
-            it better documented. No floor for old fame, no points for having
+            it better documented. What happened this week weighs more than the
+            same act at the edge of the window, because the blade is a crowd and
+            a crowd is moved by now. No floor for old fame, no points for having
             been chopped: a name with nothing recent cannot be sentenced. The blade takes the
             worst name that is not cooling from its last chop. Click a name for its charges and
             sources.

@@ -55,6 +55,18 @@ const DEFAULT_WEIGHT = 0.5;
 
 /** The sum at which the score reaches about 63. A handful of strong acts. */
 export const SCORE_SATURATION = 2.5;
+
+/**
+ * How much of an act's weight survives to the edge of the window.
+ *
+ * This is the difference between a ledger and a front page. The record is the
+ * record, but a guillotine is a crowd, and a crowd is moved by what is
+ * happening now: an atrocity committed this week should move the line in a way
+ * the same atrocity at day 179 does not. So a fresh act counts full and fades
+ * to 55% by the end of the window — never to nothing inside it, because the
+ * window is the promise, not the mood.
+ */
+export const RECENCY_FLOOR = 0.55;
 const SATURATION = SCORE_SATURATION;
 
 const MONTHS: Record<string, number> = {
@@ -154,9 +166,11 @@ function utc(year: number, month: number, day: number): Date | null {
 /**
  * Score a person's ledger inside the window.
  *
- * Dated acts inside the window count whole. Undated acts from the current year
- * count half: the year proves they are recent, not that they are inside the
- * window. Older acts do not count at all.
+ * Dated acts inside the window count, freshest first: an act fades from full
+ * weight on the day it happened to 55% on its last day in the window, because
+ * the blade is a crowd and a crowd is moved by now. Undated acts from the
+ * current year count half: the year proves they are recent, not that they are
+ * inside the window. Older acts do not count at all.
  *
  * Only the five heaviest acts are summed. The count of acts is still reported
  * beside the number, because how much was documented is worth knowing — it just
@@ -186,7 +200,10 @@ export function evidenceFor(
     let weight: number;
 
     if (stamp.precise && ageDays <= EVIDENCE_WINDOW_DAYS && ageDays >= -7) {
-      weight = 1;
+      // Fresh acts lead. The fade is linear, so it can be checked by hand:
+      // today is 1.0, ninety days is 0.775, the last day of the window is 0.55.
+      const fade = Math.min(1, Math.max(0, ageDays / EVIDENCE_WINDOW_DAYS));
+      weight = 1 - (1 - RECENCY_FLOOR) * fade;
     } else if (entry.year === currentYear && !stamp.precise) {
       // A bare year cannot put the act inside the window. Half is the honest
       // guess, and it keeps a January act from counting like an October one.
