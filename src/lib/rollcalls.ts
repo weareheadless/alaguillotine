@@ -129,6 +129,20 @@ async function latestRollNumber(year: number): Promise<number> {
 }
 
 /** The most recent rolls, newest first. */
+/** A known slice of a year, for walking the record backwards. */
+export async function rollsInRange(
+  year: number,
+  from: number,
+  count: number,
+): Promise<RollCall[]> {
+  const rolls: RollCall[] = [];
+  for (let n = from; n >= 1 && rolls.length < count; n -= 1) {
+    const roll = await fetchRoll(year, n);
+    if (roll) rolls.push(roll);
+  }
+  return rolls;
+}
+
 export async function recentRolls(limit = 18): Promise<RollCall[]> {
   const year = new Date().getUTCFullYear();
   const latest = await latestRollNumber(year);

@@ -45,7 +45,9 @@ const SYSTEM = `You are the judge for a public ledger of documented political ha
 
 For each roll call, return:
 - harm: "arms" when the measure moves weapons, money for weapons, or military support to a party to a conflict. "impunity" when it shields a named official from accountability — impeachment, contempt, censure, an inquiry, ethics — or removes oversight of force. "relief" when the measure restrains arms, conditions aid, ends a war, or exposes an official: a Yea there is the restraint and must not be charged. "none" for routine business — post offices, commemorations, appointments, budget bookkeeping with no force in it, and anything whose purpose the title does not make clear.
-- charged: which votes cast the harmful act, as a list of "yea", "nay", "present". A Yea on passage of an arms bill charges yea. A Yea on a motion to table or refer an impeachment charges yea, because tabling kills it. A Nay on the only measure that would restrain arms charges nay. A Present on a motion that kills something charges present only when the abstention let it pass. Never charge both sides of one roll.
+- charged: which votes cast the harmful act, as a list of "yea", "nay", "present". A Yea on passage of an arms bill charges yea. A Yea on a motion to table or refer an impeachment charges yea, because tabling kills it. A Nay on the only measure that would restrain arms charges nay.
+
+Abstention is a judgment, not a rule. Each roll carries present_decides: true when the motion would have failed with every Present voting against it, meaning the abstentions are what let it through. Charge "present" only when present_decides is true and the abstention was on the side that mattered. When present_decides is false, the abstention changed nothing and must not be charged — a Present that did not decide anything is a shrug, and this ledger does not charge shrugs. Never charge both sides of one roll.
 - attribution: 0 to 1, how much the act is that individual member's own. Be strict, because this number is compared against heads of state. One vote inside a 435-member authorisation, where the bill passes anyway: 0.1 to 0.2. A single procedural vote, even a decisive one on one official's accountability: 0.25 to 0.4 — one of four hundred and thirty-five hands. The named sponsor or floor manager of the measure: 0.4 to 0.6. A motion carried by a handful of votes where the member's own vote was required: 0.5. Unanimous consent: 0.05. Never above 0.6 for a vote; authorship is the ceiling, not the vote.
 - why: one sentence, at most 140 characters, saying what the vote did.
 
@@ -78,6 +80,8 @@ export interface JudgeableRoll {
   result: string;
   /** Party and vote tallies, so the judge can see whether a vote was decisive. */
   tally: string;
+  /** True when the result would have flipped if every Present had voted No. */
+  presentDecides: boolean;
   url: string;
 }
 
@@ -184,6 +188,7 @@ export async function judgeRolls(
                   question: r.question,
                   result: r.result,
                   tally: r.tally,
+                  present_decides: r.presentDecides,
                 })),
               ),
             },

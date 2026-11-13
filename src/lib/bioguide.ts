@@ -34,11 +34,12 @@ export async function loadMembers(): Promise<Map<string, Member>> {
       const id = row.id?.bioguide;
       if (!id) continue;
       const term = row.terms?.[row.terms.length - 1] ?? {};
-      // First and last only: "Jared F. Golden" makes a page nobody can guess,
-      // and a quote in a name is a URL nobody can type.
+      // The official name is the canonical one: "C. Scott Franklin" is a
+      // person, "C. Franklin" is a data artefact. Middle initials cost nothing
+      // in the name, and the slug falls back to first-and-last for the URL.
       const name =
-        [row.name?.first, row.name?.last].filter(Boolean).join(" ").trim() ||
-        row.name?.official_full;
+        row.name?.official_full ||
+        [row.name?.first, row.name?.last].filter(Boolean).join(" ").trim();
       if (!name) continue;
       out.set(id, {
         name,

@@ -3,7 +3,13 @@ import { clockConfig } from "@/lib/clock-research";
 import { loadMembers } from "@/lib/bioguide";
 import { getDb, type D1 } from "@/lib/hate-store";
 import { ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
-import { billLabel, prettyDate, recentRolls, type RollCall } from "@/lib/rollcalls";
+import {
+  billLabel,
+  prettyDate,
+  recentRolls,
+  rollsInRange,
+  type RollCall,
+} from "@/lib/rollcalls";
 import { slugify } from "@/lib/slug";
 import { judgeRolls, type JudgeableRoll } from "@/lib/vote-judge";
 
@@ -33,6 +39,21 @@ const VOTE_KEY: Record<string, "yea" | "nay" | "present"> = {
   Nay: "nay",
   Present: "present",
 };
+
+/**
+ * Did the abstentions decide it?
+ *
+ * If every Present had voted against the motion and it still passed, the
+ * abstentions changed nothing and are not a charge. If the motion would have
+ * failed with them voting, they are what let it through — and then the judge
+ * may charge them.
+ */
+function presentDecides(roll: RollCall): boolean {
+  const count = (vote: string) => roll.votes.filter((v) => v.vote === vote).length;
+  const margin = count("Yea") - count("Nay");
+  const withoutPresent = count("Yea") - (count("Nay") + count("Present"));
+  return Math.sign(margin) !== Math.sign(withoutPresent);
+}
 
 function tallyOf(roll: RollCall): string {
   const counts = new Map<string, number>();
@@ -101,9 +122,20 @@ export async function POST(request: Request) {
 
   const url = new URL(request.url);
   const deep = url.searchParams.get("deep") === "1";
+  const rejudge = url.searchParams.get("rejudge") === "1";
+
+  // A slice of a past year, for walking the record back: ?year=2024&from=500&count=120
+  const sliceYear = Number(url.searchParams.get("year") ?? 0);
+  const sliceFrom = Number(url.searchParams.get("from") ?? 0);
+  const sliceCount = Math.min(200, Math.max(1, Number(url.searchParams.get("count") ?? 120)));
 
   const year = new Date().getUTCFullYear();
-  const [members, rolls] = await Promise.all([loadMembers(), recentRolls(deep ? 180 : 40)]);
+  const [members, rolls] = await Promise.all([
+    loadMembers(),
+    sliceYear > 1900 && sliceFrom > 0
+      ? rollsInRange(sliceYear, sliceFrom, sliceCount)
+      : recentRolls(deep ? 180 : 40),
+  ]);
   const judgeable: JudgeableRoll[] = rolls.map((r) => ({
     year: Number(r.date.slice(0, 4)) || year,
     roll: r.roll,
@@ -113,8 +145,25 @@ export async function POST(request: Request) {
     question: r.question,
     result: r.result,
     tally: tallyOf(r),
+    presentDecides: presentDecides(r),
     url: r.url,
   }));
+
+  // A verdict is cached so a vote is judged once. It is not a lifetime
+  // appointment: rejudge clears the cache for these rolls so a changed rubric
+  // can reconsider them.
+  if (rejudge && judgeable.length > 0) {
+    try {
+      await db
+        .prepare(
+          `DELETE FROM vote_verdicts WHERE key IN (${judgeable.map(() => "?").join(",")})`,
+        )
+        .bind(...judgeable.map((r) => `${r.year}:${r.roll}`))
+        .run();
+    } catch {
+      /* the cached verdict stands */
+    }
+  }
 
   const verdicts = await judgeRolls(
     { chatBase: config.chatBase, chatKey: config.chatKey, chatModel: config.chatModel },
@@ -144,12 +193,15 @@ export async function POST(request: Request) {
       const member = members.get(target.id);
       if (!member) continue;
       const act = actFor(roll, target.vote);
-      const id = `${slugify(member.name)}:${caseId}`;
+      // The bioguide ID is the identity. A display name can be corrected later
+      // without leaving a second row for the same hand on the same vote.
+      const id = `${target.id}:${caseId}`;
       const res = (await db
         .prepare(
           `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET act = excluded.act, attribution = excluded.attribution`,
+           ON CONFLICT(id) DO UPDATE SET act = excluded.act, attribution = excluded.attribution,
+             person = excluded.person, role = excluded.role`,
         )
         .bind(
           id,
@@ -194,16 +246,22 @@ export async function POST(request: Request) {
          HAVING n >= 3`,
       )
       .all<{ results?: Array<{ person: string; n: number }> }>();
+    // The line is the current record, not the archive. The three votes have to
+    // be inside the window: a member with two this year and one in 2023 has a
+    // history, not a standing, and a history belongs on their page.
+    const summaries = await readLedgerSummaries();
     for (const row of rows.results ?? []) {
+      const name = String(row.person);
+      if ((ledgerSummaryFor(summaries, name)?.windowActs ?? 0) < 3) continue;
       const queued = await ensurePerson(
         db,
-        String(row.person),
+        name,
         "Representative, U.S. House",
         "United States",
-        "Three or more recorded votes filed as harm in the last 180 days.",
+        "Three or more recorded votes filed as harm inside the last 180 days.",
         "",
       );
-      if (queued) promoted.push(String(row.person));
+      if (queued) promoted.push(name);
     }
   } catch {
     /* queue promotion is a convenience; the ledger is the record */
