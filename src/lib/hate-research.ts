@@ -285,7 +285,7 @@ export async function runHatePass(
         sourceUrl:
           cited[0]?.sourceUrl ??
           `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(name)}`,
-        items: cited.slice(0, 4),
+        items: cited.slice(0, 4).map((i) => ({ ...i, dimension: i.dimension })),
       },
     ];
   });

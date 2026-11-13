@@ -60,6 +60,8 @@ export interface Figure {
     sourceUrl: string;
     publishedAt: string | null;
     harm: number;
+    /** The dimension the item was filed under, so a charge can inherit it. */
+    dimension?: string;
   }>;
   rank: number;
   prevRank: number | null;

@@ -4,6 +4,7 @@ import { runHatePass } from "@/lib/hate-research";
 import { getDb, readHate, readQueue, writeHate, writeQueue } from "@/lib/hate-store";
 import { ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { registerQueueNames } from "@/lib/coverage";
+import { writeLedgerEntries } from "@/lib/ledger-write";
 import type { Figure } from "@/lib/hateometer";
 
 export const dynamic = "force-dynamic";
@@ -58,22 +59,91 @@ export async function POST(request: Request) {
     // who is nominated and what the charge reads; it no longer decides the
     // order. That is the ledger's job.
     const seen = new Map(pass.figures.map((f) => [f.name.toLowerCase(), f]));
-    const merged: Figure[] = queue.map((person) => {
+    // A name with no record and no story is not being kept for later; it was
+    // nominated on a bad afternoon and never documented. A quiet week does not
+    // drop anybody — but a name that has never had a charge has nothing to
+    // stand on, and leaving it in the line at zero reads as an accusation with
+    // no receipt behind it.
+    const merged: Figure[] = queue.flatMap((person): Figure[] => {
       const fresh = seen.get(person.name.toLowerCase());
       const score = evidenceScore(person.name);
-      if (fresh) return { ...person, ...fresh, score, addedAt: person.addedAt };
-      return { ...person, mentions: 0, delta: null, score };
+      const charges = ledgerSummaryFor(ledger, person.name)?.count ?? 0;
+      if (fresh) return [{ ...person, ...fresh, score, addedAt: person.addedAt }];
+      if (!charges) return [];
+      return [{ ...person, mentions: 0, delta: null, score }];
     });
 
     const known = new Set(queue.map((p) => p.name.toLowerCase()));
-    for (const fresh of pass.figures) {
-      if (!known.has(fresh.name.toLowerCase())) {
-        merged.push({
-          ...fresh,
-          score: evidenceScore(fresh.name),
-          addedAt: pass.computedAt,
-        });
+    const arrivals = pass.figures.filter((f) => !known.has(f.name.toLowerCase()));
+
+    // A name cannot enter the line with no charge: a ranked list of people
+    // with nothing on record is the site accusing whoever the wire was loudest
+    // about that afternoon. So the pass's own charge is filed as a receipt — the
+    // act, the date and the story it came from — before the name is scored.
+    // That is what makes a fresh atrocity land today instead of waiting for the
+    // next dossier rotation.
+    const categoryOf = (dimension?: string): string => {
+      switch (String(dimension ?? "")) {
+        case "repression":
+          return "repression";
+        case "arms":
+          return "arms";
+        case "incitement":
+          return "media";
+        default:
+          return "war";
       }
+    };
+    const boilerplate = (reason: string): boolean =>
+      reason.length < 25 ||
+      /no documented (act|charge)|nothing documented|appears? to have no|no charges? (appear|on record)/i.test(
+        reason,
+      );
+
+    let filed = 0;
+    for (const fresh of arrivals.slice(0, 20)) {
+      if (boilerplate(fresh.reason)) continue;
+      const cited = fresh.items ?? [];
+      const sources = [...new Set(cited.map((i) => i.sourceUrl).filter((u) => /^https?:\/\//.test(u)))];
+      if (!sources.length) continue;
+      const dated = cited.find((i) => i.publishedAt);
+      const year = dated ? Number(String(dated.publishedAt).slice(0, 4)) : new Date().getUTCFullYear();
+      try {
+        const wrote = await writeLedgerEntries(db, fresh.name, [
+          {
+            person: fresh.name,
+            role: fresh.role,
+            act: fresh.reason,
+            place: fresh.country,
+            year: Number.isFinite(year) ? year : new Date().getUTCFullYear(),
+            category: categoryOf(cited[0]?.dimension),
+            confidence: sources.length >= 2 ? 60 : 45,
+            sources: sources.slice(0, 3),
+            caseId: `queue:${fresh.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            attribution: 1,
+          },
+        ]);
+        filed += wrote.added;
+      } catch (error) {
+        console.error(
+          "queue_receipt_failed",
+          error instanceof Error ? error.message : "unknown",
+        );
+      }
+    }
+
+    // Re-read the record if anything was just filed, so the arrival is scored
+    // on the charge that put it here rather than on an empty ledger.
+    const record = filed > 0 ? await readLedgerSummaries() : ledger;
+    const scoreOf = (name: string): number =>
+      ledgerSummaryFor(record, name)?.evidence ?? 0;
+
+    for (const fresh of arrivals) {
+      merged.push({
+        ...fresh,
+        score: scoreOf(fresh.name),
+        addedAt: pass.computedAt,
+      });
     }
 
     // Sorted by the evidence, then by how many acts are behind it. No ceiling
@@ -110,6 +180,7 @@ export async function POST(request: Request) {
       ok: true,
       level: pass.level,
       added: ranked.length - queue.length,
+      filed,
       total: ranked.length,
     });
   } catch (error) {
