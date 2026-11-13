@@ -61,14 +61,29 @@ const GENERIC_ACTORS = new Set([
  * The glosser sees the headline alone, so an unnamed headline must produce an
  * empty actor rather than a slogan with a villain-shaped hole in it.
  */
+const ACTOR_STOP = new Set([
+  "the", "and", "of", "for", "inc", "corp", "co", "ltd", "llc", "plc",
+  "group", "company", "department", "ministry", "office", "agency",
+]);
+
+function words(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !ACTOR_STOP.has(word));
+}
+
 export function glossIsGrounded(gloss: string, actor: string): boolean {
   const charge = (gloss || "").replace(/\s+/g, " ").trim();
   const who = (actor || "").replace(/\s+/g, " ").trim();
   if (charge.length < 30 || who.length < 3) return false;
-  const key = who.toLowerCase().replace(/^the\s+/, "");
-  const head = key.split(/\s+/)[0] ?? "";
-  if (!head || head.length < 3 || GENERIC_ACTORS.has(head)) return false;
-  return charge.toLowerCase().includes(head);
+  const actorWords = words(who);
+  if (actorWords.length === 0) return false;
+  // "Profiteers", "the powerful": every word is a slogan, not a name.
+  if (actorWords.every((word) => GENERIC_ACTORS.has(word))) return false;
+  const chargeWords = new Set(words(charge));
+  return actorWords.some((word) => chargeWords.has(word));
 }
 
 const PROMPT = `You are Ada Guillotine, an anticapitalist AI reading a federated news wire.
@@ -131,23 +146,41 @@ export async function glossFeed(
   );
   const model = env.CLOCK_MODEL || "deepseek/deepseek-v4.1-flash";
 
+  // The model spends tokens on private reasoning before it writes content.
+  // Five items fit inside that budget; twelve get cut off with content: null.
+  const CHUNK = 5;
+  let filed = 0;
+  for (let start = 0; start < items.length; start += CHUNK) {
+    filed += await glossChunk(db, { base, model, key }, items.slice(start, start + CHUNK));
+  }
+  glossDiagnostics.filed = filed;
+  glossDiagnostics.rows = items.length;
+  console.error("gloss_done", filed, "of", items.length);
+  return filed;
+}
+
+async function glossChunk(
+  db: D1,
+  ctx: { base: string; model: string; key: string },
+  items: Array<{ id: string; title: string; source: string; community: string }>,
+): Promise<number> {
   let parsed: { items?: Array<Record<string, unknown>> } | null = null;
   try {
-    const res = await fetch(`${base}/chat/completions`, {
+    const res = await fetch(`${ctx.base}/chat/completions`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Bearer ${key}`,
+        authorization: `Bearer ${ctx.key}`,
       },
       body: JSON.stringify({
-        model,
+        model: ctx.model,
         temperature: 0.6,
         max_tokens: 4000,
         response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
-            content: "You file news by mechanism. Return JSON only.",
+            content: "You file news by mechanism. Output the JSON immediately, without deliberation.",
           },
           {
             role: "user",
@@ -173,22 +206,22 @@ export async function glossFeed(
       return 0;
     }
     const reply = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
     };
     const raw = reply.choices?.[0]?.message?.content ?? "";
     const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    parsed = start > -1 && end > start
-      ? (JSON.parse(text.slice(start, end + 1)) as { items?: Array<Record<string, unknown>> })
+    const open = text.indexOf("{");
+    const close = text.lastIndexOf("}");
+    parsed = open > -1 && close > open
+      ? (JSON.parse(text.slice(open, close + 1)) as { items?: Array<Record<string, unknown>> })
       : null;
+    glossDiagnostics.finish = reply.choices?.[0]?.finish_reason ?? "";
   } catch (error) {
     glossDiagnostics.error = String(error);
     console.error("gloss_failed", error);
     return 0;
   }
   glossDiagnostics.parsed = parsed?.items?.length ?? -1;
-  console.error("gloss_parsed", parsed?.items?.length ?? -1, "known", items.length);
 
   const known = new Set(items.map((item) => item.id));
   let filed = 0;
@@ -215,8 +248,6 @@ export async function glossFeed(
       Math.min(100, Math.round(Number(entry.severity ?? 0))),
     );
     if (!glossIsGrounded(gloss, actor)) {
-      // No actor, no charge. Mark it so it neither enters the feed nor gets
-      // re-glossed on every refresh.
       await db
         .prepare(
           "UPDATE feed_items SET gloss = ?, category = 'wire', severity = 0 WHERE id = ?",
@@ -233,8 +264,5 @@ export async function glossFeed(
       .run();
     filed += 1;
   }
-  glossDiagnostics.filed = filed;
-  glossDiagnostics.rows = items.length;
-  console.error("gloss_done", filed, "of", items.length);
   return filed;
 }

@@ -34,6 +34,16 @@ assert.equal(glossIsGrounded("Boeing cut 5% of its workforce while buying back s
   "the named actor has to actually appear in the charge");
 assert.equal(glossIsGrounded("Profiteers profit.", "profiteers"), false,
   "too short to explain anything");
+
+assert.equal(
+  glossIsGrounded("Trump officials moved to gut the agency while the public paid.", "Donald Trump"),
+  true,
+  "any distinctive word from a multi-word name is enough",
+);
+assert.equal(
+  glossIsGrounded("Musk's companies took another $2bn in public contracts.", "Elon Musk"),
+  true,
+);
 assert.equal(UNGROUNDED_GLOSS, "∅ ungrounded");
 
 console.log("Feed gloss: charges require a named actor that appears in the sentence");

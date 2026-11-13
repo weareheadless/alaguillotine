@@ -62,7 +62,7 @@ interface Row {
  * we saw it. No profile of the reader, no dwell time, no personalisation.
  */
 const HEAT =
-  "(severity * 10 + MIN(score, 200) + 200.0 / (1.0 + (julianday('now') - julianday(first_seen_at)) * 24.0))";
+  "(severity * 10 + MIN(score, 200) + 800.0 / (1.0 + (julianday('now') - julianday(first_seen_at)) * 24.0 / 12.0))";
 
 const SELECT = `SELECT id, kind, url, title, gloss, source, community, category,
   score, comments, severity, cluster, cluster_size, published_at, first_seen_at,
