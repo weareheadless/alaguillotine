@@ -101,7 +101,7 @@ export function ChargesRail({
         </div>
       )}
 
-      <ol className="divide-y divide-chop-border/70 [&>li:nth-child(n+5)]:hidden xl:[&>li:nth-child(n+5)]:block">
+      <ol className="divide-y divide-chop-border/70 [&>li:nth-child(n+3)]:hidden xl:[&>li:nth-child(n+3)]:block">
         {charges.map((charge) => (
           <li key={`${charge.slug}-${charge.createdAt}-${charge.act.slice(0, 12)}`} className="px-3 py-2.5">
             <div className="flex items-baseline justify-between gap-2">

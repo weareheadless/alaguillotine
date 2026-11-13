@@ -22,7 +22,9 @@ export default function NextInLinePage() {
   // sits out a cooldown. There is no separate "chopped" list to fall off.
   const standing = hate.figures;
   const chops = hate.figures.reduce((n, f) => n + (f.timesChopped ?? 0), 0);
-  const charges = hate.figures.reduce((n, f) => n + (f.ledgerCount ?? 0), 0);
+  // The whole ledger, not the queue's share: this card counts the record.
+  const charges =
+    hate.ledgerTotal ?? hate.figures.reduce((n, f) => n + (f.ledgerCount ?? 0), 0);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -73,7 +75,10 @@ export default function NextInLinePage() {
                   charges on record
                 </p>
                 <p className="mt-1 text-3xl font-black tracking-tighter">{charges}</p>
-                <p className="mt-1 font-mono text-[9px] text-black/60">ledger entries, sourced</p>
+                <p className="mt-1 font-mono text-[9px] text-black/60">
+                  ledger entries, sourced
+                  {hate.ledgerToday ? ` · ${hate.ledgerToday} filed in 24h` : ""}
+                </p>
               </div>
             </section>
 

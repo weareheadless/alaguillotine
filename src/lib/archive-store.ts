@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { actDate, evidenceFor } from "./evidence";
+import { actDate, EVIDENCE_WINDOW_DAYS, evidenceFor } from "./evidence";
 import { slugify } from "./slug";
 
 type Stmt = {
@@ -325,26 +325,28 @@ export interface ChargeStats {
 export async function recentCharges(limit = 10): Promise<RecentCharge[]> {
   const d = await db();
   if (!d) return [];
+  const currentYear = new Date().getUTCFullYear();
   const rows = await d
     .prepare(
       `SELECT lower(person) AS key, person, act, place, year, category, confidence, created_at
          FROM ledger_entries
+        WHERE year >= ?
         ORDER BY created_at DESC, rowid DESC
-        LIMIT 240`,
+        LIMIT 2000`,
     )
-    .bind()
+    .bind(currentYear - 1)
     .all();
 
-  const seen = new Set<string>();
-  const out: RecentCharge[] = [];
+  const now = Date.now();
+  const dated: Array<{ at: number; charge: RecentCharge }> = [];
+  const undated: Array<{ at: number; charge: RecentCharge }> = [];
+
   for (const r of rows.results ?? []) {
-    const key = String(r.key ?? "");
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
     const year = Number(r.year ?? 0);
     const act = String(r.act ?? "");
     const stamp = actDate(act, year);
-    out.push({
+    const createdAt = String(r.created_at ?? "");
+    const charge: RecentCharge = {
       person: String(r.person ?? ""),
       slug: slugify(String(r.person ?? "")),
       act,
@@ -353,8 +355,33 @@ export async function recentCharges(limit = 10): Promise<RecentCharge[]> {
       category: String(r.category ?? ""),
       confidence: Number(r.confidence ?? 0),
       date: stamp?.precise ? stamp.at.toISOString().slice(0, 10) : null,
-      createdAt: String(r.created_at ?? ""),
-    });
+      createdAt,
+    };
+
+    if (stamp?.precise) {
+      // The rail is ordered by what happened, not by when we filed it, so an
+      // act from 2017 cannot sit above one from last week because a batch ran.
+      const ageDays = (now - stamp.at.getTime()) / (24 * 60 * 60 * 1000);
+      if (ageDays <= EVIDENCE_WINDOW_DAYS && ageDays >= -7) {
+        dated.push({ at: stamp.at.getTime(), charge });
+      }
+    } else if (year === currentYear) {
+      // A bare year cannot be placed on the calendar. Keep it as a fallback,
+      // below everything dated, and never let an older year through.
+      undated.push({ at: Date.parse(createdAt) || 0, charge });
+    }
+  }
+
+  dated.sort((a, b) => b.at - a.at);
+  undated.sort((a, b) => b.at - a.at);
+
+  const seen = new Set<string>();
+  const out: RecentCharge[] = [];
+  for (const item of [...dated, ...undated]) {
+    const key = item.charge.person.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(item.charge);
     if (out.length >= limit) break;
   }
   return out;

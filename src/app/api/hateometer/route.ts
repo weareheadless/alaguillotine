@@ -1,4 +1,4 @@
-import { ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
+import { chargeStats, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { slugify } from "@/lib/slug";
 import { emptyHate, itemMentions, type HateState } from "@/lib/hateometer";
 import { coverageBySlug } from "@/lib/coverage";
@@ -37,7 +37,10 @@ export async function GET() {
 
     const chops = await listChops(db);
     const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
-    const summaries = await readLedgerSummaries();
+    const [summaries, ledgerStats] = await Promise.all([
+      readLedgerSummaries(),
+      chargeStats(),
+    ]);
     const coverage = await coverageBySlug(db);
     const allNumbers = await readAllNumbers(db);
 
@@ -83,6 +86,8 @@ export async function GET() {
       figures: withCounts,
       chops,
       computedAt: row?.computedAt ?? null,
+      ledgerTotal: ledgerStats.total,
+      ledgerToday: ledgerStats.last24h,
       nextRunAt: row
         ? new Date(Date.parse(row.computedAt) + 12 * 60 * 60 * 1000).toISOString()
         : null,

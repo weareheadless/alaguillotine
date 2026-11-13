@@ -118,6 +118,10 @@ export interface HateState {
   computedAt: string | null;
   nextRunAt: string | null;
   stale: boolean;
+  /** The whole ledger, not the queue's share: charges on record. */
+  ledgerTotal?: number;
+  /** Charges filed in the last twenty-four hours. */
+  ledgerToday?: number;
   /** The name under the blade, and how long until it falls. */
   execution?: {
     person: string;
@@ -181,6 +185,8 @@ export function emptyHate(): HateState {
     computedAt: null,
     nextRunAt: null,
     stale: true,
+    ledgerTotal: 0,
+    ledgerToday: 0,
     execution: null,
     lastExecution: null,
   };
