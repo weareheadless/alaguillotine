@@ -5,6 +5,7 @@ import { NavBar } from "@/components/NavBar";
 import { useHateometer } from "@/components/Hateometer";
 import { ChargesRail } from "@/components/ChargesRail";
 import { LineRow } from "@/components/LineRow";
+import { COOLDOWN_DAYS } from "@/lib/evidence";
 import { useDrawer } from "@/components/drawers";
 
 /**
@@ -33,6 +34,17 @@ export default function NextInLinePage() {
       `${f.name} ${f.role} ${f.country} ${f.reason}`.toLowerCase().includes(needle),
     );
   }, [standing, query]);
+
+  // Where the cooling block starts. The line is sorted so names serving their
+  // three days sit at the foot of it; the divider is what tells a reader that
+  // the numbers did not fall, the slot did.
+  const coolingFrom = useMemo(() => {
+    const cutoff = Date.now() - COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+    return filtered.findIndex((f) => {
+      const at = Date.parse(String(f.lastChoppedAt ?? ""));
+      return Number.isFinite(at) && at >= cutoff;
+    });
+  }, [filtered]);
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
@@ -114,7 +126,18 @@ export default function NextInLinePage() {
                 </div>
               ) : (
                 filtered.map((figure, i) => (
-                  <LineRow key={`${figure.name}-${figure.rank}`} figure={figure} promoted={i === 0} />
+                  <div key={`${figure.name}-${figure.rank}`}>
+                    {i === coolingFrom && (
+                      <div className="mb-3 flex items-center gap-3 pt-2 font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
+                        <span className="h-px flex-1 bg-chop-border" />
+                        <span className="text-center">
+                          serving their {COOLDOWN_DAYS} days · score unchanged
+                        </span>
+                        <span className="h-px flex-1 bg-chop-border" />
+                      </div>
+                    )}
+                    <LineRow figure={figure} promoted={i === 0} />
+                  </div>
                 ))
               )}
             </div>

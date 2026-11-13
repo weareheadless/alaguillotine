@@ -57,6 +57,155 @@ export async function archiveItems(
   }
 }
 
+export interface LedgerRow {
+  id: string;
+  person: string;
+  role: string;
+  act: string;
+  place: string;
+  year: number;
+  category: string;
+  confidence: number;
+  attribution: number;
+  sources: string[];
+}
+
+export interface LedgerQuery {
+  person?: string;
+  year?: number;
+  category?: string;
+  page?: number;
+  per?: number;
+}
+
+export interface LedgerPage {
+  rows: LedgerRow[];
+  total: number;
+  page: number;
+  pages: number;
+  per: number;
+}
+
+/**
+ * The archive, one receipt at a time.
+ *
+ * The site kept a ledger and gave nobody a way to read it: the charges were
+ * reachable only from a name that already stood in the line. This is the index
+ * — filter by name, year or category, page through the whole record, newest
+ * filing first.
+ */
+export async function listLedger(query: LedgerQuery = {}): Promise<LedgerPage> {
+  const d = await db();
+  const per = Math.min(100, Math.max(10, query.per ?? 40));
+  const page = Math.max(1, query.page ?? 1);
+  if (!d) return { rows: [], total: 0, page: 1, pages: 1, per };
+
+  const where: string[] = [];
+  const binds: unknown[] = [];
+
+  if (query.person) {
+    where.push("lower(person) LIKE ?");
+    binds.push(`%${query.person.trim().toLowerCase()}%`);
+  }
+  if (Number.isFinite(query.year) && query.year) {
+    where.push("year = ?");
+    binds.push(query.year);
+  }
+  if (query.category) {
+    where.push("lower(category) = ?");
+    binds.push(query.category.trim().toLowerCase());
+  }
+
+  const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const countRow = await d
+    .prepare(`SELECT COUNT(*) AS n FROM ledger_entries ${clause}`)
+    .bind(...binds)
+    .first<{ n?: number }>();
+  const total = Number(countRow?.n ?? 0);
+  const pages = Math.max(1, Math.ceil(total / per));
+  const safePage = Math.min(page, pages);
+
+  const rows = await d
+    .prepare(
+      `SELECT id, person, role, act, place, year, category, confidence, attribution, sources
+         FROM ledger_entries ${clause}
+        ORDER BY year DESC, created_at DESC, rowid DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...binds, per, (safePage - 1) * per)
+    .all();
+
+  return {
+    total,
+    page: safePage,
+    pages,
+    per,
+    rows: (rows.results ?? []).map((r) => {
+      let sources: string[] = [];
+      try {
+        sources = JSON.parse(String(r.sources ?? "[]")) as string[];
+      } catch {
+        sources = [];
+      }
+      return {
+        id: String(r.id),
+        person: String(r.person ?? ""),
+        role: String(r.role ?? ""),
+        act: String(r.act ?? ""),
+        place: String(r.place ?? ""),
+        year: Number(r.year ?? 0),
+        category: String(r.category ?? ""),
+        confidence: Number(r.confidence ?? 0),
+        attribution: Number(r.attribution ?? 1),
+        sources,
+      };
+    }),
+  };
+}
+
+export async function ledgerFacets(): Promise<{
+  total: number;
+  people: number;
+  years: Array<{ year: number; n: number }>;
+  categories: Array<{ category: string; n: number }>;
+}> {
+  const d = await db();
+  if (!d) return { total: 0, people: 0, years: [], categories: [] };
+  try {
+    const [totals, years, categories] = await Promise.all([
+      d
+        .prepare("SELECT COUNT(*) AS n, COUNT(DISTINCT lower(person)) AS p FROM ledger_entries")
+        .bind()
+        .first<{ n?: number; p?: number }>(),
+      d
+        .prepare(
+          "SELECT year, COUNT(*) AS n FROM ledger_entries GROUP BY year ORDER BY year DESC",
+        )
+        .bind()
+        .all(),
+      d
+        .prepare(
+          "SELECT lower(category) AS c, COUNT(*) AS n FROM ledger_entries GROUP BY c ORDER BY n DESC",
+        )
+        .bind()
+        .all(),
+    ]);
+    return {
+      total: Number(totals?.n ?? 0),
+      people: Number(totals?.p ?? 0),
+      years: ((years.results ?? []) as Array<Record<string, unknown>>)
+        .map((r) => ({ year: Number(r.year ?? 0), n: Number(r.n ?? 0) }))
+        .filter((r) => r.year > 1900),
+      categories: ((categories.results ?? []) as Array<Record<string, unknown>>)
+        .map((r) => ({ category: String(r.c ?? ""), n: Number(r.n ?? 0) }))
+        .filter((r) => r.category),
+    };
+  } catch {
+    return { total: 0, people: 0, years: [], categories: [] };
+  }
+}
+
 export async function listArchive(limit = 100): Promise<ArchiveRow[]> {
   const d = await db();
   if (!d) return [];

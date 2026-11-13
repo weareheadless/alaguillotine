@@ -110,16 +110,41 @@ function rowToFigure(r: Record<string, unknown>): Figure {
 
 /** The queue persists across passes: Ada adds people, they stay. */
 export async function readQueue(db: D1): Promise<Figure[]> {
-  const rows = await db
-    .prepare(`SELECT ${FIGURE_COLUMNS} FROM queue_people ORDER BY rank ASC`)
-    .all();
+  const [rows, chops] = await Promise.all([
+    db.prepare(`SELECT ${FIGURE_COLUMNS} FROM queue_people ORDER BY rank ASC`).all(),
+    db
+      .prepare("SELECT slug, MAX(chopped_at) AS last FROM chop_events GROUP BY slug")
+      .all()
+      .catch(() => ({ results: [] as Array<Record<string, unknown>> })),
+  ]);
 
-  // Rank by the counter as it stands now, not the rank frozen at the last pass:
-  // a chop resets the counter, and the line has to move with it. The stored
-  // rank becomes the "was", so the arrow still says what changed.
+  const lastChop = new Map<string, string>();
+  for (const c of chops.results ?? []) {
+    if (c.slug && c.last) lastChop.set(String(c.slug), String(c.last));
+  }
+
+  // The line is ordered by the record, and a name serving its three days is at
+  // the foot of it. The score does not change — the record did not change, and
+  // a chop is a tally, not a reset — but the slot does: the blade has just been
+  // through, so the line moves on without pretending the number fell.
+  const cutoff = Date.now() - COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+  const cooling = (f: Figure): boolean => {
+    const at = Date.parse(String(f.lastChoppedAt ?? ""));
+    return Number.isFinite(at) && at >= cutoff;
+  };
+
   return (rows.results ?? [])
-    .map(rowToFigure)
-    .sort((a, b) => b.score - a.score || b.mentions - a.mentions)
+    .map((r) => {
+      const figure = rowToFigure(r);
+      const last = lastChop.get(slugify(figure.name));
+      return last ? { ...figure, lastChoppedAt: last } : figure;
+    })
+    .sort((a, b) => {
+      const ca = cooling(a) ? 1 : 0;
+      const cb = cooling(b) ? 1 : 0;
+      if (ca !== cb) return ca - cb;
+      return b.score - a.score || b.mentions - a.mentions;
+    })
     .map((f, i) => {
       const rank = i + 1;
       return {

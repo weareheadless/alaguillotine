@@ -15,6 +15,7 @@ export function NavBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const links = [
     ...content.nav.filter((link) => FORUM_ENABLED || link.href !== "/forum"),
+    { href: "/archive", label: "The Archive" },
     { href: "/feed", label: "The Feed" },
   ];
 
