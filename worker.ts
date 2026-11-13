@@ -77,6 +77,25 @@ export default {
     // consumer: eight cases at six queries each, twice a day. It now runs
     // once a day at 00:30 UTC with five cases. The clock, coverage and
     // numbers passes still run every twelve hours.
+    // Congress keeps its own record. Once a day, read the newest roll calls
+    // and file the members whose votes the reporting names. No model call on
+    // the votes themselves: the clerk's XML is the source.
+    if (event.cron === "0 7 * * *") {
+      context.waitUntil(
+        invokeApp(
+          "/api/congress/refresh",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/congress/refresh returned HTTP ${response.status}.`);
+          }
+        }),
+      );
+      return;
+    }
+
     const twelveHour = event.cron === "30 */12 * * *";
     const midnight = new Date(event.scheduledTime).getUTCHours() === 0;
     const paths = twelveHour
