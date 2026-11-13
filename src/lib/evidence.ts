@@ -63,6 +63,13 @@ export interface LedgerAct {
   year: number;
   category?: string;
   confidence: number;
+  /**
+   * How much of the act is this person's own, 0–1. A Yea on a 435-member
+   * defence authorisation is a small share of one; a Yea on the motion to table
+   * an impeachment is a hand on the thing. Defaults to 1, so every act filed
+   * before this existed counts as it did.
+   */
+  attribution?: number;
 }
 
 export interface EvidenceAct extends LedgerAct {
@@ -181,7 +188,8 @@ export function evidenceFor(
 
     const confidence = Math.min(100, Math.max(0, Number(entry.confidence) || 0)) / 100;
     const category = CATEGORY_WEIGHT[String(entry.category || "").toLowerCase()] ?? DEFAULT_WEIGHT;
-    const value = weight * confidence * category;
+    const attribution = Math.min(1, Math.max(0, Number(entry.attribution ?? 1)));
+    const value = weight * confidence * category * attribution;
     total += value;
     acts += weight;
 

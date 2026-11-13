@@ -245,6 +245,8 @@ export interface LedgerEntry {
   confidence: number;
   sources: string[];
   caseId: string;
+  /** 0–1 share of the act that is the person's own. Defaults to 1. */
+  attribution?: number;
 }
 
 export async function researchCase(config: ClockConfig, c: Case): Promise<LedgerEntry[]> {

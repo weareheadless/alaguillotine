@@ -140,7 +140,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   ].join(" OR ");
   const rows = await d
     .prepare(
-      `SELECT act, place, year, category, confidence, sources FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
+      `SELECT act, place, year, category, confidence, sources, attribution FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
     .bind(name, ...tokens.map((t) => `%${t}%`))
     .all();
@@ -193,6 +193,7 @@ export interface LedgerSummary {
     year: number;
     category: string;
     confidence: number;
+    attribution?: number;
   }>;
 }
 
@@ -201,7 +202,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
   if (!d) return new Map();
   const rows = await d
     .prepare(
-      "SELECT lower(person) AS n, act, place, year, category, confidence FROM ledger_entries ORDER BY confidence DESC, year DESC",
+      "SELECT lower(person) AS n, act, place, year, category, confidence, attribution FROM ledger_entries ORDER BY confidence DESC, year DESC",
     )
     .bind()
     .all();
@@ -236,6 +237,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
       year: Number(r.year ?? 0),
       category: String(r.category ?? ""),
       confidence: conf,
+      attribution: r.attribution === null || r.attribution === undefined ? 1 : Number(r.attribution),
     });
     map.set(key, s);
   }

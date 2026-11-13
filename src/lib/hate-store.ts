@@ -140,7 +140,11 @@ export async function getPersonBySlug(slug: string): Promise<Figure | null> {
     .prepare(`SELECT ${FIGURE_COLUMNS} FROM queue_people WHERE slug = ?`)
     .bind(slug)
     .first<Record<string, unknown>>();
-  if (!row) return null;
+
+  // Not everyone with a record stands in the line. A member of Congress filed
+  // for a vote has charges and no queue row, and a ledger you cannot look up is
+  // a rumour. Build the page from the ledger instead.
+  if (!row) return personFromLedger(db, slug);
 
   const figure = rowToFigure(row);
 
@@ -180,6 +184,63 @@ export async function getPersonBySlug(slug: string): Promise<Figure | null> {
   }
 
   return figure;
+}
+
+/**
+ * A page for a name the ledger knows and the queue does not.
+ *
+ * The record is the record whether or not a blade is over it, so the row is
+ * assembled from the charges themselves: the newest act, the count, the score
+ * the evidence earns. Rank is left at zero — this name is not standing in the
+ * line, and saying otherwise would be theatre.
+ */
+async function personFromLedger(db: D1, slug: string): Promise<Figure | null> {
+  const rows = await db
+    .prepare(
+      "SELECT DISTINCT person, role FROM ledger_entries ORDER BY person COLLATE NOCASE",
+    )
+    .all<{ results?: Array<{ person: string; role: string }> }>();
+
+  const loose = (person: string): string => {
+    const parts = String(person)
+      .replace(/["“”]/g, "")
+      .split(/\s+/)
+      .filter((w) => !/^[A-Z]\.$/.test(w) && !/^Jr\.?$|^Sr\.?$|^III$|^II$/i.test(w));
+    return slugify(parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : person);
+  };
+
+  const rowsFound = rows.results ?? [];
+  const match =
+    rowsFound.find((r) => slugify(String(r.person)) === slug) ??
+    rowsFound.find((r) => loose(String(r.person)) === slug);
+  if (!match) return null;
+
+  const name = String(match.person);
+  const summaries = await readLedgerSummaries();
+  const summary = ledgerSummaryFor(summaries, name);
+  const newest = summary?.newest ?? summary?.top?.[0] ?? null;
+
+  return {
+    name,
+    role: String(match.role ?? ""),
+    country: "",
+    score: summary?.evidence ?? 0,
+    mentions: 0,
+    reason: newest?.act ?? "No charge inside the last 180 days.",
+    source: "ledger",
+    sourceUrl: newest ? "" : "",
+    items: [],
+    rank: 0,
+    prevRank: null,
+    delta: null,
+    ledgerCount: summary?.count ?? 0,
+    windowActs: summary?.windowActs ?? 0,
+    latestAct: summary?.newest ?? null,
+    topCharges: summary?.top ?? [],
+    timesChopped: 0,
+    lastChoppedAt: null,
+    investigated: true,
+  };
 }
 
 export async function writeQueue(db: D1, people: Figure[]): Promise<void> {

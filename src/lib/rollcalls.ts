@@ -17,7 +17,9 @@
  */
 
 export interface HouseVote {
-  /** Surname as the clerk prints it. */
+  /** Bioguide ID: the join to a full name. */
+  id: string;
+  /** Surname as the clerk prints it, with a state suffix when names collide. */
   name: string;
   party: string;
   state: string;
@@ -67,14 +69,18 @@ export function parseRoll(xml: string, year: number, roll: number): RollCall | n
   if (!date) return null;
 
   const votes: HouseVote[] = [];
+  // The clerk varies the attribute order between files, so read the whole tag
+  // and pull the three attributes out of it rather than matching them in place.
   const pattern =
-    /<recorded-vote>\s*<legislator[^>]*party="([^"]*)"[^>]*state="([^"]*)"[^>]*>([^<]*)<\/legislator>\s*<vote>([^<]*)<\/vote>/g;
+    /<recorded-vote>\s*<legislator\s([^>]*)>([^<]*)<\/legislator>\s*<vote>([^<]*)<\/vote>/g;
   for (const m of xml.matchAll(pattern)) {
+    const attrs = m[1];
     votes.push({
-      party: m[1],
-      state: m[2],
-      name: m[3].trim(),
-      vote: m[4].trim(),
+      id: /name-id="([^"]*)"/.exec(attrs)?.[1] ?? "",
+      party: /party="([^"]*)"/.exec(attrs)?.[1] ?? "",
+      state: /state="([^"]*)"/.exec(attrs)?.[1] ?? "",
+      name: m[2].trim(),
+      vote: m[3].trim(),
     });
   }
 
@@ -132,29 +138,6 @@ export async function recentRolls(limit = 18): Promise<RollCall[]> {
     if (roll) rolls.push(roll);
   }
   return rolls;
-}
-
-/**
- * The bills this site has any business charging: arming and defunding.
- *
- * Narrow on purpose. A veterans' bill that amends title 10 is not an arms
- * transfer, and a rule resolution that merely schedules a debate is not a vote
- * on the war. Only the words that mean money or weapons moving.
- */
-export const ARMS_BILL =
-  /\b(israel|gaza|unrwa|palestin|arms export|arms sale|munitions|weapons|iron dome|david'?s sling|military assistance|foreign assistance|national defense authorization|defense appropriations|defence appropriations|supplemental appropriations)\b/i;
-
-/**
- * A vote only counts as a charge when it was the vote on the thing itself.
- * Passage, or passage under suspension — not a procedural motion, and not an
- * amendment, where a Yea may have been the vote to restrain the bill.
- */
-export function chargeable(roll: RollCall): boolean {
-  if (!ARMS_BILL.test(roll.title)) return false;
-  if (/^providing for consideration/i.test(roll.title)) return false;
-  return /on passage|suspend the rules and pass|concur in the (house|senate) amendment/i.test(
-    roll.question,
-  );
 }
 
 export const billLabel = (bill: string): string =>
