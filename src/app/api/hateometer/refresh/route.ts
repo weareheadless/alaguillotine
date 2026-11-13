@@ -5,6 +5,7 @@ import { getDb, readHate, readQueue, writeHate, writeQueue } from "@/lib/hate-st
 import { ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { registerQueueNames } from "@/lib/coverage";
 import { writeLedgerEntries } from "@/lib/ledger-write";
+import { slugify } from "@/lib/slug";
 import type { Figure } from "@/lib/hateometer";
 
 export const dynamic = "force-dynamic";
@@ -164,6 +165,19 @@ export async function POST(request: Request) {
     });
 
     await writeQueue(db, ranked);
+
+    // writeQueue only upserts, so a name taken out of the line above would stay
+    // in the table and keep appearing on the page. Prune what the pass no
+    // longer keeps: their ledger and their page are untouched — it is the queue
+    // row, not the record, that goes.
+    const keep = new Set(ranked.map((p) => slugify(p.name)));
+    const standing = await db.prepare("SELECT slug FROM queue_people").bind().all();
+    for (const r of standing.results ?? []) {
+      const slug = String(r.slug ?? "");
+      if (slug && !keep.has(slug)) {
+        await db.prepare("DELETE FROM queue_people WHERE slug = ?").bind(slug).run();
+      }
+    }
     // A new name is registered for its first look the moment it enters the
     // line, not whenever the next coverage cron happens to run.
     await registerQueueNames(db);
