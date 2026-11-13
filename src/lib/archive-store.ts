@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { evidenceFor } from "./evidence";
 
 type Stmt = {
   bind: (...v: unknown[]) => Stmt;
@@ -160,17 +161,30 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
 }
 
 /**
- * The record, summarised for the scorer.
+ * The record, summarised for the page and the queue.
  *
- * A person's score should not forget three years of documented acts because
- * this week's feed was quiet. The summary is what the research pass sees, and
- * the bonus is what the queue adds back on top of Ada's reading.
+ * The number the line shows is now computed here: the harm of the acts inside
+ * the window, weighted by confidence and category. The lifetime count stays as
+ * context, never as a floor.
  */
 export interface LedgerSummary {
   count: number;
   avgConfidence: number;
   maxConfidence: number;
   recent: number;
+  /** Acts inside the evidence window, weighted. */
+  windowActs: number;
+  /** 0–100, from `evidenceFor`. */
+  evidence: number;
+  /** The newest credible act inside the window, for the card. */
+  newest: {
+    act: string;
+    place: string;
+    year: number;
+    category: string;
+    confidence: number;
+    date: string | null;
+  } | null;
   top: Array<{
     act: string;
     place: string;
@@ -199,7 +213,16 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
     const conf = Number(r.confidence ?? 0);
     const s =
       map.get(key) ??
-      ({ count: 0, avgConfidence: 0, maxConfidence: 0, recent: 0, top: [] } as LedgerSummary);
+      ({
+        count: 0,
+        avgConfidence: 0,
+        maxConfidence: 0,
+        recent: 0,
+        windowActs: 0,
+        evidence: 0,
+        newest: null,
+        top: [],
+      } as LedgerSummary);
 
     s.count += 1;
     s.avgConfidence += conf;
@@ -217,6 +240,22 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
 
   for (const s of map.values()) {
     s.avgConfidence = s.count ? s.avgConfidence / s.count : 0;
+    // The number the line shows is the record inside the window, not the
+    // lifetime total. Computed before `top` is trimmed, from every entry.
+    const evidence = evidenceFor(s.top);
+    s.windowActs = evidence.acts;
+    s.evidence = evidence.score;
+    s.newest = evidence.newest
+      ? {
+          act: evidence.newest.act,
+          place: evidence.newest.place ?? "",
+          year: evidence.newest.year,
+          category: evidence.newest.category ?? "",
+          confidence: evidence.newest.confidence,
+          date: evidence.newest.date,
+        }
+      : null;
+
     // A record is not twelve versions of the same charge. Show the judge the
     // range: the strongest act in each category first, then fill the remaining
     // slots with the highest-confidence leftovers.
@@ -236,29 +275,6 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
     s.top = picked;
   }
   return map;
-}
-
-/**
- * The record bonus.
- *
- * A small logarithmic nudge, capped at 5, plus a floor for a substantial
- * record so a quiet week cannot erase it. The judge sees the record itself
- * (count, recency, top acts); this only breaks ties in its favour.
- */
-export function recordAdjustment(s: LedgerSummary | undefined): { bonus: number; floor: number } {
-  if (!s || s.count === 0) return { bonus: 0, floor: 0 };
-  // The judge now sees the size of the record (charges, recent, top acts) and
-  // is told to weigh it. The bonus is only a nudge, so arithmetic cannot turn
-  // a queue of high-80s judgments into a wall of 100s.
-  const bonus = Math.min(
-    5,
-    Math.round((2 * Math.log10(1 + s.count) + 0.01 * s.avgConfidence) * 10) / 10,
-  );
-  const floor =
-    s.count >= 5
-      ? Math.min(70, Math.round((28 + 2.2 * s.count + 0.1 * s.avgConfidence) * 10) / 10)
-      : 0;
-  return { bonus, floor };
 }
 
 /** Look up a name's record, falling back to its distinctive tokens. */

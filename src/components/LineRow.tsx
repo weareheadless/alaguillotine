@@ -13,9 +13,18 @@ import { PersonNumbers } from "./PersonNumbers";
  * doubt that there is something behind the name.
  */
 
+const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
+
 export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boolean }) {
   const charges = figure.ledgerCount ?? 0;
   const latest = figure.items[0];
+  // A chopped name keeps its number but cannot be sentenced again for three
+  // days. Say so on the card, or a reader sees the top of the line and cannot
+  // tell why the blade went to someone below it.
+  const coolingUntil = figure.lastChoppedAt
+    ? Date.parse(figure.lastChoppedAt) + COOLDOWN_MS
+    : 0;
+  const cooling = coolingUntil > Date.now();
 
   return (
     <Link
@@ -64,6 +73,26 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
 
           <PersonNumbers numbers={figure.numbers} />
 
+          {/* The receipt: the newest credible act inside the window. The card
+              used to show the highest-confidence charge, which was usually the
+              oldest one, so a name with a 2026 record looked like a 2018 case. */}
+          {figure.latestAct ? (
+            <p className="mt-2 border-l-2 border-hypeNeon/60 pl-3 font-mono text-[10px] leading-snug text-sheetWhite/70">
+              <span className="text-hypeNeon">
+                {figure.latestAct.date
+                  ? new Date(`${figure.latestAct.date}T00:00:00Z`).toUTCString().slice(5, 16)
+                  : figure.latestAct.year}
+              </span>
+              {figure.latestAct.place ? ` · ${figure.latestAct.place}` : ""}
+              {" — "}
+              <span className="line-clamp-2">{figure.latestAct.act}</span>
+            </p>
+          ) : (
+            <p className="mt-2 border-l-2 border-chop-border pl-3 font-mono text-[10px] uppercase tracking-[0.14em] text-chop-muted">
+              no documented act in the last 180 days — not on the block
+            </p>
+          )}
+
           {latest && (
             <div className="mt-2 border-l-2 border-spiteCrimson/60 pl-3">
               <p className="truncate font-mono text-[10px] text-sheetWhite/80">{latest.headline}</p>
@@ -89,6 +118,14 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
                   ? "no current reports"
                   : "first look pending"}
             </span>
+            {cooling && (
+              <>
+                <span className="text-chop-muted">·</span>
+                <span className="text-hypeNeon">
+                  cooling · eligible {new Date(coolingUntil).toUTCString().slice(5, 16)}
+                </span>
+              </>
+            )}
             {(figure.timesChopped ?? 0) > 0 && (
               <>
                 <span className="text-chop-muted">·</span>
@@ -118,11 +155,9 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
               style={{ width: `${Math.min(100, Math.max(0, figure.score))}%` }}
             />
           </div>
-          {(figure.recordBonus ?? 0) > 0 && (
-            <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
-              +{Math.round(figure.recordBonus ?? 0)} record
-            </div>
-          )}
+          <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
+            {figure.windowActs ? `${Math.max(1, Math.round(figure.windowActs))} act${Math.round(figure.windowActs) === 1 ? "" : "s"} / 180d` : "no open acts"}
+          </div>
         </div>
       </div>
     </Link>

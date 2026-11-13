@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   title: "A LA GUILLOTINE — the blade is a metaphor. The list is not.",
   description:
-    "Ada reads the news, names the public figures the reporting holds responsible, and keeps the record. At ninety the blade falls. Every score links to its source.",
+    "Ada reads the record, names the public figures it documents, and keeps the receipts. The blade takes the worst name of the last 180 days. Every score links to its source.",
   openGraph: {
     type: "website",
     url: "https://alaguillotine.com",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "A LA GUILLOTINE — the blade is a metaphor. The list is not.",
     description:
-      "A ranked queue of the owners, scored from the documented record. At ninety the blade falls. Every claim links to its source.",
+      "A ranked queue of the owners, scored from the documented record of the last 180 days. The blade takes the worst name on it. Every claim links to its source.",
     images: ["/og-image.png"],
   },
   icons: {

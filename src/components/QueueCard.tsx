@@ -197,11 +197,9 @@ export function QueueCard({
                 </span>
                 <Move delta={figure.delta} />
               </div>
-              {(figure.recordBonus ?? 0) > 0 && (
-                <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
-                  +{Math.round(figure.recordBonus ?? 0)} record
-                </div>
-              )}
+              <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
+                {figure.windowActs ? `${Math.round(figure.windowActs)} acts / 180d` : "no open acts"}
+              </div>
             </div>
           </div>
 

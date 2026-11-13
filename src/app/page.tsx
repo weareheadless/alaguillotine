@@ -57,8 +57,9 @@ export default function HomePage() {
   // Hold the card on the chopped figure while the head falls, so a poll cannot
   // swap it out mid-animation.
   const [frozen, setFrozen] = useState<Figure | null>(null);
-  // Nobody leaves the line: a chop is a tally, and the counter resets so the
-  // name climbs back. The wall beside the blade is where executions accumulate.
+  // Nobody leaves the line: a chop is a tally. The name keeps its record and
+  // sits out a cooldown, then returns to the band. The wall beside the blade is
+  // where executions accumulate.
   const standing = hate.figures;
   const chopTotal = hate.chops.reduce((n, c) => n + c.count, 0);
   // The card belongs to the name under the blade, not to whoever is first in
@@ -91,8 +92,8 @@ export default function HomePage() {
     [pullHate, standing],
   );
 
-  // A name that leaves the block takes its chop with it: when it climbs back
-  // later, it arrives with a head on.
+  // A name that leaves the block takes its chop with it: when it returns from
+  // the cooldown later, it arrives with a head on.
   useEffect(() => {
     if (chopped && atTheBlock && slugify(atTheBlock.name) !== chopped) setChopped(null);
   }, [atTheBlock, chopped]);
@@ -123,8 +124,8 @@ export default function HomePage() {
               {heroSubheadline}
             </p>
             <p className="mt-4 max-w-2xl font-mono text-[11px] leading-snug text-chop-muted md:hidden">
-              Ada reads the record. At ninety, the blade falls. Every claim links
-              to its source.
+              Ada reads the record. The blade takes the worst name of the
+              last 180 days. Every claim links to its source.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button

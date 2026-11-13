@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig } from "@/lib/clock-research";
 import { runHatePass } from "@/lib/hate-research";
 import { getDb, readHate, readQueue, writeHate, writeQueue } from "@/lib/hate-store";
-import { ledgerSummaryFor, readLedgerSummaries, recordAdjustment } from "@/lib/archive-store";
+import { ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { registerQueueNames } from "@/lib/coverage";
 import type { Figure } from "@/lib/hateometer";
 
@@ -12,8 +12,13 @@ export const dynamic = "force-dynamic";
  * POST /api/hateometer/refresh — the queue's research pass.
  *
  * Cron-only. Ada updates everyone already standing in the queue and adds new
- * names when the reporting names them. People are never dropped for a quiet
- * week: their counter decays, their blade rises, they stay on the list.
+ * names when the reporting names them.
+ *
+ * The number written here is not the model's reading. It is the harm the
+ * ledger documents inside the evidence window, weighted by confidence and
+ * category. A name the wire forgot keeps the number its record earns; a name
+ * the wire loves cannot outrun a thin record. Nobody is dropped for a quiet
+ * week, and nobody is carried by arithmetic.
  */
 export async function POST(request: Request) {
   const context = (await getCloudflareContext({ async: true })) as unknown as {
@@ -44,48 +49,38 @@ export async function POST(request: Request) {
     const ledger = await readLedgerSummaries();
     const pass = await runHatePass(config, previous?.level ?? null, queue, ledger);
 
-    // The record counts. Ada scores the week; the ledger adds its bonus and,
-    // once there are five or more documented acts, sets a floor under the name.
-    const adjust = (f: Figure, base?: number): Figure => {
-      const { bonus, floor } = recordAdjustment(ledgerSummaryFor(ledger, f.name));
-      const raw = base ?? Math.max(0, f.score - (f.recordBonus ?? 0));
-      const score = Math.min(100, Math.max(Math.round((raw + bonus) * 10) / 10, floor));
-      return { ...f, score, recordBonus: bonus };
-    };
+    // The number is the record inside the window — not the pass's reading,
+    // not a bonus, and not a floor for lifetime volume.
+    const evidenceScore = (name: string): number =>
+      ledgerSummaryFor(ledger, name)?.evidence ?? 0;
 
-    // Merge today's findings into the standing queue.
+    // Merge today's findings into the standing queue. The pass still decides
+    // who is nominated and what the charge reads; it no longer decides the
+    // order. That is the ledger's job.
     const seen = new Map(pass.figures.map((f) => [f.name.toLowerCase(), f]));
     const merged: Figure[] = queue.map((person) => {
       const fresh = seen.get(person.name.toLowerCase());
-      if (fresh) return { ...adjust(fresh), addedAt: person.addedAt };
-      // No coverage this pass: the blade rises, the name stays. Decay the
-      // report score, not the record bonus, so the record is not eaten twice.
-      const base = Math.max(0, person.score - (person.recordBonus ?? 0)) * 0.95;
-      return adjust({ ...person, mentions: 0, delta: null }, base);
+      const score = evidenceScore(person.name);
+      if (fresh) return { ...person, ...fresh, score, addedAt: person.addedAt };
+      return { ...person, mentions: 0, delta: null, score };
     });
 
     const known = new Set(queue.map((p) => p.name.toLowerCase()));
     for (const fresh of pass.figures) {
       if (!known.has(fresh.name.toLowerCase())) {
-        merged.push({ ...adjust(fresh), addedAt: pass.computedAt });
+        merged.push({
+          ...fresh,
+          score: evidenceScore(fresh.name),
+          addedAt: pass.computedAt,
+        });
       }
     }
 
-    merged.sort((a, b) => b.score - a.score || b.mentions - a.mentions);
-
-    // Ada ranks; this only spaces the ladder. Her order is untouched, but the
-    // top of the queue is separated by at least a point so the page cannot
-    // show a wall of identical 100s. Only one name can hold 100.
-    let ceiling: number | null = null;
-    for (const person of merged) {
-      if (person.score < 80) break;
-      if (ceiling === null) {
-        person.score = Math.min(100, person.score);
-      } else {
-        person.score = Math.min(person.score, Math.round((ceiling - 1) * 10) / 10);
-      }
-      ceiling = person.score;
-    }
+    // Sorted by the evidence, then by how many acts are behind it. No ceiling
+    // clamp: the number is the number, and a tie should read as a tie.
+    merged.sort(
+      (a, b) => b.score - a.score || (b.mentions ?? 0) - (a.mentions ?? 0),
+    );
 
     const ranked = merged.map((person, i) => {
       const rank = i + 1;

@@ -55,6 +55,20 @@ export default {
           }
         }),
       );
+      // The blade keeps its own time: sentence at the reading, drop at the
+      // hour. No model call, so a slot no longer depends on a visitor.
+      context.waitUntil(
+        invokeApp(
+          "/api/hateometer/tick",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/hateometer/tick returned HTTP ${response.status}.`);
+          }
+        }),
+      );
       return;
     }
     // One scrape, four hours apart. The page fakes the liveness, not the bill.

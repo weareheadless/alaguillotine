@@ -8,9 +8,10 @@ import { HATE_DIMENSIONS, itemMentions, rankFigures, type Figure, type HateDimen
 /**
  * The queue's research pass.
  *
- * Six conflict searches, one chat call. Every named public figure gets their
- * own counter: the shrunk mean of the harm score of the reports that name them,
- * plus the reports themselves so the card can show its work.
+ * Six conflict searches, one chat call. Every named public figure gets a
+ * reading of the week and the reports behind it, so the card can show its work
+ * and the queue can be kept current. The number the line shows is not this
+ * reading: it is computed from the ledger's dated acts in `evidence.ts`.
  */
 
 const QUERIES = [
@@ -51,7 +52,7 @@ RULES — hard:
 11. reason is what they are accused of, one sentence, max 240 chars. Be specific about the act, the place and the year. If the reporting is thin, say what is alleged, not what is proven.
 12. ledger is the long record: documented acts with a year and a confidence. Weigh it. A person with several high-confidence entries should score higher than this week's headlines alone would suggest. Do not invent beyond the ledger lines; a thin record should score lower, not be padded.
 13. Self-defence is not a charge. If the reporting says a person or state was responding to an armed attack, do not score them for the attack they are answering. Prosecuting officials, filing legal cases, declaring red lines and diplomatic statements are not harm. If a response deliberately targets civilians or is clearly disproportionate, it may be a charge — but the reason must say what was done to whom, and the initiator of the original attack belongs in the line, not the defender.
-14. The ledger block gives each name charges (how many documented acts), recent (acts in the last two years) and up to twelve of the highest-confidence acts. Weigh that record in your score: a name with 150 documented acts is worse than a name with 12, even if this week's reporting is thinner on the first. The site then adds a small bonus, at most 5 points, so your score is the verdict and the record is only a tie-breaker. Do not inflate a score to compensate for a thin record, and do not leave a deep record unreflected.
+14. The ledger block gives each name charges (how many documented acts), recent (acts in the last two years) and up to twelve of the highest-confidence acts. Weigh that record in your reading: a name with 150 documented acts is worse than a name with 12, even if this week's reporting is thinner on the first. Your score is recorded as a reading of the week; the number the line displays is computed from the ledger's dated acts, not from this field. Do not inflate a score to compensate for a thin record, and do not leave a deep record unreflected.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],

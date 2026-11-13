@@ -28,7 +28,6 @@ export function ExecutionAd({ notice, compact = false }: { notice: ExecutionNoti
         <p className="font-mono text-[8px] font-bold uppercase tracking-[0.25em] text-black/70">Featuring</p>
         <Link href={`/person/${notice.slug}`} className="mt-0.5 block break-words text-lg font-black uppercase leading-none tracking-tighter underline decoration-black/30 underline-offset-4 md:text-xl">{notice.name}</Link>
         <p className="mt-1 line-clamp-2 font-mono text-[10px] leading-snug text-black">{notice.reason}.</p>
-        {notice.following && <p className="mt-1.5 border-t-2 border-black/25 pt-1 font-mono text-[8px] font-bold uppercase">Then · {notice.following.timeLabel} · {notice.following.name}</p>}
       </div>
       <div className="col-span-2 border-t-2 border-dashed border-black/50 p-3 md:col-span-1 md:border-l-2 md:border-t-0">
         <ReserveSeat at={notice.at} name={notice.name} slug={notice.slug} compact />
@@ -89,17 +88,6 @@ export function ExecutionAd({ notice, compact = false }: { notice: ExecutionNoti
           {notice.reason}.
         </p>
       </div>
-
-      {notice.following && (
-        <div className="mt-3 border-t-2 border-black/20 pt-2">
-          <p className="font-mono text-[8px] font-bold uppercase tracking-[0.28em] text-black/60">
-            then
-          </p>
-          <p className="mt-0.5 font-mono text-[10px] font-black uppercase leading-tight tracking-[0.1em]">
-            {notice.following.timeLabel.replace(" UTC", "")} · {notice.following.name}
-          </p>
-        </div>
-      )}
 
       <div className="mt-5">
         <p className="font-mono text-[8px] font-bold uppercase tracking-[0.2em] text-black/60">

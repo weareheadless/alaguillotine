@@ -41,7 +41,10 @@ export interface Figure {
   name: string;
   role: string;
   country: string;
-  /** 0–100. Shrunk mean of the harm score of the reports naming them. */
+  /**
+   * 0–100. The harm the ledger documents inside the evidence window,
+   * weighted by confidence and category. Not the model's reading of the week.
+   */
   score: number;
   /** Distinct reports naming them this pass. */
   mentions: number;
@@ -69,7 +72,18 @@ export interface Figure {
   ledgerCount?: number;
   /** How many times the blade has fallen on this name. */
   timesChopped?: number;
-  /** Points added to the score by the ledger on record. */
+  /** Acts inside the evidence window, weighted. */
+  windowActs?: number;
+  /** The newest credible act inside the window, for the card. */
+  latestAct?: {
+    act: string;
+    place: string;
+    year: number;
+    category: string;
+    confidence: number;
+    date: string | null;
+  } | null;
+  /** Kept for older rows; the queue no longer adds a record bonus. */
   recordBonus?: number;
   /** The highest-confidence charges on record, for the block brief. */
   topCharges?: Array<{
@@ -142,8 +156,13 @@ export function itemMentions(name: string, item: { headline: string; fact: strin
 
 export const HATE_REFRESH_MS = 12 * 60 * 60 * 1000;
 
-/** The blade falls at this counter. The chop is a tally; the counter resets and the name climbs back. */
-export const DROP_THRESHOLD = 90;
+/**
+ * The blade is drawn from the worst names by evidence, not from an absolute
+ * score. The top of the line is the appointment; a number is a record, not a
+ * verdict, and an arbitrary 90 would either empty the block or fill it with
+ * whatever the scale happened to produce.
+ */
+export { SENTENCE_BAND, COOLDOWN_DAYS } from "./evidence";
 
 export function emptyHate(): HateState {
   return {

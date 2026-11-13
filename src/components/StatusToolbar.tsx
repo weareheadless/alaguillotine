@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DROP_THRESHOLD, type Figure } from "@/lib/hateometer";
+import type { Figure } from "@/lib/hateometer";
 
 /**
  * The blade clock.
@@ -44,12 +44,10 @@ function fallbackNextRun(now: Date): string {
 
 /** The shortest line that still says where the queue stands. */
 export function queueNote(figures: Figure[]): string {
-  const top = figures[0];
+  const live = figures.filter((f) => f.score > 0);
+  const top = live[0] ?? figures[0];
   if (!top) return "";
-  const ready = figures.filter((f) => f.score >= DROP_THRESHOLD).length;
-  if (ready > 0) return `${ready} past ${DROP_THRESHOLD}`;
-  const gap = Math.ceil(DROP_THRESHOLD - top.score);
-  return `top ${top.name} ${top.score} · ${gap} from ${DROP_THRESHOLD}`;
+  return `${live.length} with a live record · top ${top.name} ${Math.round(top.score)}`;
 }
 
 export function BladeClock({

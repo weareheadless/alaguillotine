@@ -1,7 +1,6 @@
 import { countLedger, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { slugify } from "@/lib/slug";
 import { emptyHate, itemMentions, type HateState } from "@/lib/hateometer";
-import { DROP_THRESHOLD } from "@/lib/hateometer";
 import { coverageBySlug } from "@/lib/coverage";
 import { readAllNumbers } from "@/lib/numbers";
 import {
@@ -27,9 +26,9 @@ export async function GET() {
     // only once the reading for that slot has landed. The first call creates
     // the sentence, the second picks up whatever is left after any execution.
     const row = await readHate(db);
-    await ensureSentence(db, DROP_THRESHOLD, row?.computedAt ?? null);
+    await ensureSentence(db, row?.computedAt ?? null);
     await executeDueSentences(db);
-    const execution = await ensureSentence(db, DROP_THRESHOLD, row?.computedAt ?? null);
+    const execution = await ensureSentence(db, row?.computedAt ?? null);
     const lastExecution = execution ? null : await readLastExecution(db);
     const queue = await readQueue(db);
     if (!row && queue.length === 0) {
@@ -84,6 +83,9 @@ export async function GET() {
           `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(f.name)}`,
         ledgerCount:
           countRows.length > 0 ? countLedger(countRows, f.name) : counts[f.name.toLowerCase()] ?? 0,
+        // The number is the window, so the card shows what is inside it.
+        windowActs: summary?.windowActs ?? 0,
+        latestAct: summary?.newest ?? null,
         topCharges: summary?.top ?? [],
         timesChopped: chop?.count ?? f.timesChopped ?? 0,
         lastChoppedAt: chop?.lastAt ?? f.lastChoppedAt ?? null,

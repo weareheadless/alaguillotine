@@ -1,6 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Figure, HateDimension } from "./hateometer";
 import { slugify } from "./slug";
+import { ledgerSummaryFor, readLedgerSummaries } from "./archive-store";
+import { COOLDOWN_DAYS, SENTENCE_BAND } from "./evidence";
 import { sentenceSlot } from "./schedule";
 
 type D1Statement = {
@@ -165,6 +167,18 @@ export async function getPersonBySlug(slug: string): Promise<Figure | null> {
     figure.lastChoppedAt = null;
   }
 
+  // The page has to show the same window the number is scored on, or it will
+  // say "no open acts" under a score the ledger produced.
+  try {
+    const summaries = await readLedgerSummaries();
+    const summary = ledgerSummaryFor(summaries, figure.name);
+    figure.windowActs = summary?.windowActs ?? 0;
+    figure.latestAct = summary?.newest ?? null;
+    figure.topCharges = summary?.top ?? [];
+  } catch {
+    /* the row still renders without the receipt */
+  }
+
   return figure;
 }
 
@@ -178,14 +192,10 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
            role = excluded.role,
            country = excluded.country,
            reason = excluded.reason,
-           -- A chopped counter climbs back from its reset instead of snapping
-           -- to the fresh score. Below 70 the name is still climbing; above it,
-           -- Ada's number takes over again.
-           score = CASE
-             WHEN queue_people.times_chopped > 0 AND queue_people.score < excluded.score
-               THEN MIN(excluded.score, queue_people.score + 12)
-             ELSE excluded.score
-           END,
+           -- The score is the ledger inside the window. Being chopped does not
+           -- reset it and does not add anything: the record did not change, so
+           -- the number must not either. A cooldown keeps the blade moving.
+           score = excluded.score,
            mentions = excluded.mentions,
            prev_rank = queue_people.rank,
            rank = excluded.rank,
@@ -297,14 +307,20 @@ export async function readLastExecution(
 
 /**
  * Sentence the worst name that is eligible, if the line is not already waiting
- * on a blade and the cooling window since the last execution has passed.
+ * on a blade.
  *
- * There is no per-name cooldown: the counter reset to 60 is the brake, and the
- * climb back is the point. A name that returns to the top earns another turn.
+ * Two gates, both about proof rather than arithmetic:
+ *
+ * - the name must be in the sentence band, the worst by evidence in the line.
+ *   There is no absolute threshold to cross; a record is not a verdict.
+ * - it must have waited out the cooldown since its last chop, so the blade
+ *   moves through the worst names instead of returning to the same one.
+ *
+ * A name with no act inside the evidence window scores zero and can never be
+ * sentenced. That is the proof gate: no recent record, no blade.
  */
 export async function ensureSentence(
   db: D1,
-  threshold: number,
   readingAt?: string | null,
 ): Promise<Sentence | null> {
   const pending = await readSentence(db);
@@ -314,20 +330,31 @@ export async function ensureSentence(
   const slot = sentenceSlot(now, readingAt);
   if (slot == null) return null;
 
-  // One name per appointment. The next name over ninety waits for the next
+  // One name per appointment. The next name in the band waits for the next
   // public hour, which is at most four hours away — long enough for the blade
   // to be an event, short enough that the queue does not become a week.
   //
-  // The card rounds the counter for display, so the sentence must use the
-  // rounded number too: a name the page shows at 90 is on the block, not
-  // silently stuck at 89.6 with no countdown.
+  // The band is the top of the line, so the page and the block agree: what a
+  // reader sees at the top is what the blade can take.
+  const cooldownFrom = new Date(
+    now - COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
   const top = await db
     .prepare(
       `SELECT slug, name, score FROM queue_people
-       WHERE ROUND(score) >= ?
+       WHERE score > 0
+         AND slug NOT IN (
+           SELECT slug FROM chop_events WHERE chopped_at > ?
+         )
+         AND slug IN (
+           SELECT slug FROM queue_people
+           WHERE score > 0
+           ORDER BY score DESC, mentions DESC
+           LIMIT ?
+         )
        ORDER BY score DESC, mentions DESC LIMIT 1`,
     )
-    .bind(threshold)
+    .bind(cooldownFrom, SENTENCE_BAND)
     .first<Record<string, unknown>>();
   if (!top) return null;
 
@@ -377,11 +404,13 @@ export async function executeDueSentences(db: D1): Promise<number> {
       )
       .bind(`${slug}:${now}`, String(p.person), slug, Number(p.score), now)
       .run();
+    // The chop is a tally, not a reset. The record that put the name here has
+    // not changed; the cooldown is what keeps the blade moving.
     await db
       .prepare(
-        "UPDATE queue_people SET times_chopped = times_chopped + 1, score = ?, dropped_at = NULL WHERE slug = ?",
+        "UPDATE queue_people SET times_chopped = times_chopped + 1, dropped_at = NULL WHERE slug = ?",
       )
-      .bind(Math.max(50, Math.round(Number(p.score) * 0.6)), slug)
+      .bind(slug)
       .run();
     await db
       .prepare("UPDATE chop_sentences SET executed_at = ? WHERE id = ?")

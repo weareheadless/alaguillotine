@@ -83,11 +83,9 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
             rank {person.rank}
           </div>
-          {(person.recordBonus ?? 0) > 0 && (
-            <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
-              +{Math.round(person.recordBonus ?? 0)} from the record
-            </div>
-          )}
+          <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
+            {person.windowActs ? `${Math.round(person.windowActs)} acts / 180d` : "no open acts"}
+          </div>
         </div>
       </div>
 
@@ -114,6 +112,35 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
       )}
 
       <p className="mt-6 font-mono text-[12px] leading-relaxed text-chop-muted">{person.reason}</p>
+
+      {/* The number is the window. The newest credible act is the receipt, so
+          the page cannot show a 2018 charge under a 2026 score without saying
+          what the recent record actually is. */}
+      <div className="mt-5 border-l-2 border-hypeNeon/60 pl-3">
+        <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+          newest act in the window
+        </p>
+        {person.latestAct ? (
+          <p className="mt-1 font-mono text-[12px] leading-relaxed text-sheetWhite/85">
+            <span className="text-hypeNeon">
+              {person.latestAct.date
+                ? new Date(`${person.latestAct.date}T00:00:00Z`).toUTCString().slice(5, 16)
+                : person.latestAct.year}
+            </span>
+            {person.latestAct.place ? ` · ${person.latestAct.place}` : ""}
+            {" — "}
+            {person.latestAct.act}
+            <span className="text-chop-muted">
+              {" "}
+              [{Math.round(person.latestAct.confidence)} · {person.latestAct.category}]
+            </span>
+          </p>
+        ) : (
+          <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.1em] text-chop-muted">
+            nothing on record inside 180 days — this name cannot be sentenced
+          </p>
+        )}
+      </div>
 
       <PromiseAd variant="panel" />
 

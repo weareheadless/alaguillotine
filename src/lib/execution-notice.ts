@@ -1,14 +1,13 @@
 import type { Figure, HateState } from "./hateometer";
-import { nextExecutionSlot } from "./schedule";
 import { slugify } from "./slug";
 
 /**
  * The appointment, in one object.
  *
  * The blade is a ritual, so the site should be able to say who is on the block,
- * when it falls, and what the charge is — not just "the next blade is
- * confirmed". The name comes from the sentence when one exists; otherwise the
- * top of the line is the name the next reading will sentence.
+ * when it falls, and what the charge is. The name comes from the sentence and
+ * nowhere else: if no sentence exists there is no appointment, and the ticker
+ * says nothing rather than forecasting one.
  */
 export interface ExecutionNotice {
   name: string;
@@ -21,15 +20,8 @@ export interface ExecutionNotice {
   dateLabel: string;
   /** "09:00 UTC" */
   timeLabel: string;
-  /** True when a sentence is already waiting, false when it is the next slot. */
+  /** A sentence is always waiting when this object exists. */
   confirmed: boolean;
-  /** The next name in the line, at the following public hour. */
-  following?: {
-    name: string;
-    slug: string;
-    dateLabel: string;
-    timeLabel: string;
-  } | null;
 }
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -62,43 +54,27 @@ function label(at: string): { dateLabel: string; timeLabel: string } {
 
 export function executionNotice(
   state: HateState,
-  now: number = Date.now(),
+  _now: number = Date.now(),
 ): ExecutionNotice | null {
+  // No sentence, no appointment. The ticker used to fall back to the top of
+  // the line and stamp it with the next public hour, which promised a name and
+  // a time the system had not committed to; the name could change before the
+  // sentence was ever written, and often did.
   const execution = state.execution;
-  const figure = execution
-    ? state.figures.find((f) => slugify(f.name) === execution.slug) ?? null
-    : state.figures[0] ?? null;
-  if (!figure) return null;
+  if (!execution) return null;
 
-  const at = execution?.executeAt ?? new Date(nextExecutionSlot(now)).toISOString();
-  const { dateLabel, timeLabel } = label(at);
-
-  // The line is the schedule: the next name after this one takes the next
-  // public hour. It is a programme, not a single booking.
-  const index = state.figures.findIndex(
-    (f) => slugify(f.name) === slugify(figure.name),
-  );
-  const nextFigure = index >= 0 ? state.figures[index + 1] ?? null : null;
-  const nextAt = new Date(nextExecutionSlot(Date.parse(at))).toISOString();
-  const nextLabel = label(nextAt);
-  const following = nextFigure
-    ? {
-        name: nextFigure.name,
-        slug: slugify(nextFigure.name),
-        dateLabel: nextLabel.dateLabel,
-        timeLabel: nextLabel.timeLabel,
-      }
-    : null;
+  const figure =
+    state.figures.find((f) => slugify(f.name) === execution.slug) ?? null;
+  const { dateLabel, timeLabel } = label(execution.executeAt);
 
   return {
-    name: figure.name,
-    slug: execution?.slug ?? slugify(figure.name),
-    reason: shortCharge(figure),
-    at,
+    name: figure?.name ?? execution.person,
+    slug: execution.slug,
+    reason: figure ? shortCharge(figure) : "the record speaks for itself",
+    at: execution.executeAt,
     dateLabel,
     timeLabel,
-    confirmed: Boolean(execution),
-    following,
+    confirmed: true,
   };
 }
 

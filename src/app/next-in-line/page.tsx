@@ -44,9 +44,11 @@ export default function NextInLinePage() {
             Next <span className="text-spiteCrimson">in line.</span>
           </h1>
           <p className="mt-3 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
-            Ada ranks the people the record keeps returning to. The blade takes
-            the next appointment, not necessarily the top of the list — ranking
-            is not a schedule. Click a name for its charges and sources.
+            Every name is scored on what the record documents inside the last
+            180 days. No floor for old fame, no points for having been chopped:
+            a name with nothing recent cannot be sentenced. The blade takes the
+            worst name that is not cooling from its last chop. Click a name for its charges and
+            sources.
           </p>
         </section>
 
@@ -73,7 +75,7 @@ export default function NextInLinePage() {
         </section>
 
         <p className="-mt-4 mb-4 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
-          score = ada&apos;s reading of the week + up to 22 points for the ledger on record
+          score = documented harm inside 180 days · weighted by confidence and category · the blade takes the worst name not cooling
         </p>
 
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -43,6 +43,8 @@ export interface CoverageRow {
   sources: number;
   checkedAt: string | null;
   lastError: string;
+  /** True when this row is a re-read of the evidence window, not a first look. */
+  refresh?: boolean;
 }
 
 const MAX_ATTEMPTS = 5;
@@ -154,12 +156,35 @@ export function firstLookCase(person: {
   };
 }
 
+/**
+ * A second look at the recent record.
+ *
+ * The first look is bounded to 2018 and never repeats, so a name's ledger goes
+ * stale while the queue keeps scoring it. One name per batch is re-read over
+ * the evidence window instead: the same queries, the last 180 days, so a
+ * windowed score is backed by a windowed search.
+ */
+export function recentLookCase(
+  person: { name: string; role: string; country: string },
+  now: number = Date.now(),
+): DossierCase {
+  const after = new Date(now - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const base = firstLookCase(person);
+  return {
+    ...base,
+    id: `recent:${slugify(person.name)}:${after}`,
+    angle: "recent record",
+    after,
+  };
+}
+
 export interface CoverageRun {
   name: string;
   status: CoverageStatus;
   entries: number;
   found: number;
   error?: string;
+  refresh?: boolean;
 }
 
 /**
@@ -200,6 +225,23 @@ export async function runCoverageBatch(
       .bind(MAX_ATTEMPTS, batch)
       .all();
     pending = (rows.results ?? []).map(rowToCoverage);
+
+    // Nothing new to read? Re-read the stalest name over the window instead,
+    // so the ledger behind the score does not age in place.
+    if (pending.length < batch) {
+      const stale = await db
+        .prepare(
+          `SELECT * FROM name_investigations
+            WHERE status = 'done'
+            ORDER BY checked_at ASC
+            LIMIT ?`,
+        )
+        .bind(batch - pending.length)
+        .all();
+      pending = pending.concat(
+        (stale.results ?? []).map((r) => ({ ...rowToCoverage(r), refresh: true })),
+      );
+    }
   } catch {
     return [];
   }
@@ -237,7 +279,7 @@ export async function runCoverageBatch(
       continue;
     }
 
-    const c = firstLookCase(person);
+    const c = row.refresh ? recentLookCase(person) : firstLookCase(person);
     try {
       const entries = await researchDossierCase(config, c);
       const { added, found } = await writeLedgerEntries(db, person.name, entries);
@@ -259,7 +301,13 @@ export async function runCoverageBatch(
           row.slug,
         )
         .run();
-      run.push({ name: person.name, status: "done", entries: added, found });
+      run.push({
+        name: person.name,
+        status: "done",
+        entries: added,
+        found,
+        refresh: row.refresh,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message.slice(0, 300) : "unknown error";
       await db
