@@ -103,6 +103,24 @@ export interface LedgerEntry {
  * alone leaves the ledger looking empty while the entries sit right there, so
  * a name also matches on its distinctive tokens ("Elon Musk" → elon, musk).
  */
+/**
+ * A name is matched on its first and last part, never on one token.
+ *
+ * The old match took any word over three letters, so "Henry Cuellar" also
+ * pulled in every other Henry on the floor — and since a roll call gives a
+ * whole caucus the same words, the page repeated the same vote under different
+ * people. First and last together is the smallest pair that is still one person.
+ */
+export function namePair(name: string): string[] {
+  const inside = (name.match(/\(([^)]+)\)/g) ?? []).map((s) => s.slice(1, -1));
+  const parts = `${name.replace(/\([^)]*\)/g, " ")} ${inside.join(" ")}`
+    .split(/\s+/)
+    .map((t) => t.replace(/[.,]/g, "").trim().toLowerCase())
+    .filter((t) => t.length >= 2);
+  if (parts.length === 0) return [];
+  return [parts[0], parts[parts.length - 1]];
+}
+
 export function nameTokens(name: string): string[] {
   const inside = (name.match(/\(([^)]+)\)/g) ?? []).map((s) => s.slice(1, -1));
   const base = name.replace(/\([^)]*\)/g, " ");
@@ -121,11 +139,12 @@ export function countLedger(
   name: string,
 ): number {
   const lower = name.toLowerCase();
-  const tokens = nameTokens(name);
+  const [first, last] = namePair(name);
   let total = 0;
   for (const r of rows) {
     const p = r.person.toLowerCase();
-    if (p === lower || tokens.some((t) => p.includes(t))) total += r.count;
+    if (p === lower) total += r.count;
+    else if (first && last && p.includes(first) && p.includes(last)) total += r.count;
   }
   return total;
 }
@@ -133,16 +152,15 @@ export function countLedger(
 export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   const d = await db();
   if (!d) return [];
-  const tokens = nameTokens(name);
-  const where = [
-    "lower(person) = lower(?)",
-    ...tokens.map(() => "lower(person) LIKE ?"),
-  ].join(" OR ");
+  const [first, last] = namePair(name);
+  const where = first && last
+    ? "lower(person) = lower(?) OR (lower(person) LIKE ? AND lower(person) LIKE ?)"
+    : "lower(person) = lower(?)";
   const rows = await d
     .prepare(
       `SELECT act, place, year, category, confidence, sources, attribution FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
-    .bind(name, ...tokens.map((t) => `%${t}%`))
+    .bind(name, ...(first && last ? [`%${first}%`, `%${last}%`] : []))
     .all();
   return (rows.results ?? []).map((r) => {
     let sources: string[] = [];
@@ -288,10 +306,11 @@ export function ledgerSummaryFor(
 ): LedgerSummary | undefined {
   const exact = summaries.get(name.toLowerCase());
   if (exact) return exact;
-  const tokens = nameTokens(name);
+  const [first, last] = namePair(name);
+  if (!first || !last) return undefined;
   let best: LedgerSummary | undefined;
   for (const [key, s] of summaries) {
-    if (tokens.some((t) => key.includes(t))) {
+    if (key.includes(first) && key.includes(last)) {
       if (!best || s.count > best.count) best = s;
     }
   }
