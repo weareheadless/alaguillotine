@@ -3,6 +3,7 @@ import { STANDING } from './standing'
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, shrink } from "./clock";
 import type { LedgerSummary } from "./archive-store";
 import type { ClockConfig } from "./clock-research";
+import { rotatingLanguages, WIRE_TOPICS } from "./languages";
 import { HATE_DIMENSIONS, itemMentions, rankFigures, type Figure, type HateDimension, type HateKey } from "./hateometer";
 
 /**
@@ -40,6 +41,7 @@ const SYSTEM = `You are Ada, keeping the queue for a satirical installation call
 
 RULES — hard:
 1. NEVER invent a name, number, date or event. Everything must be in the supplied text.
+1b. Results may be in any language — Arabic, Hebrew, Burmese, Spanish, Chinese, Russian. Read them as written, write your output in English, and keep the person's name as the local report spells it next to the English one where they differ. A local-language wire is evidence, not a rumour: do not discount a result for being in another language, and do not treat a translated headline as an English source.
 2. Items: 1-2 plain sentences with the number if there is one.
 3. Quip: ONE line, max 140 chars, contemptuous and funny, aimed at the pattern or the institution. No calls to violence, no dehumanising language, nothing about anyone's body, family, ethnicity or religion.
 4. File each item under: war, civilian, repression, arms, incitement.
@@ -66,9 +68,26 @@ interface Candidate {
   date: string | null;
   summary: string;
   authority: number;
+  lang: string;
 }
 
 const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
+
+/**
+ * Two native-language wire searches per pass.
+ *
+ * The language rotates on a four-hour bucket and so does the topic, so a day of
+ * passes covers Arabic, Hebrew, Burmese, Spanish and so on without paying for
+ * fifteen searches each time. Deterministic in the clock, so a pass replays.
+ */
+function wireRotation(now: Date): Array<{ topic: string; q: string; lang: string }> {
+  const bucket = Math.floor(now.getTime() / (4 * 60 * 60 * 1000));
+  return rotatingLanguages(now, 2).flatMap((lang, i) => {
+    const topic = WIRE_TOPICS[(bucket + i * 3) % WIRE_TOPICS.length];
+    const q = topic.terms[lang];
+    return q ? [{ topic: topic.topic, q, lang }] : [];
+  });
+}
 
 async function post<T>(url: string, body: unknown, key: string): Promise<T> {
   const res = await fetch(url, {
@@ -113,12 +132,27 @@ export async function runHatePass(
   const after = new Date(Date.now() - 4 * 86_400_000).toISOString().slice(0, 10);
   const candidates: Candidate[] = [];
 
-  for (const { topic, q } of QUERIES) {
-    const data = await post<{ results?: Array<Record<string, unknown>> }>(
-      `${config.searchBase}/v1/tools/search`,
-      { query: `${q} lang:en after:${after}`, count: 5, need_content: false },
-      config.searchKey,
-    );
+  // English first, then two searches in two other languages, rotating every
+  // four hours. The wire that reports a massacre in Darfur or a crackdown in
+  // Mandalay is Arabic or Burmese hours before an English desk picks it up; a
+  // queue that only reads English is not neutral, it is provincial.
+  const wires = [
+    ...QUERIES.map(({ topic, q }) => ({ topic, q, lang: "en" })),
+    ...wireRotation(new Date()),
+  ];
+
+  for (const { topic, q, lang } of wires) {
+    let data: { results?: Array<Record<string, unknown>> };
+    try {
+      data = await post<{ results?: Array<Record<string, unknown>> }>(
+        `${config.searchBase}/v1/tools/search`,
+        { query: `${q} lang:${lang} after:${after}`, count: 5, need_content: false },
+        config.searchKey,
+      );
+    } catch {
+      // One dead query in one language is not a dead pass.
+      continue;
+    }
     for (const hit of data.results ?? []) {
       if (!hit.url || !hit.summary) continue;
       candidates.push({
@@ -129,6 +163,7 @@ export async function runHatePass(
         date: typeof hit.date === "string" ? hit.date : null,
         summary: String(hit.summary),
         authority: typeof hit.authority === "number" ? hit.authority : -1,
+        lang,
       });
     }
   }
@@ -156,6 +191,7 @@ export async function runHatePass(
     results: pool.slice(0, 40).map((c, index) => ({
       index,
       topic: c.topic,
+      lang: c.lang,
       title: c.title,
       site: c.site,
       date: c.date,

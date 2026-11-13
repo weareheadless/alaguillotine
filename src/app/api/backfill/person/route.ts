@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig } from "@/lib/clock-research";
 import { DOSSIER_CASES, recentCases, researchDossierCase } from "@/lib/dossier";
-import { slugify } from "@/lib/slug";
+import { actKey, sameAct } from "@/lib/ledger-write";
 
 export const dynamic = "force-dynamic";
 
@@ -91,35 +91,6 @@ export async function POST(request: Request) {
   const pending = candidates.filter((c) => force || !done.has(c.id));
   const run: Array<{ case: string; person: string; angle: string; entries: number }> = [];
 
-  const actHash = (s: string) => {
-    let h = 5381;
-    for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-    return (h >>> 0).toString(36);
-  };
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const words = (s: string) =>
-    new Set(norm(s).split(" ").filter((w) => w.length > 3));
-  // Same act, different wording. Compare the words that carry meaning, and
-  // treat a shared figure as confirmation: two reports of "the $148,378
-  // penalty" are one charge, while $148,378 and $3,750 are two different ones.
-  // This keeps a daily sweep from filing the same charge every time a paper
-  // rephrases it.
-  const figures = (s: string) =>
-    new Set((s.match(/\d[\d,.]*/g) ?? []).map((n) => n.replace(/[.,]$/, "")));
-  const similar = (a: string, b: string) => {
-    const A = words(a);
-    const B = words(b);
-    if (!A.size || !B.size) return false;
-    let overlap = 0;
-    for (const w of A) if (B.has(w)) overlap += 1;
-    const contained = overlap / Math.min(A.size, B.size);
-    if (contained >= 0.7) return true;
-    const FA = figures(a);
-    const FB = figures(b);
-    if (!FA.size || !FB.size) return false;
-    for (const n of FA) if (FB.has(n)) return contained >= 0.5;
-    return false;
-  };
 
   for (let n = 0; n < batch && n < pending.length; n += 1) {
     const next = pending[n];
@@ -139,7 +110,7 @@ export async function POST(request: Request) {
       }
 
       for (const e of entries) {
-        if (known.some((act) => similar(act, e.act))) continue;
+        if (known.some((act) => sameAct(act, e.act))) continue;
         known.push(e.act);
         added += 1;
         await db
@@ -149,7 +120,7 @@ export async function POST(request: Request) {
              ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources`,
           )
           .bind(
-            `${slugify(e.person)}:${actHash(norm(e.act))}`,
+            actKey(e.person, e.act),
             e.person,
             e.role,
             e.act,

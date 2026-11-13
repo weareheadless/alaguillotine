@@ -1,6 +1,7 @@
 import type { ClockConfig } from "./clock-research";
 import type { Case, LedgerEntry } from "./backfill";
 import { STANDING } from "./standing";
+import { languagesForCountry, localizedQuery, type AngleId } from "./languages";
 
 /**
  * Person dossiers: the long record, angle by angle.
@@ -111,10 +112,28 @@ export interface DossierCase extends Case {
   person: string;
   role: string;
   country: string;
+  /**
+   * The same angle asked in the person's own languages. Kept apart from
+   * `queries` because each one carries a language tag: a native phrase is
+   * ranked as itself, not back onto the English coverage of the same event.
+   */
+  localQueries?: Array<{ q: string; lang: string }>;
 }
 
 const slugifyName = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+/** The local-language mirrors of an angle, one per language, capped at two. */
+function localQueries(
+  person: (typeof STANDING)[number],
+  angle: AngleId,
+): Array<{ q: string; lang: string }> {
+  return languagesForCountry(person.country)
+    .filter((code) => code !== "en")
+    .slice(0, 2)
+    .map((code) => localizedQuery(person.name, angle, code))
+    .filter((q): q is { q: string; lang: string } => Boolean(q));
+}
 
 /** Every person × angle, with a long window. */
 export const DOSSIER_CASES: DossierCase[] = STANDING.flatMap((person) =>
@@ -129,6 +148,7 @@ export const DOSSIER_CASES: DossierCase[] = STANDING.flatMap((person) =>
     before: "2026-12-31",
     subject: person.name,
     queries: angle.queries(person.name),
+    localQueries: localQueries(person, angle.id as AngleId),
   })),
 );
 
@@ -157,6 +177,16 @@ export function recentCases(now: Date = new Date()): DossierCase[] {
       `"${person.name}" news`,
       `"${person.name}" lawsuit OR investigation OR strike OR deal OR contract`,
     ],
+    // The rolling sweep is where a fresh local-language story actually lands:
+    // the wire in Arabic or Burmese reports the raid before the English desk
+    // does, and that is the whole point of the window.
+    localQueries: languagesForCountry(person.country)
+      .filter((code) => code !== "en")
+      .slice(0, 2)
+      .flatMap((code) => {
+        const q = localizedQuery(person.name, "war", code);
+        return q ? [q] : [];
+      }),
   }));
 }
 
@@ -176,6 +206,7 @@ RULES — hard:
 9. evidence_quote: a verbatim phrase from the supplied summary that supports the act, max 200 chars.
 10. Return every distinct act. Do not stop at five. Merge duplicates instead of repeating them.
 11. The same act may appear under several angles; return it only if this angle's results support it.
+12. The results may be in any language — Arabic, Hebrew, Burmese, French, Chinese, whatever the wire returned. Read them in that language and write the act in English. Keep the spelling of names and places the local source uses alongside the English one when they differ ("Min Aung Hlaing / မင်းအောင်လှိုင်"), so one event is not filed twice under two spellings. A local-language report is as good a source as an English one, and often the only source for what happened where the English desk is not.
 
 Return JSON only:
 {"entries":[{"person":"","role":"","act":"","place":"","year":2024,"category":"finance","confidence":0,"sources":["https://..."],"evidence_quote":""}]}`;
@@ -206,6 +237,32 @@ interface Result {
 
 const normAct = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
+/**
+ * Hosts that carry a claim but not a record. A podcast listing, a repost and a
+ * social post can quote a fact, and none of them can be the source of one: the
+ * ledger's promise is that every charge links to the thing that established it.
+ */
+const NOT_EVIDENCE = [
+  "x.com",
+  "twitter.com",
+  "facebook.com",
+  "instagram.com",
+  "tiktok.com",
+  "youtube.com",
+  "reddit.com",
+  "pinterest.",
+  "podcasts.apple.com",
+  "castbox.fm",
+  "flipboard.com",
+  "spotify.com",
+  "medium.com",
+];
+
+const isEvidenceSource = (url: string): boolean => {
+  const host = url.replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
+  return !NOT_EVIDENCE.some((h) => host === h || host.endsWith(`.${h}`) || host.includes(h));
+};
+
 export async function researchDossierCase(
   config: ClockConfig,
   c: DossierCase,
@@ -214,13 +271,19 @@ export async function researchDossierCase(
   const seen = new Set<string>();
   let answered = 0;
 
-  for (const q of c.queries) {
+  // English queries plus the local-language mirrors, each in its own language.
+  const searches = [
+    ...c.queries.map((q) => ({ q, lang: "en" })),
+    ...(c.localQueries ?? []),
+  ];
+
+  for (const { q, lang } of searches) {
     let data: { results?: Array<Record<string, unknown>> };
     try {
       data = await post<{ results?: Array<Record<string, unknown>> }>(
         `${config.searchBase}/v1/tools/search`,
         {
-          query: `${q} lang:en after:${c.after} before:${c.before}`,
+          query: `${q} lang:${lang} after:${c.after} before:${c.before}`,
           count: 8,
           need_content: false,
         },
@@ -236,6 +299,12 @@ export async function researchDossierCase(
     for (const r of data.results ?? []) {
       const url = String(r.url ?? "");
       if (!url || !r.summary || seen.has(url)) continue;
+      // The wire's weakest tier is mostly reprints and aggregator pages, and a
+      // native-language search surfaces more of them than an English one. Drop
+      // the bottom tier and the non-reporting hosts rather than spend the
+      // extraction call asking the model to ignore them.
+      if (typeof r.authority === "number" && r.authority < 2) continue;
+      if (!isEvidenceSource(url)) continue;
       seen.add(url);
       results.push({
         title: String(r.title ?? "").slice(0, 180),
