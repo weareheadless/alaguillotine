@@ -81,7 +81,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
             {Math.round(person.score)}
           </div>
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-            rank {person.rank}
+            {person.rank > 0 ? `rank ${person.rank}` : "on the record"}
           </div>
           <div className="mt-1 font-mono text-[8px] uppercase tracking-[0.12em] text-chop-muted">
             {person.windowActs ? `${Math.round(person.windowActs)} acts / 180d` : "no open acts"}
