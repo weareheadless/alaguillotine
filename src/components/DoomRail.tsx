@@ -119,6 +119,12 @@ export function DoomRail({
           tone="#22C55E"
         />
         <Row
+          label="plastic produced"
+          value={`${num(elapsed * RATES.plastic)} t`}
+          source="460 Mt in 2019 · OECD"
+          tone="#C084FC"
+        />
+        <Row
           label="air-pollution deaths"
           value={(elapsed * RATES.deaths).toFixed(1)}
           source="7.9M/yr · State of Global Air"
@@ -177,6 +183,11 @@ export function DoomRail({
               <li>
                 <a href="https://www.fao.org/forest-resources-assessment/en/" target="_blank" rel="noreferrer">
                   FAO · Forest Resources Assessment 2025
+                </a>
+              </li>
+              <li>
+                <a href="https://www.oecd.org/en/publications/2022/02/global-plastics-outlook_a653d1c9.html" target="_blank" rel="noreferrer">
+                  OECD · Global Plastics Outlook
                 </a>
               </li>
               <li>
