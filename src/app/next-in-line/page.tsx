@@ -66,9 +66,10 @@ export default function NextInLinePage() {
             Next <span className="text-spiteCrimson">in line.</span>
           </h1>
           <p className="mt-3 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
-            Every name is scored on what the record documents inside the last
-            180 days. No floor for old fame, no points for having been chopped:
-            a name with nothing recent cannot be sentenced. The blade takes the
+            Every name is scored on the five heaviest acts the record documents
+            inside the last 180 days — a sixth does not make it worse, it makes
+            it better documented. No floor for old fame, no points for having
+            been chopped: a name with nothing recent cannot be sentenced. The blade takes the
             worst name that is not cooling from its last chop. Click a name for its charges and
             sources.
           </p>

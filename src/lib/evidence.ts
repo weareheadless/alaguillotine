@@ -8,11 +8,16 @@
  * documented acts account for inside a fixed window.
  *
  * The arithmetic is deliberately boring. Each act is weighted by its
- * confidence and its category, dated where the text gives a date, and summed.
- * The sum saturates, so a hundred entries do not run away from twelve. The
- * window is the clock: an act outside it counts for nothing, and an act whose
- * month we do not know counts for half, because the year alone cannot prove it
- * is inside the window.
+ * confidence, its category, and how much of it is the person's own, then the
+ * five heaviest are summed. Not all of them: summing every act scores
+ * coverage, and coverage is not harm. Five press-strategy entries outweighed
+ * one documented massacre, because there were five of them. A sixth act does
+ * not make a record worse, it makes it better documented.
+ *
+ * The sum saturates, so no single record runs away with the top. The window is
+ * the clock: an act outside it counts for nothing, and an act whose month we do
+ * not know counts for half, because the year alone cannot prove it is inside
+ * the window.
  *
  * Nothing here judges a person. It measures what the record says, recently.
  */
@@ -152,6 +157,10 @@ function utc(year: number, month: number, day: number): Date | null {
  * Dated acts inside the window count whole. Undated acts from the current year
  * count half: the year proves they are recent, not that they are inside the
  * window. Older acts do not count at all.
+ *
+ * Only the five heaviest acts are summed. The count of acts is still reported
+ * beside the number, because how much was documented is worth knowing — it just
+ * does not buy a higher score.
  */
 export function evidenceFor(
   entries: LedgerAct[],
@@ -159,7 +168,7 @@ export function evidenceFor(
 ): Evidence {
   const today = new Date(now);
   const currentYear = today.getUTCFullYear();
-  let total = 0;
+  const values: number[] = [];
   let acts = 0;
   let newest: EvidenceAct | null = null;
   let newestAt = -Infinity;
@@ -190,7 +199,7 @@ export function evidenceFor(
     const category = CATEGORY_WEIGHT[String(entry.category || "").toLowerCase()] ?? DEFAULT_WEIGHT;
     const attribution = Math.min(1, Math.max(0, Number(entry.attribution ?? 1)));
     const value = weight * confidence * category * attribution;
-    total += value;
+    values.push(value);
     acts += weight;
 
     const act: EvidenceAct = {
@@ -209,6 +218,14 @@ export function evidenceFor(
       credible = act;
     }
   }
+
+  // The five worst acts, and no more. Sorted descending so a record with one
+  // massacre cannot be diluted by four good weeks, and cannot be inflated by
+  // fifty press releases either.
+  const total = values
+    .sort((a, b) => b - a)
+    .slice(0, 5)
+    .reduce((sum, v) => sum + v, 0);
 
   const score = total > 0 ? 100 * (1 - Math.exp(-total / SATURATION)) : 0;
   return {
