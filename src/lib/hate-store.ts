@@ -380,7 +380,14 @@ export async function ensureSentence(
   return readSentence(db);
 }
 
-/** The blade falls on every sentence whose countdown has run out. */
+/**
+ * The blade falls on every sentence whose countdown has run out.
+ *
+ * Claiming the sentence is the lock. The tick and a page load can both see the
+ * same due row; only the call whose conditional update changes a row goes on to
+ * write the chop and raise the tally, so a blade that falls once is counted
+ * once. The event id is the sentence id, so a retry cannot add a second cross.
+ */
 export async function executeDueSentences(db: D1): Promise<number> {
   const now = new Date().toISOString();
   let rows: { results?: Array<Record<string, unknown>> };
@@ -396,13 +403,23 @@ export async function executeDueSentences(db: D1): Promise<number> {
   }
 
   const due = rows.results ?? [];
+  let executed = 0;
   for (const p of due) {
+    const id = String(p.id);
     const slug = String(p.slug);
+    const claim = (await db
+      .prepare(
+        "UPDATE chop_sentences SET executed_at = ? WHERE id = ? AND executed_at IS NULL",
+      )
+      .bind(now, id)
+      .run()) as { meta?: { changes?: number } } | undefined;
+    if (Number(claim?.meta?.changes ?? 0) !== 1) continue;
+
     await db
       .prepare(
         "INSERT OR REPLACE INTO chop_events (id, person, slug, score, chopped_at) VALUES (?, ?, ?, ?, ?)",
       )
-      .bind(`${slug}:${now}`, String(p.person), slug, Number(p.score), now)
+      .bind(id, String(p.person), slug, Number(p.score), now)
       .run();
     // The chop is a tally, not a reset. The record that put the name here has
     // not changed; the cooldown is what keeps the blade moving.
@@ -412,12 +429,9 @@ export async function executeDueSentences(db: D1): Promise<number> {
       )
       .bind(slug)
       .run();
-    await db
-      .prepare("UPDATE chop_sentences SET executed_at = ? WHERE id = ?")
-      .bind(now, String(p.id))
-      .run();
+    executed += 1;
   }
-  return due.length;
+  return executed;
 }
 
 export interface ChopRow {
