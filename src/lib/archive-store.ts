@@ -387,6 +387,36 @@ export async function recentCharges(limit = 10): Promise<RecentCharge[]> {
   return out;
 }
 
+/**
+ * How many charges carry a source link.
+ *
+ * The manifesto claims every charge links to the report it came from. That is
+ * a checkable statement, so the manifesto page checks it against the table
+ * instead of trusting the prose.
+ */
+export async function ledgerSourceCoverage(): Promise<{
+  total: number;
+  withSource: number;
+}> {
+  const d = await db();
+  if (!d) return { total: 0, withSource: 0 };
+  try {
+    const row = await d
+      .prepare(
+        `SELECT COUNT(*) AS total,
+                SUM(CASE WHEN sources IS NULL OR sources = '' OR sources = '[]' THEN 0 ELSE 1 END) AS with_source
+           FROM ledger_entries`,
+      )
+      .first<{ total?: number; with_source?: number }>();
+    return {
+      total: Number(row?.total ?? 0),
+      withSource: Number(row?.with_source ?? 0),
+    };
+  } catch {
+    return { total: 0, withSource: 0 };
+  }
+}
+
 export async function chargeStats(): Promise<ChargeStats> {
   const d = await db();
   if (!d) return { total: 0, last24h: 0 };

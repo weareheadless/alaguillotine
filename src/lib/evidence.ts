@@ -49,7 +49,8 @@ const CATEGORY_WEIGHT: Record<string, number> = {
 const DEFAULT_WEIGHT = 0.5;
 
 /** The sum at which the score reaches about 63. A handful of strong acts. */
-const SATURATION = 2.5;
+export const SCORE_SATURATION = 2.5;
+const SATURATION = SCORE_SATURATION;
 
 const MONTHS: Record<string, number> = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,

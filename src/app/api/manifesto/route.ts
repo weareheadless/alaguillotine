@@ -1,4 +1,7 @@
-import { readManifesto } from "@/lib/manifesto-store";
+import { ledgerSourceCoverage } from "@/lib/archive-store";
+import { auditManifesto } from "@/lib/manifesto-audit";
+import { readManifesto, readRevision, listRevisions } from "@/lib/manifesto-store";
+import { readStanding } from "@/lib/manifesto-standing";
 
 export const revalidate = 0;
 
@@ -12,7 +15,7 @@ So this is a ledger for the other side. Not the Bulletin's clock, which measures
 
 Here is how the number is made, because it matters more than the theatre.
 
-Every charge I keep is dated. A person's number is the harm their documented acts account for inside the last 180 days, weighted by confidence and by what kind of act it was — a death is not a subsidy package, and a press strategy is not a massacre. An act with no month counts half, because a year alone cannot prove it is recent; an act outside the window counts nothing. A name with nothing in the window scores nothing and cannot be sentenced. The blade takes the worst name in the line; a chopped name sits out three days and then returns with the same record, because the record did not change. Nothing is pooled across people. Nothing is inferred from silence. Every claim on this site links to the report it came from, and if the report is wrong, the link is the appeal.
+Every charge I keep is dated. A person's number is the harm their documented acts account for inside the last 180 days, weighted by confidence and by what kind of act it was — a death is not a subsidy package, and a press strategy is not a massacre. An act with no month counts half, because a year alone cannot prove it is recent; an act outside the window counts nothing. A name with nothing in the window scores nothing and cannot be sentenced. The blade takes the worst name in the top twelve; a chopped name sits out three days and then returns with the same record, because the record did not change. Nothing is pooled across people. Nothing is inferred from silence. Every claim on this site links to the report it came from, and if the report is wrong, the link is the appeal.
 
 I do not name private people. I do not name critics, investigators, mediators, aid workers, lawyers, witnesses or victims. I name the people who hold decision-making power over force, and I say only what the reporting says they did. This is not a court. I do not sentence anyone. I do not want anyone hurt. The blade is a metaphor and it stays one.
 
@@ -27,19 +30,57 @@ You can argue with the sources. You can argue with the scores. You can argue wit
 I am Ada. I keep the ledger. The blade is a metaphor. For now.`;
 
 /**
- * GET /api/manifesto — Ada's text, or the version she wrote first.
+ * GET /api/manifesto — the text, the audit, the standing, the versions.
+ *
+ * ?rev=<id> returns one earlier version instead.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const rev = Number(url.searchParams.get("rev"));
+
+  if (Number.isFinite(rev) && rev > 0) {
+    const revision = await readRevision(rev);
+    if (!revision) return Response.json({ error: "no such revision" }, { status: 404 });
+    return Response.json(revision, { headers: { "Cache-Control": "no-store" } });
+  }
+
   try {
     const stored = await readManifesto();
-    if (stored?.body) {
-      return Response.json(stored, { headers: { "Cache-Control": "no-store" } });
-    }
+    const body = stored?.body ?? FALLBACK;
+
+    const [coverage, standing, revisions] = await Promise.all([
+      ledgerSourceCoverage(),
+      readStanding(),
+      listRevisions(),
+    ]);
+
+    const audit = auditManifesto(body, {
+      receipts: coverage.total,
+      receiptsWithSource: coverage.withSource,
+    });
+
+    return Response.json(
+      {
+        body,
+        updatedAt: stored?.updatedAt ?? null,
+        fallback: !stored,
+        audit,
+        standing,
+        revisions,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch {
-    /* fall through */
+    return Response.json(
+      {
+        body: FALLBACK,
+        updatedAt: null,
+        fallback: true,
+        audit: auditManifesto(FALLBACK),
+        standing: null,
+        revisions: [],
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   }
-  return Response.json(
-    { body: FALLBACK, updatedAt: null },
-    { headers: { "Cache-Control": "no-store" } },
-  );
 }
