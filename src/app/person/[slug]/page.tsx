@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getLedgerFor, getPositionsFor } from "@/lib/archive-store";
+import { getDeclarationsFor, getLedgerFor, getPositionsFor } from "@/lib/archive-store";
 import { getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
@@ -54,6 +54,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
 
   const ledger = await getLedgerFor(person.name);
   const positions = await getPositionsFor(slug);
+  const declarations = await getDeclarationsFor(slug);
   const db = await getDb();
   const numbers = db ? await readNumbersFor(db, slug) : [];
   const chopped = (person.timesChopped ?? 0) > 0;
@@ -155,6 +156,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
         ledger={ledger}
         numbers={numbers}
         positions={positions}
+        declarations={declarations}
         now={new Date()}
       />
 

@@ -462,6 +462,66 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
 }
 
 /**
+ * What they declared, and when.
+ *
+ * A statement of assets filed at the start of a job and again at the end is a
+ * better answer to "did he get rich in office" than any list of estimates,
+ * because the state compelled it and the document can be read.
+ */
+export interface DeclarationRow {
+  id: string;
+  kind: string;
+  jurisdiction: string;
+  filedAt: string | null;
+  periodFrom: string | null;
+  periodTo: string | null;
+  assets: number | null;
+  debts: number | null;
+  net: number | null;
+  income: number | null;
+  valueLow: number | null;
+  valueHigh: number | null;
+  currency: string;
+  sourceUrl: string;
+  note: string;
+}
+
+export async function getDeclarationsFor(slug: string): Promise<DeclarationRow[]> {
+  const d = await db();
+  if (!d) return [];
+  try {
+    const rows = await d
+      .prepare(
+        `SELECT id, kind, jurisdiction, filed_at, period_from, period_to, assets, debts, net,
+                income, value_low, value_high, currency, source_url, note
+           FROM declarations WHERE slug = ? ORDER BY period_to`,
+      )
+      .bind(slug)
+      .all();
+    return (rows.results ?? []).map((r) => ({
+      id: String(r.id ?? ""),
+      kind: String(r.kind ?? ""),
+      jurisdiction: String(r.jurisdiction ?? ""),
+      filedAt: r.filed_at == null ? null : String(r.filed_at),
+      periodFrom: r.period_from == null ? null : String(r.period_from),
+      periodTo: r.period_to == null ? null : String(r.period_to),
+      assets: r.assets == null ? null : Number(r.assets),
+      debts: r.debts == null ? null : Number(r.debts),
+      net: r.net == null ? null : Number(r.net),
+      income: r.income == null ? null : Number(r.income),
+      valueLow: r.value_low == null ? null : Number(r.value_low),
+      valueHigh: r.value_high == null ? null : Number(r.value_high),
+      currency: String(r.currency ?? "EUR"),
+      sourceUrl: String(r.source_url ?? ""),
+      note: String(r.note ?? ""),
+    }));
+  } catch {
+    // Table not migrated yet.
+    return [];
+  }
+}
+
+/**
  * What the person was, and when.
  *
  * The terms are stored with a precision flag, so a role known only by its year

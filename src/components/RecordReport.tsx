@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LedgerEntry, PositionRow } from "@/lib/archive-store";
+import type { DeclarationRow, LedgerEntry, PositionRow } from "@/lib/archive-store";
 import type { PersonNumber } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
 
@@ -91,11 +91,13 @@ export function RecordReport({
   ledger,
   numbers,
   positions,
+  declarations,
   now,
 }: {
   ledger: LedgerEntry[];
   numbers: PersonNumber[];
   positions: PositionRow[];
+  declarations: DeclarationRow[];
   now: Date;
 }) {
   const thisYear = now.getUTCFullYear();
@@ -142,6 +144,7 @@ export function RecordReport({
     flowByYear.set(y, (flowByYear.get(y) ?? 0) + valueOf(n));
   }
   const maxFlow = Math.max(1, ...flowByYear.values());
+  const hasMoney = [...flowByYear.values()].some((v) => v > 0);
 
   const tollByYear = new Map<number, PersonNumber>();
   for (const n of tolls) {
@@ -160,6 +163,8 @@ export function RecordReport({
     list.push(e);
     claimsByYear.set(y, list);
   }
+
+  const maxClaims = Math.max(1, ...yearList.map((y) => claimsByYear.get(y)?.length ?? 0));
 
   const undated = ledger.filter((e) => yearOf({ actDate: e.actDate, year: e.year }) == null);
   const undatedMoney = flows.filter((n) => yearOf(n) == null);
@@ -180,11 +185,149 @@ export function RecordReport({
   const maxWealth = Math.max(1, ...wealthPoints.map((p) => p.v));
   const tollTotal = tolls.length;
 
+  // What the page could not previously say: the receipts that landed while the
+  // office was held, and those that landed just after it ended. These are
+  // counts, not a verdict — but they are the reason the page exists, and
+  // leaving them to be reassembled from a list was the failure.
+  const statePositions = positions.filter((p) => p.kind !== "firm");
+  const withinTerm = (p: PositionRow, iso: string): boolean => {
+    const a = p.fromDate;
+    const b = p.toDate ?? "9999-12-31";
+    return iso >= a && iso <= b;
+  };
+  const dateOf = (n: PersonNumber): string | null =>
+    n.actDate ?? (n.year ? `${n.year}-07-01` : null);
+
+  const isReceipt = (n: PersonNumber): boolean =>
+    n.direction !== "out" &&
+    n.kind !== "fines" &&
+    n.kind !== "donations" &&
+    n.whose !== "campaign" &&
+    n.whose !== "firm" &&
+    n.whose !== "fund";
+
+  const duringOffice = flows.filter((n) => {
+    const at = dateOf(n);
+    if (!at || !isReceipt(n)) return false;
+    return statePositions.some((p) => withinTerm(p, at));
+  });
+  const shortlyAfter = flows.filter((n) => {
+    const at = dateOf(n);
+    if (!at || !isReceipt(n)) return false;
+    return statePositions.some((p) => {
+      if (!p.toDate) return false;
+      if (at <= p.toDate) return false;
+      const years = (Number(at.slice(0, 4)) - Number(p.toDate.slice(0, 4))) + 0;
+      return years >= 0 && years <= 2;
+    });
+  });
+  const sumOf = (rows: PersonNumber[]): number => rows.reduce((t, n) => t + valueOf(n), 0);
+
+  const assetStatements = declarations
+    .filter((d) => d.kind === "assets" && d.net != null)
+    .sort((a, b) => (a.periodTo ?? "").localeCompare(b.periodTo ?? ""));
+  const incomeStatements = declarations.filter((d) => d.kind === "income" && d.income != null);
+  const declaredIncome = incomeStatements.reduce((t, d) => t + (d.income ?? 0), 0);
+  const firstStatement = assetStatements[0];
+  const lastStatement = assetStatements[assetStatements.length - 1];
+
+  const moneyIn = (v: number, currency: string): string => {
+    const sign = currency === "EUR" ? "€" : currency === "GBP" ? "£" : "$";
+    if (Math.abs(v) >= 1e6) return `${sign}${(v / 1e6).toFixed(v >= 1e7 ? 1 : 2)}m`;
+    if (Math.abs(v) >= 1e3) return `${sign}${Math.round(v / 1e3)}k`;
+    return `${sign}${Math.round(v)}`;
+  };
+
   const activeYears = yearList.filter(
     (y) => (claimsByYear.get(y)?.length ?? 0) > 0 || flowByYear.has(y) || heldIn(y).length > 0,
   );
 
   return (
+    <>
+    {statePositions.length > 0 ? (
+      <section className="mt-8 border border-chop-border bg-white/[0.02] p-3.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
+            the pattern
+          </h2>
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted">
+            counts, not a verdict
+          </span>
+        </div>
+
+        <div className="mt-3 grid gap-4 sm:grid-cols-3">
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-hypeNeon/80">
+              while in office
+            </p>
+            <p className="mt-0.5 font-mono text-[19px] font-black tabular-nums text-sheetWhite">
+              {duringOffice.length ? money(sumOf(duringOffice)) : "none"}
+            </p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
+              {duringOffice.length
+                ? `${duringOffice.length} payment${duringOffice.length === 1 ? "" : "s"} on the record`
+                : "no payment on this record"}
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {duringOffice.slice(0, 3).map((n, i) => (
+                <li key={`d-${n.label}-${i}`} className="text-[11px] leading-snug text-sheetWhite/80">
+                  <span className="font-mono font-bold text-spiteCrimson">{n.display}</span>{" "}
+                  {n.counterparty || n.label}
+                  {n.actDate ? (
+                    <span className="text-chop-muted"> · {n.actDate}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-chop-muted">
+              within two years after
+            </p>
+            <p className="mt-0.5 font-mono text-[19px] font-black tabular-nums text-sheetWhite">
+              {shortlyAfter.length ? money(sumOf(shortlyAfter)) : "none"}
+            </p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
+              {shortlyAfter.length
+                ? `${shortlyAfter.length} payment${shortlyAfter.length === 1 ? "" : "s"} on the record`
+                : "no payment on this record"}
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {shortlyAfter.slice(0, 3).map((n, i) => (
+                <li key={`a-${n.label}-${i}`} className="text-[11px] leading-snug text-sheetWhite/80">
+                  <span className="font-mono font-bold text-spiteCrimson">{n.display}</span>{" "}
+                  {n.counterparty || n.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-chop-muted">
+              what was done about it
+            </p>
+            <p className="mt-0.5 font-mono text-[19px] font-black tabular-nums text-spiteCrimson">
+              {practised}
+            </p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
+              charged, convicted or settled of {ledger.length} claims
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-chop-muted">
+              {investigated} investigated without a charge · {untouched} with no proceeding
+              recorded
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-3 border-t border-chop-border pt-2 font-mono text-[9px] leading-relaxed text-chop-muted">
+          The coincidence is the record&apos;s; the meaning is yours. Where this page can name the
+          decision a payer got for its money, it does, in the claim beside it — and where it cannot,
+          it says the payment arrived and stops there.
+        </p>
+      </section>
+    ) : null}
+
     <div className="mt-8 grid gap-6 lg:grid-cols-[260px_1fr] lg:gap-8">
       <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
         <div className="border border-chop-border bg-white/[0.02] p-3">
@@ -213,6 +356,49 @@ export function RecordReport({
             </p>
           ) : null}
         </div>
+
+        {assetStatements.length > 0 ? (
+          <div className="border border-chop-border bg-white/[0.02] p-3">
+            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
+              declared net assets
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {assetStatements.map((d, i) => (
+                <li key={d.id} className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-[14px] font-black tabular-nums text-spiteCrimson">
+                    {moneyIn(d.net ?? 0, d.currency)}
+                  </span>
+                  <span className="font-mono text-[9px] tabular-nums text-chop-muted">
+                    {d.periodTo?.slice(0, 4)}
+                    {i === 0 ? " · entering" : i === assetStatements.length - 1 ? " · leaving" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {firstStatement && lastStatement && firstStatement.id !== lastStatement.id ? (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-sheetWhite/85">
+                {moneyIn((lastStatement.net ?? 0) - (firstStatement.net ?? 0), lastStatement.currency)}{" "}
+                over the period
+              </p>
+            ) : null}
+            {declaredIncome > 0 ? (
+              <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
+                {moneyIn(declaredIncome, incomeStatements[0].currency)} income declared
+              </p>
+            ) : null}
+            <a
+              href={safeHref(assetStatements[0].sourceUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block font-mono text-[8.5px] uppercase tracking-[0.14em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+            >
+              the filing ↗
+            </a>
+            <p className="mt-1.5 font-mono text-[8.5px] leading-relaxed text-chop-muted">
+              Filed with the state at entry and at exit. A figure is a figure here, not an estimate.
+            </p>
+          </div>
+        ) : null}
 
         {wealthPoints.length > 0 ? (
           <div className="border border-chop-border bg-white/[0.02] p-3">
@@ -264,42 +450,62 @@ export function RecordReport({
         <section>
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
-              money documented, by year
+              the record, by year
             </h2>
             <span className="font-mono text-[9px] tabular-nums text-chop-muted">
               {startYear}–{endYear}
             </span>
           </div>
 
-          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] items-end gap-[3px]">
+          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-[3px]">
             {yearList.map((y) => {
               const v = flowByYear.get(y) ?? 0;
+              const claims = claimsByYear.get(y)?.length ?? 0;
               const held = heldIn(y);
               const state = held.some((p) => p.kind !== "firm");
-              const h = v > 0 ? Math.max(3, (v / maxFlow) * 100) : 0;
+              const mh = v > 0 && maxFlow > 0 ? Math.max(4, (v / maxFlow) * 100) : 0;
+              const ch = claims > 0 ? Math.max(4, (claims / maxClaims) * 100) : 0;
               return (
-                <div key={y} className="flex h-36 flex-col justify-end">
-                  <div className="relative flex-1">
-                    {held.length > 0 ? (
-                      <div
-                        className={`absolute inset-0 ${
-                          state
-                            ? "bg-hypeNeon/[0.07] border-t border-hypeNeon/40"
-                            : "bg-sheetWhite/[0.04] border-t border-sheetWhite/20"
-                        }`}
-                      />
-                    ) : null}
-                    {v > 0 ? (
-                      <div
-                        className="absolute bottom-0 left-1/2 w-[62%] -translate-x-1/2 bg-spiteCrimson/70"
-                        style={{ height: `${h}%` }}
-                        title={`${money(v)} documented in ${y}`}
-                      />
-                    ) : null}
-                    {v > 0 ? (
-                      <span className="absolute bottom-full left-1/2 mb-0.5 -translate-x-1/2 whitespace-nowrap font-mono text-[8.5px] tabular-nums text-sheetWhite/90">
-                        {money(v)}
-                      </span>
+                <div key={y} className="relative flex flex-col">
+                  {held.length > 0 ? (
+                    <div
+                      className={`absolute inset-0 ${
+                        state
+                          ? "bg-hypeNeon/[0.07] border-t border-hypeNeon/40"
+                          : "bg-sheetWhite/[0.04] border-t border-sheetWhite/20"
+                      }`}
+                    />
+                  ) : null}
+
+                  {hasMoney ? (
+                    <div className="relative flex h-24 items-end justify-center">
+                      {v > 0 ? (
+                        <>
+                          <div
+                            className="w-[62%] bg-spiteCrimson/75"
+                            style={{ height: `${mh}%` }}
+                            title={`${money(v)} documented in ${y}`}
+                          />
+                          <span className="absolute bottom-full mb-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[8px] tabular-nums text-sheetWhite/90">
+                            {money(v)}
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="relative flex h-16 items-end justify-center border-t border-chop-border/70">
+                    {claims > 0 ? (
+                      <>
+                        <div
+                          className="w-[62%] bg-sheetWhite/30"
+                          style={{ height: `${ch}%` }}
+                          title={`${claims} claims filed for ${y}`}
+                        />
+                        <span className="absolute bottom-full mb-0.5 left-1/2 -translate-x-1/2 font-mono text-[8px] tabular-nums text-chop-muted">
+                          {claims}
+                        </span>
+                      </>
                     ) : null}
                     {tollByYear.has(y) ? (
                       <span
@@ -308,6 +514,7 @@ export function RecordReport({
                       />
                     ) : null}
                   </div>
+
                   <span className="mt-1 text-center font-mono text-[8px] tabular-nums text-chop-muted">
                     {String(y).slice(2)}
                   </span>
@@ -317,10 +524,10 @@ export function RecordReport({
           </div>
 
           <p className="mt-1 font-mono text-[8.5px] leading-relaxed text-chop-muted">
-            Bar = money this record holds for that year, from the source's own figure. A quiet
-            column means nothing was collected for it, not that nothing happened: the passes look
-            at recent coverage, and history has to be asked for by name. Tinted column = an office
-            held. Amber dot = a toll attributed that year, on its own scale, never this one.
+            {hasMoney ? "Red = money this record holds for that year. " : ""}
+            White = claims filed against him that year. A quiet column means nothing was collected
+            for it, not that nothing happened. Tinted column = an office held. Amber dot = a toll
+            attributed that year, on its own scale, never either of these.
           </p>
         </section>
 
@@ -513,6 +720,7 @@ export function RecordReport({
         </section>
       </div>
     </div>
+    </>
   );
 }
 
