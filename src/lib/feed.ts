@@ -113,7 +113,9 @@ export async function readFeedPage(
   const rows = await db
     .prepare(
       `WITH candidates AS (
-        ${SELECT} WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'))
+        ${SELECT} WHERE cluster = id
+          AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'
+                                  AND published_at >= datetime('now', '-1 day')))
        ), lanes AS (
          SELECT *, ROW_NUMBER() OVER (
            PARTITION BY CASE WHEN kind IN ('record', 'charge') THEN 1 ELSE 0 END
@@ -134,7 +136,7 @@ export async function readFeedPage(
     .all();
   const count = await db
     .prepare(
-      "SELECT COUNT(*) AS n FROM feed_items WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'))",
+      "SELECT COUNT(*) AS n FROM feed_items WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%' AND published_at >= datetime('now', '-1 day')))",
     )
     .first<{ n?: number }>();
   return {
@@ -266,9 +268,14 @@ export async function refreshFeed(db: D1): Promise<RefreshResult> {
 
   let added = 0;
   try {
-    const posts = await fetchLemmyFeed(18);
+    const posts = await fetchLemmyFeed(24);
     result.fetched = posts.length;
+    const cutoff = Date.now() - 86_400_000;
     for (const post of posts) {
+      // New-sort surfaces older posts too. Anything already a day old is not a
+      // news cycle; filing it would make the feed look stale by construction.
+      const stamped = post.date ? Date.parse(post.date) : NaN;
+      if (Number.isFinite(stamped) && stamped < cutoff) continue;
       const id = await hashId(post.url);
       const published = post.date || now;
       const res = (await db
@@ -420,11 +427,16 @@ export async function refreshFeed(db: D1): Promise<RefreshResult> {
   }
 
   // ─── Expire the wire; the record stays ──────────────────────────────────
+  // One day, by the story's own date. The feed is news; the archive is the
+  // record. Keeping three days of wire made a page that looked busy and read
+  // like last week.
   try {
     const res = (await db
       .prepare(
         `DELETE FROM feed_items
-         WHERE kind = 'wire' AND julianday(first_seen_at) < julianday('now', '-3 days')`,
+         WHERE kind = 'wire'
+           AND (published_at IS NULL OR published_at = ''
+                OR julianday(published_at) < julianday('now', '-1 day'))`,
       )
       .run()) as { meta?: { changes?: number } };
     result.pruned = res.meta?.changes ?? 0;

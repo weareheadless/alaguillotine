@@ -59,7 +59,47 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await refreshFeed(db);
-  const glossed = await glossFeed(db, env, 30);
+  // Every pass leaves a row. A cron that dies leaves a gap, which is how a
+  // missing cycle becomes visible instead of looking like a quiet afternoon.
+  const started = new Date().toISOString();
+  let runId = 0;
+  try {
+    const res = (await db
+      .prepare("INSERT INTO feed_runs (source, started_at) VALUES (?, ?)")
+      .bind(cron ? "cron" : "manual", started)
+      .run()) as { meta?: { last_row_id?: number } };
+    runId = Number(res.meta?.last_row_id ?? 0);
+  } catch {
+    /* logging must never block the feed */
+  }
+
+  let result = { fetched: 0, added: 0, records: 0, clustered: 0, glossed: 0, pruned: 0 };
+  let glossed = 0;
+  try {
+    result = await refreshFeed(db);
+    glossed = await glossFeed(db, env, 30);
+  } catch (error) {
+    if (runId) {
+      try {
+        await db
+          .prepare("UPDATE feed_runs SET finished_at = ?, error = ? WHERE id = ?")
+          .bind(new Date().toISOString(), String(error).slice(0, 300), runId)
+          .run();
+      } catch {
+        /* the log is best effort */
+      }
+    }
+    throw error;
+  }
+  if (runId) {
+    try {
+      await db
+        .prepare("UPDATE feed_runs SET finished_at = ?, added = ?, glossed = ? WHERE id = ?")
+        .bind(new Date().toISOString(), result.added, glossed, runId)
+        .run();
+    } catch {
+      /* best effort */
+    }
+  }
   return Response.json({ ok: true, ...result, glossed });
 }

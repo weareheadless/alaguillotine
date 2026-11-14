@@ -150,6 +150,11 @@ function insert(db: LedgerDb, r: Record<string, unknown>): Promise<boolean> {
   if (!claimId || !person || !act) return Promise.resolve(false);
 
   const now = new Date().toISOString();
+  // A claim is news only if the act it describes happened in the last day.
+  // An undated act (year only) is a record entry, not a news cycle item.
+  const actDay = String(r.act_date ?? "");
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(actDay) || actDay < yesterday) return Promise.resolve(false);
   const grade = String(r.evidence_grade ?? "C");
   const category = CATEGORY[String(r.category ?? "").toLowerCase()] ?? "impunity";
   // A year is not a date. Publishing a claim on 1 January because that is the
@@ -262,6 +267,26 @@ export async function publishClaimsToFeed(
     /* the backfill is best effort */
   }
 
+  // A card whose act is older than a day, or has no dated act, comes off the
+  // front page. The claim page and the person page keep it.
+  try {
+    await db
+      .prepare(
+        `DELETE FROM feed_items
+          WHERE kind = 'charge'
+            AND EXISTS (
+                  SELECT 1 FROM ledger_entries le
+                   WHERE '/archive/claim/' || replace(le.id, ':', '%3A') = feed_items.url
+                     AND (le.act_date IS NULL OR le.act_date = ''
+                          OR le.act_date < date('now', '-1 day'))
+                )`,
+      )
+      .bind()
+      .run();
+  } catch {
+    /* best effort */
+  }
+
   // Cards published before the rule existed, or whose claim has no take yet,
   // come off the front page. They are not deleted from the record; the claim
   // page is still there.
@@ -292,7 +317,7 @@ export async function publishClaimsToFeed(
             -- The front page is about the line: a claim about a name nobody
             -- ranks belongs on that name's page, not on the homepage.
             AND lower(person) IN (SELECT lower(name) FROM queue_people)
-            AND (created_at >= ? OR act_date >= ?)
+            AND act_date >= date('now', '-1 day')
             -- A card exists to carry the take. A claim without one is a label
             -- and a grade, which explains nothing; it stays on its own page
             -- until Ada has written the sentence that makes it mean something.
@@ -301,7 +326,7 @@ export async function publishClaimsToFeed(
                    created_at DESC
           LIMIT ?`,
       )
-      .bind(since, since.slice(0, 10), limit)
+      .bind(limit)
       .all();
     rows = res.results ?? [];
   } catch {

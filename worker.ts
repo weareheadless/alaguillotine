@@ -40,9 +40,10 @@ export default {
       console.error("clock_cron_misconfigured");
       return;
     }
-    // The feed is the only thing on the site that has to feel alive: pull the
-    // federated wire every fifteen minutes and let the ranking sort it out.
-    if (event.cron === "*/15 * * * *") {
+    // The feed gets its own five-minute slot, separate from the blade. A news
+    // cycle is shorter than fifteen minutes; the pass is bounded and parallel,
+    // so it fits inside the window rather than overrunning the next one.
+    if (event.cron === "*/5 * * * *") {
       context.waitUntil(
         invokeApp(
           "/api/feed/refresh",
@@ -55,8 +56,11 @@ export default {
           }
         }),
       );
-      // The blade keeps its own time: sentence at the reading, drop at the
-      // hour. No model call, so a slot no longer depends on a visitor.
+      return;
+    }
+    // The blade keeps its own time: sentence at the reading, drop at the
+    // hour. No model call, so a slot no longer depends on a visitor.
+    if (event.cron === "*/15 * * * *") {
       context.waitUntil(
         invokeApp(
           "/api/hateometer/tick",

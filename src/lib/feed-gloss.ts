@@ -217,9 +217,13 @@ export async function glossFeed(
       rewrite
         ? `SELECT id, title, source, community, gloss FROM feed_items
             WHERE kind = 'wire' AND gloss != '' AND gloss NOT LIKE '∅%'
+              AND published_at >= datetime('now', '-1 day')
             ORDER BY first_seen_at ASC LIMIT ?`
         : `SELECT id, title, source, community FROM feed_items
             WHERE kind = 'wire' AND gloss = ''
+              -- The feed expires the wire after a day; spending a model call on
+              -- an item that will be deleted is waste.
+              AND published_at >= datetime('now', '-1 day')
             -- Newest first. Oldest-first was a queue that served yesterday's
             -- backlog while the afternoon's news waited behind it.
             ORDER BY first_seen_at DESC LIMIT ?`,
@@ -243,9 +247,20 @@ export async function glossFeed(
   // The model spends tokens on private reasoning before it writes content.
   // Five items fit inside that budget; twelve get cut off with content: null.
   const CHUNK = 5;
-  let filed = 0;
+  // Four calls at once. Sequentially, thirty items was eight model round-trips
+  // and the pass outlived the five-minute window it was meant to fill.
+  const CONCURRENCY = 4;
+  const batches: Array<typeof items> = [];
   for (let start = 0; start < items.length; start += CHUNK) {
-    filed += await glossChunk(db, { base, model, key }, items.slice(start, start + CHUNK), rewrite);
+    batches.push(items.slice(start, start + CHUNK));
+  }
+  let filed = 0;
+  for (let i = 0; i < batches.length; i += CONCURRENCY) {
+    const wave = batches.slice(i, i + CONCURRENCY);
+    const counts = await Promise.all(
+      wave.map((batch) => glossChunk(db, { base, model, key }, batch, rewrite)),
+    );
+    filed += counts.reduce((a, b) => a + b, 0);
   }
   glossDiagnostics.filed = filed;
   glossDiagnostics.rows = items.length;
