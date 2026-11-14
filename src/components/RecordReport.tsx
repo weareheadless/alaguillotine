@@ -497,7 +497,8 @@ export function RecordReport({
                 </p>
                 <p className="mt-0.5 text-[9px] tabular-nums">full column = {money(maxFlow)}</p>
                 <p className="mt-0.5 text-[8px] leading-snug">
-                  solid: paid to him · pale: paid to a company he runs · grade A or B only
+                  solid: paid to him · pale: to a company he runs — contract, grant or credit sale,
+                  the instrument is named on each row · grade A or B only
                   {otherCurrency > 0
                     ? ` · ${otherCurrency} entr${otherCurrency === 1 ? "y" : "ies"} in another currency are listed, not drawn`
                     : ""}
@@ -527,6 +528,9 @@ export function RecordReport({
               const v = flowByYear.get(y) ?? 0;
               const claims = claimsByYear.get(y)?.length ?? 0;
               const held = heldIn(y);
+              // Only public office tints a column. A chief executive's job is a
+              // position, but it is not the office the page is asking about,
+              // and tinting every year of it made the whole chart grey.
               const state = held.some((p) => p.kind !== "firm");
               const f = firmByYear.get(y) ?? 0;
               const total = v + f;
@@ -534,14 +538,8 @@ export function RecordReport({
               const ch = claims > 0 ? Math.max(4, (claims / maxClaims) * 100) : 0;
               return (
                 <div key={y} className="relative flex flex-col">
-                  {held.length > 0 ? (
-                    <div
-                      className={`absolute inset-0 ${
-                        state
-                          ? "bg-hypeNeon/[0.07] border-t border-hypeNeon/40"
-                          : "bg-sheetWhite/[0.04] border-t border-sheetWhite/20"
-                      }`}
-                    />
+                  {state ? (
+                    <div className="absolute inset-0 border-t border-hypeNeon/40 bg-hypeNeon/[0.07]" />
                   ) : null}
 
                   {hasMoney ? (

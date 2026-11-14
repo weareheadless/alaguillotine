@@ -34,6 +34,13 @@ function dateOf(n: PersonNumber): string | null {
   return n.actDate ?? null;
 }
 
+/**
+ * Money the state does not buy a thing with: a grant, a subsidy, a credit the
+ * law forces someone to buy, an abatement. It counts as a receipt and it is
+ * not procurement, and the sentence says which is which.
+ */
+const SOFT_INSTRUMENTS = new Set(["subsidy", "grant", "credit", "abatement", "loan", "bailout"]);
+
 /** Money arriving at the person, or at a company or fund they run. */
 function isReceipt(n: PersonNumber): boolean {
   if (n.direction === "out") return false;
@@ -92,6 +99,12 @@ export function chargeFor({
     };
   }
 
+  const soft = receipts.filter((n) => SOFT_INSTRUMENTS.has(String(n.instrument ?? "").toLowerCase()));
+  const softLine =
+    soft.length === 0
+      ? ""
+      : ` ${soft.length} of ${receipts.length} ${soft.length === 1 ? "is" : "are"} subsidy, grant or a credit sale the law compels, not procurement.`;
+
   const top = dated[0];
   const payer = top.n.counterparty?.trim();
   const headline = `${top.n.display}${payer ? ` from ${payer}` : ""}, dated ${longDate(top.at)} — the largest payment this record holds.`;
@@ -110,7 +123,7 @@ export function chargeFor({
         toFirm === 0
           ? "All of it went to the person named."
           : `${toFirm} of ${receipts.length} went to a company or fund ${name} runs, and ${toFirm === 1 ? "is" : "are"} drawn paler for that reason: that money is the company's, not ${name}'s.`
-      }`,
+      }${softLine}`,
     };
   }
 
@@ -138,6 +151,6 @@ export function chargeFor({
       toFirm === 0
         ? ""
         : `${toFirm} went to a company or fund ${name} runs; ${toFirm === 1 ? "it is" : "they are"} drawn paler, because that money is the company's, not ${name}'s.`
-    }`.trim(),
+    }${softLine}`.trim(),
   };
 }
