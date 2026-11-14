@@ -198,8 +198,8 @@ export async function POST(request: Request) {
       const id = `${target.id}:${caseId}`;
       const res = (await db
         .prepare(
-          `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution, review_status, act_date, date_precision)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'day')
            ON CONFLICT(id) DO UPDATE SET act = excluded.act, attribution = excluded.attribution,
              person = excluded.person, role = excluded.role`,
         )
@@ -216,6 +216,8 @@ export async function POST(request: Request) {
           caseId,
           at,
           verdict.attribution,
+          // The roll call's own day: this is a vote, not a report about one.
+          roll.date,
         )
         .run()) as { meta?: { changes?: number } };
       if ((res.meta?.changes ?? 0) > 0) written += 1;

@@ -68,12 +68,21 @@ export interface LedgerRow {
   confidence: number;
   attribution: number;
   sources: string[];
+  /** pending | accepted | rejected | legacy */
+  reviewStatus: string;
+  reviewNote: string;
+  actDate: string | null;
+  datePrecision: string;
+  evidenceQuote: string;
+  sourceLang: string;
+  createdAt: string;
 }
 
 export interface LedgerQuery {
   person?: string;
   year?: number;
   category?: string;
+  status?: string;
   page?: number;
   per?: number;
 }
@@ -115,6 +124,10 @@ export async function listLedger(query: LedgerQuery = {}): Promise<LedgerPage> {
     where.push("lower(category) = ?");
     binds.push(query.category.trim().toLowerCase());
   }
+  if (query.status && query.status !== "all") {
+    where.push("review_status = ?");
+    binds.push(query.status);
+  }
 
   const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -128,7 +141,8 @@ export async function listLedger(query: LedgerQuery = {}): Promise<LedgerPage> {
 
   const rows = await d
     .prepare(
-      `SELECT id, person, role, act, place, year, category, confidence, attribution, sources
+      `SELECT id, person, role, act, place, year, category, confidence, attribution, sources,
+              review_status, review_note, act_date, date_precision, evidence_quote, source_lang, created_at
          FROM ledger_entries ${clause}
         ORDER BY year DESC, created_at DESC, rowid DESC
         LIMIT ? OFFSET ?`,
@@ -159,9 +173,88 @@ export async function listLedger(query: LedgerQuery = {}): Promise<LedgerPage> {
         confidence: Number(r.confidence ?? 0),
         attribution: Number(r.attribution ?? 1),
         sources,
+        reviewStatus: String(r.review_status ?? "legacy"),
+        reviewNote: String(r.review_note ?? ""),
+        actDate: r.act_date == null ? null : String(r.act_date),
+        datePrecision: String(r.date_precision ?? "year"),
+        evidenceQuote: String(r.evidence_quote ?? ""),
+        sourceLang: String(r.source_lang ?? ""),
+        createdAt: String(r.created_at ?? ""),
       };
     }),
   };
+}
+
+/** One claim, by id, with everything the evidence page needs. */
+export async function getLedgerEntry(id: string): Promise<LedgerRow | null> {
+  const d = await db();
+  if (!d || !id) return null;
+  const r = await d
+    .prepare(
+      `SELECT id, person, role, act, place, year, category, confidence, attribution, sources,
+              review_status, review_note, act_date, date_precision, evidence_quote, source_lang, created_at
+         FROM ledger_entries WHERE id = ?`,
+    )
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!r) return null;
+  let sources: string[] = [];
+  try {
+    sources = JSON.parse(String(r.sources ?? "[]")) as string[];
+  } catch {
+    sources = [];
+  }
+  return {
+    id: String(r.id),
+    person: String(r.person ?? ""),
+    role: String(r.role ?? ""),
+    act: String(r.act ?? ""),
+    place: String(r.place ?? ""),
+    year: Number(r.year ?? 0),
+    category: String(r.category ?? ""),
+    confidence: Number(r.confidence ?? 0),
+    attribution: Number(r.attribution ?? 1),
+    sources,
+    reviewStatus: String(r.review_status ?? "legacy"),
+    reviewNote: String(r.review_note ?? ""),
+    actDate: r.act_date == null ? null : String(r.act_date),
+    datePrecision: String(r.date_precision ?? "year"),
+    evidenceQuote: String(r.evidence_quote ?? ""),
+    sourceLang: String(r.source_lang ?? ""),
+    createdAt: String(r.created_at ?? ""),
+  };
+}
+
+export interface LedgerRevision {
+  from: string;
+  to: string;
+  note: string;
+  reviewer: string;
+  at: string;
+}
+
+/** Every review decision about one claim, newest first. */
+export async function ledgerRevisions(id: string): Promise<LedgerRevision[]> {
+  const d = await db();
+  if (!d || !id) return [];
+  try {
+    const rows = await d
+      .prepare(
+        `SELECT from_status, to_status, note, reviewer, at
+           FROM ledger_revisions WHERE entry_id = ? ORDER BY at DESC LIMIT 40`,
+      )
+      .bind(id)
+      .all();
+    return (rows.results ?? []).map((r) => ({
+      from: String(r.from_status ?? ""),
+      to: String(r.to_status ?? ""),
+      note: String(r.note ?? ""),
+      reviewer: String(r.reviewer ?? ""),
+      at: String(r.at ?? ""),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function ledgerFacets(): Promise<{
@@ -169,11 +262,12 @@ export async function ledgerFacets(): Promise<{
   people: number;
   years: Array<{ year: number; n: number }>;
   categories: Array<{ category: string; n: number }>;
+  statuses: Array<{ status: string; n: number }>;
 }> {
   const d = await db();
-  if (!d) return { total: 0, people: 0, years: [], categories: [] };
+  if (!d) return { total: 0, people: 0, years: [], categories: [], statuses: [] };
   try {
-    const [totals, years, categories] = await Promise.all([
+    const [totals, years, categories, statuses] = await Promise.all([
       d
         .prepare("SELECT COUNT(*) AS n, COUNT(DISTINCT lower(person)) AS p FROM ledger_entries")
         .bind()
@@ -190,6 +284,12 @@ export async function ledgerFacets(): Promise<{
         )
         .bind()
         .all(),
+      d
+        .prepare(
+          "SELECT review_status AS s, COUNT(*) AS n FROM ledger_entries GROUP BY s ORDER BY n DESC",
+        )
+        .bind()
+        .all(),
     ]);
     return {
       total: Number(totals?.n ?? 0),
@@ -200,9 +300,12 @@ export async function ledgerFacets(): Promise<{
       categories: ((categories.results ?? []) as Array<Record<string, unknown>>)
         .map((r) => ({ category: String(r.c ?? ""), n: Number(r.n ?? 0) }))
         .filter((r) => r.category),
+      statuses: ((statuses.results ?? []) as Array<Record<string, unknown>>)
+        .map((r) => ({ status: String(r.s ?? "legacy"), n: Number(r.n ?? 0) }))
+        .filter((r) => r.status),
     };
   } catch {
-    return { total: 0, people: 0, years: [], categories: [] };
+    return { total: 0, people: 0, years: [], categories: [], statuses: [] };
   }
 }
 
@@ -361,6 +464,7 @@ export interface LedgerSummary {
     category: string;
     confidence: number;
     attribution?: number;
+    actDate?: string | null;
   }>;
 }
 
@@ -369,7 +473,12 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
   if (!d) return new Map();
   const rows = await d
     .prepare(
-      "SELECT lower(person) AS n, act, place, year, category, confidence, attribution FROM ledger_entries ORDER BY confidence DESC, year DESC",
+      // Pending and rejected claims are on the record and do not score. The
+      // archive shows them; the blade does not count them.
+      `SELECT lower(person) AS n, act, place, year, category, confidence, attribution, act_date
+         FROM ledger_entries
+        WHERE review_status IN ('accepted', 'legacy')
+        ORDER BY confidence DESC, year DESC`,
     )
     .bind()
     .all();
@@ -405,6 +514,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
       category: String(r.category ?? ""),
       confidence: conf,
       attribution: r.attribution === null || r.attribution === undefined ? 1 : Number(r.attribution),
+      actDate: r.act_date == null ? null : String(r.act_date),
     });
     map.set(key, s);
   }

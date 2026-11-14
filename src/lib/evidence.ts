@@ -81,6 +81,12 @@ export interface LedgerAct {
   category?: string;
   confidence: number;
   /**
+   * The conduct's own date, ISO, when a reviewer has established it. Preferred
+   * over the date parsed out of the sentence: the sentence is evidence, this is
+   * the finding.
+   */
+  actDate?: string | null;
+  /**
    * How much of the act is this person's own, 0–1. A Yea on a 435-member
    * defence authorisation is a small share of one; a Yea on the motion to table
    * an impeachment is a hand on the thing. Defaults to 1, so every act filed
@@ -191,8 +197,10 @@ export function evidenceFor(
   const future = now + 7 * DAY_MS;
 
   for (const entry of entries) {
-    let stamp = actDate(entry.act, entry.year);
-    if (!stamp) continue;
+    let stamp = entry.actDate
+      ? { at: new Date(`${entry.actDate}T00:00:00Z`), precise: true }
+      : actDate(entry.act, entry.year);
+    if (!stamp || Number.isNaN(stamp.at.getTime())) continue;
     // A date in the future is a model slip, not a fact. Fall back to the year.
     if (stamp.at.getTime() > future) stamp = { ...stamp, precise: false };
 

@@ -30,10 +30,23 @@ export async function POST(request: Request) {
   const [queue, summaries] = await Promise.all([readQueue(db), readLedgerSummaries()]);
 
   let updated = 0;
+  let dropped = 0;
   const moved: Array<{ name: string; from: number; to: number }> = [];
 
   for (const person of queue) {
-    const score = ledgerSummaryFor(summaries, person.name)?.evidence ?? 0;
+    const summary = ledgerSummaryFor(summaries, person.name);
+    const score = summary?.evidence ?? 0;
+    // A name whose only claims are pending has no accepted record at all: it
+    // leaves the line with them, rather than sitting at zero as if acquitted.
+    // A name with a real but aged record stays, below the ranking.
+    if ((summary?.count ?? 0) === 0) {
+      await db
+        .prepare("DELETE FROM queue_people WHERE slug = ?")
+        .bind(slugify(person.name))
+        .run();
+      dropped += 1;
+      continue;
+    }
     if (Math.abs(score - person.score) < 0.05) continue;
     await db
       .prepare("UPDATE queue_people SET score = ? WHERE slug = ?")
@@ -48,6 +61,7 @@ export async function POST(request: Request) {
     ok: true,
     names: queue.length,
     updated,
+    dropped,
     moved: moved.slice(0, 12),
   });
 }

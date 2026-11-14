@@ -55,6 +55,9 @@ const regexFor = (name: string): RegExp => {
 const decode = (s: string): string =>
   s
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    // NATIONALITY and some comments are wrapped in <VALUE> elements; the text
+    // is the value, not the markup.
+    .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
@@ -103,7 +106,7 @@ const categoryFor = (listType: string): string =>
 const reasonOf = (comments: string): string =>
   comments
     .replace(/^Gender:\s*\w+\.\s*/i, "")
-    .replace(/^INTERPOL-UN Security Council Special Notice:.*?(?=\s[A-Z])/i, "")
+    .replace(/INTERPOL-UN Security Council Special Notice:\s*\S+/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -178,10 +181,14 @@ export async function ingestSanctions(
       year: "numeric",
       timeZone: "UTC",
     });
-    const act = `${entry.comments.slice(0, 180)} (UN Security Council listing, ${listed})`.slice(
-      0,
-      240,
-    );
+    // A listing whose only comment was a notice link still has to read as a
+    // sentence. This is what the register states, not an allegation invented
+    // to fill the space.
+    const reason =
+      entry.comments.length >= 20
+        ? entry.comments.slice(0, 180)
+        : `Listed under the ${entry.listType || "UN"} sanctions regime`;
+    const act = `${reason} (UN Security Council listing, ${listed})`.slice(0, 240);
     const source = entry.reference
       ? `${UN_LIST_URL}#${entry.reference}`
       : UN_LIST_URL;
@@ -189,8 +196,8 @@ export async function ingestSanctions(
       await db
         .prepare(
           `INSERT INTO ledger_entries
-             (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution, review_status, date_precision)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unknown')
            ON CONFLICT(id) DO UPDATE SET
              act = excluded.act, confidence = excluded.confidence, sources = excluded.sources`,
         )

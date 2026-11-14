@@ -19,9 +19,30 @@ export const metadata = {
   },
 };
 
-type Params = { q?: string; year?: string | number; category?: string; page?: string | number };
+type Params = {
+  q?: string;
+  year?: string | number;
+  category?: string;
+  status?: string;
+  page?: string | number;
+};
 
 const num = (n: number): string => n.toLocaleString("en-US");
+
+/** What the review status means, in the words the page uses. */
+const STATUS_LABEL: Record<string, string> = {
+  accepted: "reviewed",
+  legacy: "awaiting review",
+  pending: "unreviewed",
+  rejected: "withdrawn",
+};
+
+const STATUS_TONE: Record<string, string> = {
+  accepted: "text-hypeNeon border-hypeNeon/50",
+  legacy: "text-chop-muted border-chop-border",
+  pending: "text-sheetWhite/70 border-sheetWhite/30",
+  rejected: "text-spiteCrimson border-spiteCrimson/40",
+};
 
 const href = (base: Params, next: Params): string => {
   const params = new URLSearchParams();
@@ -43,18 +64,20 @@ export default async function ArchivePage({
   const year = Number(params.year) || 0;
   const category = typeof params.category === "string" ? params.category : "";
   const page = Math.max(1, Number(params.page) || 1);
+  const status = typeof params.status === "string" ? params.status : "";
 
   const [facets, result] = await Promise.all([
     ledgerFacets(),
-    listLedger({ person, year, category, page, per: 40 }),
+    listLedger({ person, year, category, status: status || undefined, page, per: 40 }),
   ]);
 
   const base: Params = {
     q: person || undefined,
     year: year || undefined,
     category: category || undefined,
+    status: status || undefined,
   };
-  const filtered = Boolean(person || year || category);
+  const filtered = Boolean(person || year || category || status);
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
@@ -69,8 +92,9 @@ export default async function ArchivePage({
       <p className="mt-4 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
         The line is the last 180 days. This is everything: every charge ever
         filed, by name, year and category, with the roll call or the report it
-        came from. Nothing here is deleted, and nothing here is scored by what
-        you think of it.
+        came from. Nothing here is deleted. Each claim carries its review
+        status — only reviewed and legacy claims score, and an unreviewed one
+        is shown as exactly that.
       </p>
 
       <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
@@ -129,6 +153,25 @@ export default async function ArchivePage({
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
+        {facets.statuses.map((s) => (
+          <Link
+            key={s.status}
+            href={href(base, {
+              status: status === s.status ? undefined : s.status,
+              page: undefined,
+            })}
+            className={`border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.14em] ${
+              status === s.status
+                ? "border-sheetWhite text-sheetWhite"
+                : "border-chop-border text-chop-muted hover:text-sheetWhite"
+            }`}
+          >
+            {STATUS_LABEL[s.status] ?? s.status} · {s.n}
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {facets.categories.map((c) => (
           <Link
             key={c.category}
@@ -177,6 +220,13 @@ export default async function ArchivePage({
                 <span>{row.category}</span>
                 <span>·</span>
                 <span className="tabular-nums">{row.year}</span>
+                <span
+                  className={`border px-1.5 py-0.5 ${
+                    STATUS_TONE[row.reviewStatus] ?? "text-chop-muted border-chop-border"
+                  }`}
+                >
+                  {STATUS_LABEL[row.reviewStatus] ?? row.reviewStatus}
+                </span>
                 {row.place ? (
                   <>
                     <span>·</span>
@@ -184,7 +234,14 @@ export default async function ArchivePage({
                   </>
                 ) : null}
               </div>
-              <p className="mt-1.5 text-[14px] leading-snug text-sheetWhite/90">{row.act}</p>
+              <p className="mt-1.5 text-[14px] leading-snug text-sheetWhite/90">
+                <Link
+                  href={`/archive/claim/${encodeURIComponent(row.id)}`}
+                  className="decoration-chop-border underline-offset-2 hover:underline"
+                >
+                  {row.act}
+                </Link>
+              </p>
               {row.sources.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-3">
                   {row.sources.slice(0, 2).map((url) => (

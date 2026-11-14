@@ -96,8 +96,8 @@ export async function writeLedgerEntries(
     added += 1;
     await db
       .prepare(
-        `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution, review_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
          ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources, attribution = excluded.attribution`,
       )
       .bind(
