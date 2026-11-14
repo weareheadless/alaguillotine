@@ -219,13 +219,15 @@ export function RecordReport({
   const dateOf = (n: PersonNumber): string | null =>
     n.actDate ?? (n.year ? `${n.year}-07-01` : null);
 
+  // The same set the charge and the bars use: money that arrived, at the person
+  // or at a company they run. Splitting the definition between the sentence at
+  // the top and the count in the middle let them contradict each other on the
+  // same screen.
   const isReceipt = (n: PersonNumber): boolean =>
     n.direction !== "out" &&
     n.kind !== "fines" &&
     n.kind !== "donations" &&
-    n.whose !== "campaign" &&
-    n.whose !== "firm" &&
-    n.whose !== "fund";
+    n.whose !== "campaign";
 
   const duringOffice = charted.filter((n) => {
     const at = dateOf(n);
@@ -286,7 +288,11 @@ export function RecordReport({
             </p>
             <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
               {duringOffice.length
-                ? `${duringOffice.length} payment${duringOffice.length === 1 ? "" : "s"} on the record`
+                ? `${duringOffice.length} payment${duringOffice.length === 1 ? "" : "s"} on the record${
+                    duringOffice.filter((n) => n.whose === "firm" || n.whose === "fund").length
+                      ? ` · ${duringOffice.filter((n) => n.whose === "firm" || n.whose === "fund").length} to a company he runs`
+                      : ""
+                  }`
                 : "no payment on this record"}
             </p>
             <ul className="mt-1 space-y-0.5">
@@ -311,7 +317,11 @@ export function RecordReport({
             </p>
             <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
               {shortlyAfter.length
-                ? `${shortlyAfter.length} payment${shortlyAfter.length === 1 ? "" : "s"} on the record`
+                ? `${shortlyAfter.length} payment${shortlyAfter.length === 1 ? "" : "s"} on the record${
+                    shortlyAfter.filter((n) => n.whose === "firm" || n.whose === "fund").length
+                      ? ` · ${shortlyAfter.filter((n) => n.whose === "firm" || n.whose === "fund").length} to a company he runs`
+                      : ""
+                  }`
                 : "no payment on this record"}
             </p>
             <ul className="mt-1 space-y-0.5">
