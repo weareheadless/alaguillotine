@@ -3,6 +3,7 @@ import { researchDossierCase, type DossierCase } from "./dossier";
 import { readQueue } from "./hate-store";
 import { markCase, writeLedgerEntries } from "./ledger-write";
 import { slugify } from "./slug";
+import { languagesForCountry, localizedQuery } from "./languages";
 
 /**
  * One full look per name.
@@ -153,6 +154,18 @@ export function firstLookCase(person: {
       `"${n}" lobbying donations conflict of interest`,
       `"${n}"`,
     ],
+    // A first look in English is a first look of the English file. A new name
+    // from Sudan or Myanmar is read there too, in the language the act was
+    // reported in, or the "nothing found" that follows is a statement about
+    // the desks, not about the person.
+    localQueries: languagesForCountry(person.country)
+      .filter((code) => code !== "en")
+      .slice(0, 2)
+      .flatMap((code) => {
+        const war = localizedQuery(n, "war", code);
+        const courts = localizedQuery(n, "courts", code);
+        return [war, courts].filter((q): q is { q: string; lang: string } => Boolean(q));
+      }),
   };
 }
 

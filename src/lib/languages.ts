@@ -523,6 +523,39 @@ export const WIRE_TOPICS: Array<{
   },
 ];
 
+/**
+ * Discovery phrases: searches that name a person rather than describe an act.
+ *
+ * The topic queries find events, and an event only enters the line if a story
+ * happens to name the person behind it. These find the moments when a system
+ * names someone itself — a designation, a warrant, an indictment — which is
+ * the cheapest and most reliable way for a new name to surface, in any
+ * language. A sanctioned arms dealer is a receipt with a date on it.
+ */
+export const DISCOVERY_TERMS: Record<string, string[]> = {
+  es: ["sanciones designan a personas", "orden de detención contra"],
+  fr: ["sanctions visent des personnalités", "mandat d'arrêt contre"],
+  de: ["Sanktionen gegen Personen", "Haftbefehl gegen"],
+  pt: ["sanções contra pessoas", "mandado de prisão contra"],
+  it: ["sanzioni contro persone", "mandato di arresto contro"],
+  ar: ["عقوبات تشمل شخصيات", "مذكرة اعتقال بحق"],
+  ru: ["санкции против физических лиц", "ордер на арест против"],
+  zh: ["制裁 个人 名单", "逮捕令 针对"],
+  ja: ["制裁 個人 指定", "逮捕状 容疑者"],
+  hi: ["प्रतिबंध व्यक्तियों पर", "गिरफ्तारी वारंट"],
+  tr: ["yaptırım kişiler", "tutuklama emri"],
+  he: ["סנקציות על אישים", "צו מעצר נגד"],
+  my: ["ပိတ်ဆို့ ပုဂ္ဂိုလ်များ", "ဖမ်းဝရမ်း"],
+  id: ["sanksi terhadap individu", "surat perintah penangkapan"],
+};
+
+/** One native discovery query for a language, rotating between the two forms. */
+export function discoveryQuery(code: string, variant: number): string | null {
+  const terms = DISCOVERY_TERMS[code];
+  if (!terms?.length) return null;
+  return terms[variant % terms.length];
+}
+
 /** One native wire query for a topic in a language. */
 export function wireQuery(
   name: string,
