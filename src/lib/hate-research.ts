@@ -3,8 +3,9 @@ import { STANDING } from './standing'
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, shrink } from "./clock";
 import type { LedgerSummary } from "./archive-store";
 import type { ClockConfig } from "./clock-research";
-import { rotatingLanguages, WIRE_TOPICS } from "./languages";
+import { discoveryQuery, rotatingLanguages, WIRE_TOPICS } from "./languages";
 import { HATE_DIMENSIONS, itemMentions, rankFigures, type Figure, type HateDimension, type HateKey } from "./hateometer";
+import { actDate } from "./evidence";
 
 /**
  * The queue's research pass.
@@ -55,10 +56,15 @@ RULES — hard:
 12. ledger is the long record: documented acts with a year and a confidence. Weigh it. A person with several high-confidence entries should score higher than this week's headlines alone would suggest. Do not invent beyond the ledger lines; a thin record should score lower, not be padded.
 13. Self-defence is not a charge. If the reporting says a person or state was responding to an armed attack, do not score them for the attack they are answering. Prosecuting officials, filing legal cases, declaring red lines and diplomatic statements are not harm. If a response deliberately targets civilians or is clearly disproportionate, it may be a charge — but the reason must say what was done to whom, and the initiator of the original attack belongs in the line, not the defender.
 14. The ledger block gives each name charges (how many documented acts), recent (acts in the last two years) and up to twelve of the highest-confidence acts. Weigh that record in your reading: a name with 150 documented acts is worse than a name with 12, even if this week's reporting is thinner on the first. Your score is recorded as a reading of the week; the number the line displays is computed from the ledger's dated acts, not from this field. Do not inflate a score to compensate for a thin record, and do not leave a deep record unreflected.
+15. DISCOVERY. The queue cannot grow if every pass only repeats the names already on it. Fill "discoveries" with people the results name who are NOT in the queue or the standing record, and who are accused of a documented act: the minister who signed the arms package, the commander whose unit shelled the town, the executive whose plant killed the workers, the financier who moved the money. One line each, the charge in 200 chars, and the indices of the items that name them. Three is the minimum unless the reporting genuinely names nobody new. A result written in another language counts the same. Do not put a company in this list — name the person who runs or owns it. Leave it empty only when the reporting truly names no one new.
+16. The discovery must be the person's OWN act. They ordered it, signed it, owned it or ran it. Never a lawyer, spokesperson, relative, victim, witness, investigator, opposition politician or commentator who merely appears in the story — a name in an article is not a charge, and filing one is the fastest way to make this site worthless. If the sentence you would write has someone else as its subject, the discovery is that someone else, or nobody.
+17. A case opened, a warrant issued, an asset seized, a sanction imposed AGAINST the person is not their act. It is evidence that they did something, and the date of the enforcement is not the date of the act: date the charge by what they did ("embezzled $113m from the bank in 2019"), not by the seizure of their mansion this week. If the underlying act is older than the window, it is not a discovery — leave it out.
+18. The only discoveries that count are current and dated. The reason MUST name the day, month and year of the act — "on 5 November 2026", "on 12 March 2026" — because an act without a date cannot be placed in the window and will be discarded. year is the year the act happened, not the year the article was published. An obituary, a retrospective, a case closed about a death in 2019, or a 1980 media merger is not a discovery and must not appear: the line is the last 180 days, and a name that cannot act again cannot be sentenced for acting. If a result is about an old act, leave it out and find someone the reporting says is doing it now.
 
 Return JSON only:
 {"items":[{"headline":"max 90 chars","fact":"1-2 sentences","quip":"max 140 chars","dimension":"war|civilian|repression|arms|incitement","harm":0,"source_index":0}],
- "figures":[{"name":"","role":"","country":"","reason":"what they are accused of","score":0,"item_indices":[0],"basis":""}]}`;
+ "figures":[{"name":"","role":"","country":"","reason":"what they are accused of","score":0,"item_indices":[0],"basis":""}],
+ "discoveries":[{"name":"","role":"","country":"","reason":"the act, in 200 chars","year":2026,"item_indices":[0]}]}`;
 
 interface Candidate {
   topic: string;
@@ -80,6 +86,27 @@ const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
  * passes covers Arabic, Hebrew, Burmese, Spanish and so on without paying for
  * fifteen searches each time. Deterministic in the clock, so a pass replays.
  */
+function discoveryRotation(now: Date): Array<{ topic: string; q: string; lang: string }> {
+  const bucket = Math.floor(now.getTime() / (4 * 60 * 60 * 1000));
+  const english: Array<{ topic: string; q: string; lang: string }> = [
+    {
+      topic: "designations",
+      q: "sanctions designation named individuals assets frozen OFAC EU",
+      lang: "en",
+    },
+    {
+      topic: "warrants",
+      q: "arrest warrant issued war crimes indictment named suspect",
+      lang: "en",
+    },
+  ];
+  const rotated = rotatingLanguages(now, 2).flatMap((lang, i) => {
+    const q = discoveryQuery(lang, bucket + i);
+    return q ? [{ topic: "designations", q, lang }] : [];
+  });
+  return [...english, ...rotated];
+}
+
 function wireRotation(now: Date): Array<{ topic: string; q: string; lang: string }> {
   const bucket = Math.floor(now.getTime() / (4 * 60 * 60 * 1000));
   return rotatingLanguages(now, 2).flatMap((lang, i) => {
@@ -120,6 +147,25 @@ export interface HatePass {
   figures: Figure[];
   sourceHash: string;
   computedAt: string;
+  /** What the pass actually saw, so a thin result is legible in the response. */
+  stats?: {
+    searches: number;
+    candidates: number;
+    pool: number;
+    items: number;
+    figures: number;
+    discovered?: number;
+    found?: number;
+    discovery?: {
+      people: number;
+      line: number;
+      date: number;
+      name: number;
+      source: number;
+      raw?: string;
+    };
+    judge: "ada" | "fallback";
+  };
 }
 
 export async function runHatePass(
@@ -129,6 +175,20 @@ export async function runHatePass(
   ledger?: Map<string, LedgerSummary>,
 ): Promise<HatePass> {
   const roster = previousFigures.map((f) => f.name).slice(0, 40)
+  let discoveredStats: {
+    people: number;
+    line: number;
+    date: number;
+    name: number;
+    source: number;
+    raw?: string;
+  } = {
+    people: 0,
+    line: 0,
+    date: 0,
+    name: 0,
+    source: 0,
+  };
   const after = new Date(Date.now() - 4 * 86_400_000).toISOString().slice(0, 10);
   const candidates: Candidate[] = [];
 
@@ -138,33 +198,56 @@ export async function runHatePass(
   // queue that only reads English is not neutral, it is provincial.
   const wires = [
     ...QUERIES.map(({ topic, q }) => ({ topic, q, lang: "en" })),
+    // Two searches a pass that ask who is being named rather than what
+    // happened: a designation or a warrant names a person, and the person is
+    // the thing the line is made of. Without these the queue only ever learns
+    // about people an article happened to name anyway.
+    ...discoveryRotation(new Date()),
     ...wireRotation(new Date()),
   ];
 
-  for (const { topic, q, lang } of wires) {
-    let data: { results?: Array<Record<string, unknown>> };
-    try {
-      data = await post<{ results?: Array<Record<string, unknown>> }>(
-        `${config.searchBase}/v1/tools/search`,
-        { query: `${q} lang:${lang} after:${after}`, count: 5, need_content: false },
-        config.searchKey,
-      );
-    } catch {
+  // A designation or a warrant does not stop being news after four days, and
+  // the sanctions register names people in every language. Discovery reads a
+  // month; the conflict wire reads the week.
+  const discovery = new Set(["designations", "warrants"]);
+
+  // The searches are independent, and run one after another they outlast the
+  // edge's patience: a pass is a few dozen fetches, and a sequential pass took
+  // minutes and then lost its response. Five at a time keeps the pass inside a
+  // normal request without hammering the wire in one burst.
+  const CONCURRENCY = 5;
+  for (let i = 0; i < wires.length; i += CONCURRENCY) {
+    const batch = wires.slice(i, i + CONCURRENCY);
+    const answered = await Promise.allSettled(
+      batch.map(async ({ topic, q, lang }) => {
+        const since = discovery.has(topic)
+          ? new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
+          : after;
+        const data = await post<{ results?: Array<Record<string, unknown>> }>(
+          `${config.searchBase}/v1/tools/search`,
+          { query: `${q} lang:${lang} after:${since}`, count: 8, need_content: false },
+          config.searchKey,
+        );
+        return { topic, lang, results: data.results ?? [] };
+      }),
+    );
+    for (const settled of answered) {
       // One dead query in one language is not a dead pass.
-      continue;
-    }
-    for (const hit of data.results ?? []) {
-      if (!hit.url || !hit.summary) continue;
-      candidates.push({
-        topic,
-        title: clip(hit.title, 200),
-        url: String(hit.url),
-        site: clip(hit.site_name ?? "unknown", 80),
-        date: typeof hit.date === "string" ? hit.date : null,
-        summary: String(hit.summary),
-        authority: typeof hit.authority === "number" ? hit.authority : -1,
-        lang,
-      });
+      if (settled.status !== "fulfilled") continue;
+      const { topic, lang, results } = settled.value;
+      for (const hit of results) {
+        if (!hit.url || !hit.summary) continue;
+        candidates.push({
+          topic,
+          title: clip(hit.title, 200),
+          url: String(hit.url),
+          site: clip(hit.site_name ?? "unknown", 80),
+          date: typeof hit.date === "string" ? hit.date : null,
+          summary: String(hit.summary),
+          authority: typeof hit.authority === "number" ? hit.authority : -1,
+          lang,
+        });
+      }
     }
   }
 
@@ -174,6 +257,149 @@ export async function runHatePass(
     if (!prev || c.authority > prev.authority) byUrl.set(c.url, c);
   }
   const pool = [...byUrl.values()].sort((a, b) => b.authority - a.authority);
+
+  /**
+   * Discovery, on its own call.
+   *
+   * Asking one prompt to re-score the queue and find new names produces the
+   * queue back: the standing names are the safe answer, so the model repeats
+   * them. Asked only "who in this reporting is doing this", with a list of who
+   * is already in the line, it has somewhere to look. The guards below are the
+   * same ones the pass uses: the act must be dated in its own sentence, inside
+   * the window, and the story must name the person.
+   */
+  async function discover(): Promise<Array<{
+    name: string;
+    role: string;
+    country: string;
+    reason: string;
+    year: number;
+    item: Candidate;
+  }>> {
+    if (!pool.length) return [];
+    const system = `You read news reporting and name the people in it who are doing documented harm.
+
+Return up to 8 people. JSON only: {"people":[{"name":"","role":"","country":"","act":"one sentence, MUST include the day, month and year, e.g. 'On 5 November 2026 ordered ...'","year":2026,"source_index":0}]}
+
+Hard rules:
+1. The act must be the person's own: they ordered it, signed it, owned it, ran it, or their company did it under them. Never a lawyer, spokesperson, relative, victim, witness, investigator, judge, opposition politician or commentator who merely appears in the story.
+2. Never a company. Name the person who runs or owns it.
+3. A case opened, warrant issued, asset seized or sanction imposed AGAINST the person is not their act. Date the charge by what they did, not by the enforcement against them. If what they did is older than this year, leave them out.
+4. The act must be dated in the supplied text: day, month and year. No date, no entry.
+5. Do not name anyone in already_in_line.
+6. Everything must be in the supplied text. Never invent a name, a number, a date or an event.
+7. A story written in any language counts. Write the act in English.`;
+
+    const payload = {
+      already_in_line: previousFigures.map((f) => f.name).slice(0, 60),
+      results: pool.slice(0, 60).map((c, index) => ({
+        index,
+        lang: c.lang,
+        title: c.title,
+        site: c.site,
+        date: c.date,
+        summary: c.summary.slice(0, 600),
+      })),
+    };
+
+    let answered: { people?: Array<Record<string, unknown>> } | null = null;
+    try {
+      const chat = await post<{ choices?: Array<{ message?: { content?: string } }> }>(
+        `${config.chatBase}/chat/completions`,
+        {
+          model: config.chatModel,
+          temperature: 0.3,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: JSON.stringify(payload) },
+          ],
+        },
+        config.chatKey,
+      );
+      const raw = (chat.choices?.[0]?.message?.content || "").trim();
+      discoveredStats.raw = raw.slice(0, 160);
+      // A model asked for one key will sometimes answer with another. Take the
+      // first array of objects it gives us rather than losing the whole pass.
+      const parsedJson = JSON.parse(raw.replace(/^```(?:json)?/i, "").replace(/```$/, "")) as
+        | Record<string, unknown>
+        | Array<Record<string, unknown>>;
+      const list = Array.isArray(parsedJson)
+        ? parsedJson
+        : (["people", "discoveries", "figures", "results", "names"]
+            .map((k) => parsedJson[k])
+            .find((v) => Array.isArray(v)) as Array<Record<string, unknown>> | undefined);
+      answered = { people: list ?? [] };
+    } catch (error) {
+      discoveredStats.raw = error instanceof Error ? error.message.slice(0, 160) : "unknown";
+      console.error(
+        "discovery_failed",
+        error instanceof Error ? error.message : "unknown",
+      );
+      return [];
+    }
+
+    const inLine = new Set(previousFigures.map((f) => f.name.toLowerCase()));
+    const nowYear = new Date().getUTCFullYear();
+    const drop = { people: (answered.people ?? []).length, line: 0, date: 0, name: 0, source: 0 };
+    const out: Array<{
+      name: string;
+      role: string;
+      country: string;
+      reason: string;
+      year: number;
+      item: Candidate;
+    }> = [];
+    for (const p of answered.people ?? []) {
+      const name = clip(p.name, 80);
+      const reason = clip(p.act ?? p.reason, 240);
+      if (!name || !reason) continue;
+      if (inLine.has(name.toLowerCase())) {
+        drop.line += 1;
+        continue;
+      }
+      if (out.some((o) => o.name.toLowerCase() === name.toLowerCase())) continue;
+
+      // The date is read back out of the sentence, not taken on trust.
+      const stated = actDate(reason, Number(p.year) || 0);
+      const ageDays = stated ? (Date.now() - stated.at.getTime()) / 86_400_000 : Infinity;
+      if (!stated || !stated.precise || ageDays > 180 || ageDays < -7) {
+        drop.date += 1;
+        continue;
+      }
+      const year = stated.at.getUTCFullYear();
+      if (year < nowYear - 1 || year > nowYear) {
+        drop.date += 1;
+        continue;
+      }
+
+      // The cited index is a hint, not a fact: models count from the wrong
+      // list, or cite the story they read about it rather than the one that
+      // names it. Look for the story that actually carries the name before
+      // throwing the discovery away.
+      const matches = (c: Candidate): boolean =>
+        itemMentions(name, { headline: c.title, fact: c.summary });
+      let src: Candidate | undefined = pool[Number(p.source_index)];
+      if (!src || !matches(src)) src = pool.find(matches);
+      if (!src) {
+        drop.source += 1;
+        continue;
+      }
+
+      out.push({
+        name,
+        role: clip(p.role, 60),
+        country: clip(p.country, 40),
+        reason,
+        year,
+        item: src,
+      });
+    }
+    discoveredStats = drop;
+    return out;
+  }
+
+  const found = await discover();
 
   const passPayload = {
     queue: roster,
@@ -188,7 +414,7 @@ export async function runHatePass(
         record: rec?.top ?? [],
       };
     }),
-    results: pool.slice(0, 40).map((c, index) => ({
+    results: pool.slice(0, 60).map((c, index) => ({
       index,
       topic: c.topic,
       lang: c.lang,
@@ -202,9 +428,11 @@ export async function runHatePass(
   // Ada is the judge. The Worker gathers the reporting; she decides who is in
   // the line and what they score. If the VPS is unreachable, fall back to the
   // shared constitution so the queue still updates.
+  let judge: "ada" | "fallback" = "fallback";
   let parsed: {
     items?: Array<Record<string, unknown>>;
     figures?: Array<Record<string, unknown>>;
+    discoveries?: Array<Record<string, unknown>>;
   } | null = null;
 
   if (config.adaBase && config.adaKey) {
@@ -212,9 +440,11 @@ export async function runHatePass(
       const ada = await postAda<{
         items?: Array<Record<string, unknown>>;
         figures?: Array<Record<string, unknown>>;
+        discoveries?: Array<Record<string, unknown>>;
       }>(`${config.adaBase}/judge`, passPayload, config.adaKey);
       if (Array.isArray(ada.items) && ada.items.length && Array.isArray(ada.figures)) {
         parsed = ada;
+        judge = "ada";
       }
     } catch (error) {
       console.error(
@@ -241,6 +471,7 @@ export async function runHatePass(
     parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {
       items?: Array<Record<string, unknown>>;
       figures?: Array<Record<string, unknown>>;
+      discoveries?: Array<Record<string, unknown>>;
     };
   }
   const valid = new Set(HATE_DIMENSIONS.map((d) => d.key));
@@ -290,6 +521,39 @@ export async function runHatePass(
     ];
   });
 
+  const seenNames = new Set(rawFigures.map((f) => f.name.toLowerCase()));
+  const discovered: Array<Omit<Figure, "rank" | "prevRank" | "delta">> = [];
+
+  // What the dedicated discovery call found, filed as figures with no score:
+  // the ledger decides that once the receipt exists.
+  for (const f of found) {
+    if (seenNames.has(f.name.toLowerCase())) continue;
+    seenNames.add(f.name.toLowerCase());
+    discovered.push({
+      name: f.name,
+      role: f.role,
+      country: f.country,
+      score: 0,
+      mentions: 1,
+      reason: f.reason,
+      actYear: f.year,
+      source: f.item.site,
+      sourceUrl: f.item.url,
+      items: [
+        {
+          headline: f.item.title,
+          fact: f.item.summary,
+          quip: "",
+          source: f.item.site,
+          sourceUrl: f.item.url,
+          publishedAt: f.item.date,
+          harm: 0,
+          dimension: "war",
+        },
+      ],
+    });
+  }
+
   const dimensions: HateDimension[] = HATE_DIMENSIONS.map((spec) => {
     const mine = items.filter((i) => i.dimension === spec.key);
     const mean = mine.length ? mine.reduce((s, i) => s + i.harm, 0) / mine.length : 50;
@@ -316,8 +580,19 @@ export async function runHatePass(
     level,
     composite,
     dimensions,
-    figures: rankFigures(rawFigures, previousFigures),
+    figures: rankFigures([...rawFigures, ...discovered], previousFigures),
     sourceHash: pool.map((c) => c.url).sort().join("\n").slice(0, 4000),
     computedAt: new Date().toISOString(),
+    stats: {
+      searches: wires.length,
+      candidates: candidates.length,
+      pool: pool.length,
+      items: items.length,
+      figures: rawFigures.length + discovered.length,
+      discovered: discovered.length,
+      found: found.length,
+      discovery: discoveredStats,
+      judge,
+    },
   };
 }

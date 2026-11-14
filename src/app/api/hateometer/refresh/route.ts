@@ -102,13 +102,24 @@ export async function POST(request: Request) {
       );
 
     let filed = 0;
+    const skipped: Array<{ name: string; why: string }> = [];
     for (const fresh of arrivals.slice(0, 20)) {
-      if (boilerplate(fresh.reason)) continue;
+      if (boilerplate(fresh.reason)) {
+        skipped.push({ name: fresh.name, why: "no charge in the reason" });
+        continue;
+      }
       const cited = fresh.items ?? [];
       const sources = [...new Set(cited.map((i) => i.sourceUrl).filter((u) => /^https?:\/\//.test(u)))];
-      if (!sources.length) continue;
+      if (!sources.length) {
+        skipped.push({ name: fresh.name, why: "no cited story" });
+        continue;
+      }
       const dated = cited.find((i) => i.publishedAt);
-      const year = dated ? Number(String(dated.publishedAt).slice(0, 4)) : new Date().getUTCFullYear();
+      // The act's year, not the article's: a 2026 story about a 2019 fraud is
+      // a 2019 charge, and the window has to see it that way.
+      const year =
+        Number(fresh.actYear) ||
+        (dated ? Number(String(dated.publishedAt).slice(0, 4)) : new Date().getUTCFullYear());
       try {
         const wrote = await writeLedgerEntries(db, fresh.name, [
           {
@@ -139,10 +150,17 @@ export async function POST(request: Request) {
     const scoreOf = (name: string): number =>
       ledgerSummaryFor(record, name)?.evidence ?? 0;
 
+    // No receipt, no place in the line. A nomination whose charge could not be
+    // filed — no cited story, an undated act, a historical retrospective — is
+    // the same hole as the zeros: a rank with nothing behind it.
+    const admitted: string[] = [];
     for (const fresh of arrivals) {
+      const score = scoreOf(fresh.name);
+      if (score <= 0) continue;
+      admitted.push(fresh.name);
       merged.push({
         ...fresh,
-        score: scoreOf(fresh.name),
+        score,
         addedAt: pass.computedAt,
       });
     }
@@ -195,6 +213,10 @@ export async function POST(request: Request) {
       level: pass.level,
       added: ranked.length - queue.length,
       filed,
+      named: pass.figures.length,
+      stats: pass.stats ?? null,
+      arrivals: admitted.slice(0, 12),
+      skipped: skipped.slice(0, 12),
       total: ranked.length,
     });
   } catch (error) {

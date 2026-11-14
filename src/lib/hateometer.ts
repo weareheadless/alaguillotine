@@ -38,6 +38,8 @@ export interface HateDimension {
 }
 
 export interface Figure {
+  /** The year the discovery's act happened, when it came from the wire. */
+  actYear?: number;
   name: string;
   role: string;
   country: string;
