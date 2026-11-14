@@ -26,8 +26,10 @@ export interface DispatchStyle {
   card: string;
   /** Title colour. */
   title: string;
-  /** Body and dek colour. */
+  /** Body and dek colour on the card. */
   body: string;
+  /** Body and dek colour on the page's black background. */
+  bodyOnDark: string;
   /** Date and secondary text. */
   muted: string;
   /** Solid cards read like the yellow system ad, not a dark panel. */
@@ -44,6 +46,7 @@ export const DISPATCH_STYLES: Record<DispatchCategory, DispatchStyle> = {
     card: "#170609",
     title: "#F4F4F5",
     body: "#D4D4D8",
+    bodyOnDark: "#E4E4E7",
     muted: "#FDA4AF",
   },
   cost: {
@@ -55,6 +58,7 @@ export const DISPATCH_STYLES: Record<DispatchCategory, DispatchStyle> = {
     card: "#FDE047",
     title: "#0B0B0C",
     body: "#27272A",
+    bodyOnDark: "#E4E4E7",
     muted: "#52525B",
     solid: true,
   },
@@ -67,6 +71,7 @@ export const DISPATCH_STYLES: Record<DispatchCategory, DispatchStyle> = {
     card: "#07101E",
     title: "#F4F4F5",
     body: "#D4D4D8",
+    bodyOnDark: "#E4E4E7",
     muted: "#93C5FD",
   },
   suppression: {
@@ -78,6 +83,7 @@ export const DISPATCH_STYLES: Record<DispatchCategory, DispatchStyle> = {
     card: "#140A1E",
     title: "#F4F4F5",
     body: "#D4D4D8",
+    bodyOnDark: "#E4E4E7",
     muted: "#D8B4FE",
   },
   precarity: {
@@ -89,6 +95,7 @@ export const DISPATCH_STYLES: Record<DispatchCategory, DispatchStyle> = {
     card: "#07130B",
     title: "#F4F4F5",
     body: "#D4D4D8",
+    bodyOnDark: "#E4E4E7",
     muted: "#86EFAC",
   },
 };

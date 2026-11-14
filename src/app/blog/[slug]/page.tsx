@@ -99,7 +99,7 @@ export default async function DispatchPage({
         </h1>
         <p
           className="mt-4 border-l-4 pl-4 font-mono text-[13px] leading-relaxed"
-          style={{ borderColor: s.accent, color: s.body }}
+          style={{ borderColor: s.accent, color: s.bodyOnDark }}
         >
           {dispatchDek(post)}
         </p>
