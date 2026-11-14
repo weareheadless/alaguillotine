@@ -5,6 +5,7 @@ import {
   CATEGORY_WEIGHT,
   DEFAULT_WEIGHT,
   EVIDENCE_WINDOW_DAYS,
+  GRADE_WEIGHT,
   windowWeight,
 } from "./evidence";
 
@@ -52,6 +53,9 @@ export interface ReviewRow {
   datePrecision: string;
   evidenceQuote: string;
   sourceLang: string;
+  grade: string;
+  outcome: string;
+  gradeBasis: string;
 }
 
 const rowToReview = (r: Record<string, unknown>): ReviewRow => {
@@ -80,6 +84,9 @@ const rowToReview = (r: Record<string, unknown>): ReviewRow => {
     datePrecision: String(r.date_precision ?? "year"),
     evidenceQuote: String(r.evidence_quote ?? ""),
     sourceLang: String(r.source_lang ?? ""),
+    grade: String(r.evidence_grade ?? ""),
+    outcome: String(r.institutional_status ?? "unknown"),
+    gradeBasis: String(r.grade_basis ?? ""),
   };
 };
 
@@ -110,7 +117,7 @@ export async function listEvidence(
     .prepare(
       `SELECT id, person, role, act, place, year, category, confidence, sources, case_id,
               created_at, review_status, review_note, reviewed_at, act_date, date_precision,
-              evidence_quote, source_lang
+              evidence_quote, source_lang, evidence_grade, institutional_status, grade_basis
          FROM ledger_entries ${clause}
         ORDER BY created_at DESC, rowid DESC
         LIMIT ? OFFSET ?`,
@@ -127,7 +134,17 @@ export async function listEvidence(
 /** Accept or reject one claim, with a reason that stays on the record. */
 export async function reviewEvidence(
   db: ReviewDb,
-  input: { id: string; status: ReviewStatus; note?: string; reviewer?: string },
+  input: {
+    id: string;
+    status: ReviewStatus;
+    note?: string;
+    reviewer?: string;
+    grade?: string;
+    outcome?: string;
+    basis?: string;
+    mechanism?: string;
+    beneficiary?: string;
+  },
 ): Promise<{ ok: boolean; error?: string; row?: ReviewRow }> {
   if (!["accepted", "rejected", "pending"].includes(input.status)) {
     return { ok: false, error: "unknown status" };
@@ -136,6 +153,20 @@ export async function reviewEvidence(
   if (input.status === "rejected" && !note) {
     return { ok: false, error: "a rejection needs a reason" };
   }
+
+  const grade = String(input.grade ?? "").trim().toUpperCase();
+  if (grade && !["A", "B", "C", "D"].includes(grade)) {
+    return { ok: false, error: "grade must be A, B, C or D" };
+  }
+  const basis = String(input.basis ?? "").trim().slice(0, 500);
+  // A and B are claims of strength. They need a written reason, the same one
+  // for a president and a warlord.
+  if ((grade === "A" || grade === "B") && !basis) {
+    return { ok: false, error: `grade ${grade} needs a written basis` };
+  }
+  const outcome = String(input.outcome ?? "").trim().slice(0, 40);
+  const mechanism = String(input.mechanism ?? "").trim().slice(0, 120);
+  const beneficiary = String(input.beneficiary ?? "").trim().slice(0, 120);
 
   const before = await db
     .prepare("SELECT * FROM ledger_entries WHERE id = ?")
@@ -147,9 +178,31 @@ export async function reviewEvidence(
   const reviewer = String(input.reviewer ?? "editor").slice(0, 60);
   await db
     .prepare(
-      "UPDATE ledger_entries SET review_status = ?, review_note = ?, reviewed_at = ? WHERE id = ?",
+      `UPDATE ledger_entries
+          SET review_status = ?, review_note = ?, reviewed_at = ?,
+              evidence_grade = CASE WHEN ? = '' THEN evidence_grade ELSE ? END,
+              grade_basis = CASE WHEN ? = '' THEN grade_basis ELSE ? END,
+              institutional_status = CASE WHEN ? = '' THEN institutional_status ELSE ? END,
+              mechanism = CASE WHEN ? = '' THEN mechanism ELSE ? END,
+              beneficiary = CASE WHEN ? = '' THEN beneficiary ELSE ? END
+        WHERE id = ?`,
     )
-    .bind(input.status, note, at, input.id)
+    .bind(
+      input.status,
+      note,
+      at,
+      grade,
+      grade,
+      basis,
+      basis,
+      outcome,
+      outcome,
+      mechanism,
+      mechanism,
+      beneficiary,
+      beneficiary,
+      input.id,
+    )
     .run();
 
   await db
@@ -173,7 +226,7 @@ export async function reviewEvidence(
     .prepare(
       `SELECT id, person, role, act, place, year, category, confidence, sources, case_id,
               created_at, review_status, review_note, reviewed_at, act_date, date_precision,
-              evidence_quote, source_lang
+              evidence_quote, source_lang, evidence_grade, institutional_status, grade_basis
          FROM ledger_entries WHERE id = ?`,
     )
     .bind(input.id)
@@ -390,7 +443,7 @@ export async function rankedWorklist(db: ReviewDb): Promise<RankedPerson[]> {
       .prepare(
         `SELECT id, person, role, act, place, year, category, confidence, sources, case_id,
                 created_at, review_status, review_note, reviewed_at, act_date, date_precision,
-                evidence_quote, source_lang, attribution
+                evidence_quote, source_lang, attribution, evidence_grade
            FROM ledger_entries
           WHERE review_status IN ('accepted', 'legacy')
             AND (lower(person) = lower(?)
@@ -426,12 +479,15 @@ export async function rankedWorklist(db: ReviewDb): Promise<RankedPerson[]> {
       // window. Anything else counts nothing.
       const decay = inWindow && stamp ? windowWeight(stamp.at, now) : 0;
       const undated = !stamp?.precise && row.year === new Date().getUTCFullYear() ? 0.5 : 0;
-      const weight = (decay || undated) * (row.confidence / 100) * category * attribution;
+      const grade = GRADE_WEIGHT[row.grade.toLowerCase()] ?? 0.6;
+      const weight = (decay || undated) * grade * category * attribution;
 
       const gaps: string[] = [];
       if (!row.sources.length) gaps.push("no source");
       if (!row.actDate && !(stamp && stamp.precise)) gaps.push("no act date");
-      if (row.confidence < 70) gaps.push("confidence below 70");
+      if (row.grade === "D") gaps.push("grade D — not scored");
+      else if (!row.grade) gaps.push("ungraded");
+      if (!row.gradeBasis) gaps.push("no basis for grade");
       if (!row.evidenceQuote) gaps.push("no supporting passage");
       if (attribution < 1 && !row.reviewNote) gaps.push("attribution unexplained");
 
@@ -449,6 +505,7 @@ export async function rankedWorklist(db: ReviewDb): Promise<RankedPerson[]> {
         confidence: Number(r.confidence ?? 0),
         attribution: Number((r.attribution as number | undefined) ?? 1),
         actDate: r.act_date == null ? null : String(r.act_date),
+        grade: String(r.evidence_grade ?? ""),
       })),
       now,
     ).score;

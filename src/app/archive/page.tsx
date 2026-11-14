@@ -217,6 +217,20 @@ export default async function ArchivePage({
                 </Link>
                 <span>·</span>
                 <span className="tabular-nums text-spiteCrimson">{Math.round(row.confidence)}</span>
+                <span
+                  className={`border px-1 tabular-nums ${
+                    row.grade === "A"
+                      ? "border-hypeNeon/60 text-hypeNeon"
+                      : row.grade === "B"
+                        ? "border-sheetWhite/40 text-sheetWhite/80"
+                        : row.grade === "D"
+                          ? "border-spiteCrimson/50 text-spiteCrimson/80"
+                          : "border-chop-border text-chop-muted"
+                  }`}
+                  title="evidence grade"
+                >
+                  {row.grade || "–"}
+                </span>
                 <span>{row.category}</span>
                 <span>·</span>
                 <span className="tabular-nums">{row.year}</span>

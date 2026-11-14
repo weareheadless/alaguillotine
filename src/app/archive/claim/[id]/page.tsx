@@ -16,6 +16,17 @@ const STATUS_LABEL: Record<string, string> = {
   rejected: "withdrawn",
 };
 
+const OUTCOME_LABEL: Record<string, string> = {
+  charged: "charged",
+  convicted: "convicted",
+  investigated: "investigated, no charge",
+  settled: "settled",
+  sanctioned: "sanctioned",
+  no_action: "no action taken",
+  blocked: "proceedings blocked",
+  unknown: "no proceedings recorded",
+};
+
 const STATUS_LINE: Record<string, string> = {
   accepted: "An editor has checked this claim against its source.",
   legacy:
@@ -67,11 +78,17 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
           <span>{row.place || "place unrecorded"}</span>
         </div>
 
-        <h1 className="mt-4 text-2xl font-bold leading-snug text-sheetWhite md:text-3xl">
+        <p className="mt-4 max-w-2xl font-mono text-[10px] leading-relaxed text-chop-muted">
+          This is conduct on the record, not a verdict. Evidence is graded A–D and
+          the outcome of any proceedings is shown beside it; a claim can be
+          well documented and never prosecuted, and that absence is recorded too.
+        </p>
+
+        <h1 className="mt-3 text-2xl font-bold leading-snug text-sheetWhite md:text-3xl">
           {row.act}
         </h1>
 
-        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-chop-border py-5 font-mono text-[11px] sm:grid-cols-3">
+        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-chop-border py-5 font-mono text-[11px] sm:grid-cols-4">
           <div>
             <dt className="text-[9px] uppercase tracking-[0.2em] text-chop-muted">status</dt>
             <dd className="mt-1 text-sheetWhite">
@@ -102,8 +119,16 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
             <dt className="text-[9px] uppercase tracking-[0.2em] text-chop-muted">category</dt>
             <dd className="mt-1 text-sheetWhite">{row.category || "unclassified"}</dd>
             <dd className="mt-1 text-[10px] text-chop-muted">
-              confidence {Math.round(row.confidence)}
-              {row.attribution !== 1 ? ` · attribution ${row.attribution}` : ""}
+              attribution {row.attribution}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[9px] uppercase tracking-[0.2em] text-chop-muted">evidence</dt>
+            <dd className="mt-1 text-sheetWhite">
+              grade {row.grade || "ungraded"} · {OUTCOME_LABEL[row.outcome] ?? row.outcome}
+            </dd>
+            <dd className="mt-1 text-[10px] leading-snug text-chop-muted">
+              {row.gradeBasis || "no basis recorded"}
             </dd>
           </div>
         </dl>

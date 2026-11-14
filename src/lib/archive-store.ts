@@ -76,6 +76,11 @@ export interface LedgerRow {
   evidenceQuote: string;
   sourceLang: string;
   createdAt: string;
+  /** A/B/C/D — how well the conduct is established. */
+  grade: string;
+  /** charged | convicted | investigated | settled | no_action | blocked | unknown */
+  outcome: string;
+  gradeBasis: string;
 }
 
 export interface LedgerQuery {
@@ -142,7 +147,8 @@ export async function listLedger(query: LedgerQuery = {}): Promise<LedgerPage> {
   const rows = await d
     .prepare(
       `SELECT id, person, role, act, place, year, category, confidence, attribution, sources,
-              review_status, review_note, act_date, date_precision, evidence_quote, source_lang, created_at
+              review_status, review_note, act_date, date_precision, evidence_quote, source_lang,
+              created_at, evidence_grade, institutional_status, grade_basis
          FROM ledger_entries ${clause}
         ORDER BY year DESC, created_at DESC, rowid DESC
         LIMIT ? OFFSET ?`,
@@ -180,6 +186,9 @@ export async function listLedger(query: LedgerQuery = {}): Promise<LedgerPage> {
         evidenceQuote: String(r.evidence_quote ?? ""),
         sourceLang: String(r.source_lang ?? ""),
         createdAt: String(r.created_at ?? ""),
+        grade: String(r.evidence_grade ?? ""),
+        outcome: String(r.institutional_status ?? "unknown"),
+        gradeBasis: String(r.grade_basis ?? ""),
       };
     }),
   };
@@ -192,7 +201,8 @@ export async function getLedgerEntry(id: string): Promise<LedgerRow | null> {
   const r = await d
     .prepare(
       `SELECT id, person, role, act, place, year, category, confidence, attribution, sources,
-              review_status, review_note, act_date, date_precision, evidence_quote, source_lang, created_at
+              review_status, review_note, act_date, date_precision, evidence_quote, source_lang,
+              created_at, evidence_grade, institutional_status, grade_basis
          FROM ledger_entries WHERE id = ?`,
     )
     .bind(id)
@@ -222,6 +232,9 @@ export async function getLedgerEntry(id: string): Promise<LedgerRow | null> {
     evidenceQuote: String(r.evidence_quote ?? ""),
     sourceLang: String(r.source_lang ?? ""),
     createdAt: String(r.created_at ?? ""),
+    grade: String(r.evidence_grade ?? ""),
+    outcome: String(r.institutional_status ?? "unknown"),
+    gradeBasis: String(r.grade_basis ?? ""),
   };
 }
 
@@ -465,6 +478,7 @@ export interface LedgerSummary {
     confidence: number;
     attribution?: number;
     actDate?: string | null;
+    grade?: string;
   }>;
 }
 
@@ -498,7 +512,8 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
     .prepare(
       // Pending and rejected claims are on the record and do not score. The
       // archive shows them; the blade does not count them.
-      `SELECT lower(person) AS n, act, place, year, category, confidence, attribution, act_date
+      `SELECT lower(person) AS n, act, place, year, category, confidence, attribution, act_date,
+              evidence_grade
          FROM ledger_entries
         WHERE review_status IN ('accepted', 'legacy')
         ORDER BY confidence DESC, year DESC`,
@@ -538,6 +553,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
       confidence: conf,
       attribution: r.attribution === null || r.attribution === undefined ? 1 : Number(r.attribution),
       actDate: r.act_date == null ? null : String(r.act_date),
+      grade: String(r.evidence_grade ?? ""),
     });
     map.set(key, s);
   }

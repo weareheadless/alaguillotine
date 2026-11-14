@@ -70,8 +70,10 @@ export default function NextInLinePage() {
             inside the last 180 days — a sixth does not make it worse, it makes
             it better documented. What happened this week weighs more than the
             same act at the edge of the window, because the blade is a crowd and
-            a crowd is moved by now. No floor for old fame, no points for having
-            been chopped: a name with nothing recent cannot be sentenced. The blade takes the
+            a crowd is moved by now. Every act is graded A–D by its evidence, and
+            a single unverified allegation scores nothing: the record counts
+            what is documented, not what is believed. No floor for old fame, no
+            points for having been chopped. The blade takes the
             worst name that is not cooling from its last chop. Click a name for its charges and
             sources.
           </p>
@@ -155,12 +157,13 @@ export default function NextInLinePage() {
             {uncharged.length > 0 && (
               <section className="mt-6 border-t border-chop-border pt-4">
                 <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
-                  on the record, no charge in the last 180 days · {uncharged.length}
+                  on the record, nothing scored inside the window · {uncharged.length}
                 </p>
                 <p className="mt-1 font-mono text-[10px] leading-relaxed text-chop-muted/80">
-                  Nothing here is proven inside the window, so nothing here can be
-                  sentenced. They keep their pages and their receipts, and a zero
-                  is not an acquittal — it is the absence of a recent receipt.
+                  Two reasons a name lands here, and neither is innocence: what
+                  they did is older than 180 days, or what has been filed against
+                  them is still a single unverified allegation (grade D) and does
+                  not score. Their pages and their receipts stay.
                 </p>
                 <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                   {uncharged.map((f) => (

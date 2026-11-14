@@ -20,6 +20,9 @@ type Row = {
   reviewNote: string;
   actDate: string | null;
   datePrecision: string;
+  grade?: string;
+  gradeBasis?: string;
+  outcome?: string;
 };
 
 type Counts = Record<Status, number> & { total?: number };
@@ -148,17 +151,34 @@ export default function AdminEvidencePage() {
   }
 
   async function review(row: Row, next: Status) {
+    let grade = "";
+    let basis = "";
+    if (next === "accepted") {
+      grade = (window.prompt("Evidence grade A/B/C/D", row.grade || "C") || "").toUpperCase();
+      if (!grade) return;
+      if (grade === "A" || grade === "B") {
+        basis = window.prompt(
+          `What establishes it at grade ${grade}? (required)`,
+          row.gradeBasis || "",
+        ) || "";
+        if (!basis) return;
+      }
+    }
     const note =
       next === "rejected"
         ? window.prompt(`Why is this claim rejected? It stays on the record.\n\n${row.act}`)
-        : next === "accepted"
-          ? window.prompt("What establishes the act and its date?", row.reviewNote || "")
-          : "";
+        : "";
     if (next === "rejected" && !note) return;
     await fetch("/api/admin/evidence", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: row.id, status: next, note: note ?? "" }),
+      body: JSON.stringify({
+        id: row.id,
+        status: next,
+        note: note ?? "",
+        grade,
+        basis,
+      }),
     });
     load(status);
   }
@@ -336,6 +356,9 @@ export default function AdminEvidencePage() {
               <span className="tabular-nums">{Math.round(row.confidence)}</span>
               <span>·</span>
               <span className="text-hypeNeon">{row.reviewStatus}</span>
+              <span className="border border-glitchGray px-1 text-sheetWhite/80">
+                {row.grade || "–"}
+              </span>
               <span className="ml-auto">{row.caseId}</span>
             </div>
             <p className="mt-2 text-[14px] leading-snug text-sheetWhite/90">{row.act}</p>

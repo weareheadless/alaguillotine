@@ -53,6 +53,16 @@ export const CATEGORY_WEIGHT: Record<string, number> = {
 
 export const DEFAULT_WEIGHT = 0.5;
 
+/**
+ * What each grade is worth.
+ *
+ * A is a document, an admission or a finding; B is several independent
+ * investigations; C is one credible investigation; D is a single unverified
+ * allegation and counts for nothing. An ungraded row is treated as C, not as
+ * innocent and not as proven.
+ */
+export const GRADE_WEIGHT: Record<string, number> = { a: 1, b: 0.85, c: 0.6, d: 0 };
+
 /** The sum at which the score reaches about 63. A handful of strong acts. */
 export const SCORE_SATURATION = 2.5;
 
@@ -93,6 +103,13 @@ export interface LedgerAct {
    * before this existed counts as it did.
    */
   attribution?: number;
+  /**
+   * How well the conduct is established, A to D. This replaced confidence in
+   * the arithmetic: a court finding and a Senate investigation are both
+   * evidence, and the site grades the record rather than waiting for a
+   * prosecutor. D is visible and never scores.
+   */
+  grade?: string;
 }
 
 export interface EvidenceAct extends LedgerAct {
@@ -226,10 +243,11 @@ export function evidenceFor(
       continue;
     }
 
-    const confidence = Math.min(100, Math.max(0, Number(entry.confidence) || 0)) / 100;
+    const grade = GRADE_WEIGHT[String(entry.grade ?? "").toLowerCase()] ?? 0.6;
+    if (grade <= 0) continue;
     const category = CATEGORY_WEIGHT[String(entry.category || "").toLowerCase()] ?? DEFAULT_WEIGHT;
     const attribution = Math.min(1, Math.max(0, Number(entry.attribution ?? 1)));
-    const value = weight * confidence * category * attribution;
+    const value = weight * grade * category * attribution;
     values.push(value);
     acts += weight;
 
@@ -243,8 +261,10 @@ export function evidenceFor(
       newestAt = seen;
       newest = act;
     }
-    // The card shows the newest act the record is actually confident about.
-    if (confidence >= 0.6 && (!credible || seen > credibleAt)) {
+    // The card shows the newest act the record actually stands behind: C or
+    // better. A single unverified allegation is kept, and not displayed as the
+    // latest thing we know.
+    if (grade >= 0.6 && (!credible || seen > credibleAt)) {
       credibleAt = seen;
       credible = act;
     }

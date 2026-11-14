@@ -111,6 +111,11 @@ export async function POST(request: Request) {
     status,
     note: typeof body.note === "string" ? body.note : "",
     reviewer: typeof body.reviewer === "string" ? body.reviewer : undefined,
+    grade: typeof body.grade === "string" ? body.grade : undefined,
+    outcome: typeof body.outcome === "string" ? body.outcome : undefined,
+    basis: typeof body.basis === "string" ? body.basis : undefined,
+    mechanism: typeof body.mechanism === "string" ? body.mechanism : undefined,
+    beneficiary: typeof body.beneficiary === "string" ? body.beneficiary : undefined,
   });
   if (!result.ok) {
     return Response.json({ error: result.error }, { status: 400 });

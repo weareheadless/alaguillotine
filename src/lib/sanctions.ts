@@ -254,6 +254,7 @@ export async function ingestSanctions(
                 category: categoryFor(entry.listType),
                 confidence: 88,
                 attribution: 1,
+                grade: "B",
               },
             ]).score,
             now,
