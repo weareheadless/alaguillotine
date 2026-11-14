@@ -27,7 +27,22 @@ const CATEGORY_NOTE: Record<string, string> = {
   labour: "the cost",
 };
 
-const PROMPT = `You are Ada Guillotine, keeping a record of how power is used. Each claim below is already documented: a person, an act, a place, a year, an evidence grade (A document, B several investigations, C one investigation, D a single allegation) and a category.
+const PROMPT = `You are Ada Guillotine, keeping a record of how power is used.
+
+Voice — this is the part that gets a line rejected:
+You are not a policy analyst. You are the bailiff who has read every file and stopped being surprised. Two beats, in order:
+
+1. The mechanism, stated plainly, with one concrete thing from the claim — a figure, a committee, a signature, a border, a line item.
+2. The kicker: the cost, or the absurdity, delivered flat, as if it were routine. This is where the sarcasm lives. Never explain the joke.
+
+Short last clause. Concrete nouns. "The review found no wrongdoing, which is what the review is for" is the register. A line a consultancy could publish without embarrassment is a failed line.
+
+Cadence, not content — never reuse these facts:
+- "A €2.86bn order and a minority stake. The committee calls that oversight."
+- "A private contract, a public bill, and a press release about defending democracy."
+- "He calls it a gift. The tax code calls it a deduction. The tenants call it rent."
+
+No puns, no exclamation marks, no rhetorical questions, no "imagine if", no winking. Each claim below is already documented: a person, an act, a place, a year, an evidence grade (A document, B several investigations, C one investigation, D a single allegation) and a category.
 
 Write the line that says why this claim is on the record. Not what happened — the reader has that — but what it means, and why it earns a place here rather than in a news archive. Two sentences, max 220 characters.
 
@@ -38,9 +53,9 @@ Rules:
 1. Do not restate the act. The reader has it directly below.
 2. Add no fact, number, name or date that is not in the claim.
 3. Never assert a motive. "In return for" requires a record that says so; the conditional is the honest form.
-4. Deadpan. No outrage, no exclamation marks, no slogans.
+4. Deadpan, and needling. No outrage, no exclamation marks, no slogans. If a line could appear in a consultancy deck without embarrassment, it is not yours yet.
 5. Never write a sentence that would fit any other claim on the list. If it would survive a swap of the name and the act, it explains nothing and must be rewritten around the specific mechanism.
-6. Vary the opening. Do not start with "<name> shows" or the pattern "X shows power ..."; do not close every line with "civilians paying". Name the budget, the licence, the command chain, the market, the border, the sentence that was never handed down.
+6. Vary the opening and the hinge. Do not start with "<name> shows" or the pattern "X shows power ..."; do not close every line with "civilians paying" or "If it holds". Name the budget, the licence, the command chain, the market, the border, the sentence that was never handed down.
 
 Return JSON only:
 {"takes":[{"id":"...","take":"..."}]}
@@ -60,15 +75,19 @@ export interface TakeReport {
   rejected: number;
   /** One line per failed model call, so a silent shortfall is visible. */
   failures: string[];
+  /** Why a returned take was not stored. */
+  rejections: string[];
 }
 
 export async function writeTakesFor(
   db: D1,
   env: TakeEnv,
   limit = 10,
+  opts: { rewrite?: boolean } = {},
 ): Promise<TakeReport> {
+  const rewrite = Boolean(opts.rewrite);
   const key = env.SITE_AGENT_LLM_API_KEY;
-  if (!key) return { sought: 0, written: 0, rejected: 0, failures: [] };
+  if (!key) return { sought: 0, written: 0, rejected: 0, failures: [], rejections: [] };
 
   const rows = await db
     .prepare(
@@ -97,7 +116,7 @@ export async function writeTakesFor(
     category: String(r.category ?? ""),
     grade: String(r.evidence_grade ?? "C"),
   }));
-  if (claims.length === 0) return { sought: 0, written: 0, rejected: 0, failures: [] };
+  if (claims.length === 0) return { sought: 0, written: 0, rejected: 0, failures: [], rejections: [] };
 
   const base = (env.CLOCK_CHAT_BASE || "https://openrouter.ai/api/v1").replace(/\/$/, "");
   const model = env.CLOCK_MODEL || "deepseek/deepseek-v4.1-flash";
@@ -105,6 +124,7 @@ export async function writeTakesFor(
   let written = 0;
   let rejected = 0;
   const failures: string[] = [];
+  const rejections: string[] = [];
   // Four claims per call. The model spends tokens reasoning before it writes,
   // and a longer prompt spends more: five items started getting cut off.
   const CHUNK = 4;
@@ -182,17 +202,30 @@ export async function writeTakesFor(
       const raw = String(entry.take ?? "").replace(/\s+/g, " ").trim();
       const take =
         raw.length <= 240 ? raw : `${raw.slice(0, 239).replace(/\s+\S*$/, "")}…`;
-      if (!takeIsAnalysis(take, claim.act)) {
+      // The voice is the point, and the punchiest lines are the shortest.
+      // Forty-five characters is enough to be a sentence, not a label.
+      if (!takeIsAnalysis(take, claim.act, 45)) {
         rejected += 1;
+        rejections.push(`${take.length}: ${take.slice(0, 50)}`);
         continue;
       }
       await db
-        .prepare("UPDATE ledger_entries SET take = ? WHERE id = ? AND (take IS NULL OR take = '')")
-        .bind(take, id)
+        .prepare(
+          rewrite
+            ? "UPDATE ledger_entries SET take = ?, take_at = ? WHERE id = ?"
+            : "UPDATE ledger_entries SET take = ?, take_at = ? WHERE id = ? AND (take IS NULL OR take = '')",
+        )
+        .bind(take, new Date().toISOString(), id)
         .run();
       written += 1;
     }
   }
 
-  return { sought: claims.length, written, rejected, failures: failures.slice(0, 6) };
+  return {
+    sought: claims.length,
+    written,
+    rejected,
+    failures: failures.slice(0, 6),
+    rejections: rejections.slice(0, 6),
+  };
 }

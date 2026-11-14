@@ -7,6 +7,10 @@ export function mosaicItems(items: FeedItem[], limit = 10, now = Date.now()): Fe
   const clusters = new Set<string>();
   const unique = items.filter(item => {
     if (!item || !item.id || !item.title || !["wire", "record", "charge"].includes(item.kind)) return false;
+    // A tile with no analysis is a headline and an outbound link. The claim
+    // stays on its own page until Ada has said why it is here; the wire is
+    // already filtered upstream when it has no take.
+    if (item.kind === "charge" && !item.take) return false;
     // The feed's archive lane can contain months-old dispatches. Keep them in
     // /feed, but don't resurrect them as the homepage's featured editorial.
     if (item.source === "dispatch") {

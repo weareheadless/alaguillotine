@@ -34,8 +34,12 @@ export async function POST(request: Request) {
   const db = context.env?.D1 as Parameters<typeof writeTakesFor>[0] | undefined;
   if (!db) return Response.json({ error: "D1 binding unavailable" }, { status: 500 });
 
-  const limit = Math.min(60, Math.max(1, Number(new URL(request.url).searchParams.get("limit") ?? 10)));
-  const report = await writeTakesFor(db, context.env ?? {}, limit);
+  const params = new URL(request.url).searchParams;
+  const limit = Math.min(60, Math.max(1, Number(params.get("limit") ?? 10)));
+  // ?rewrite=1 re-writes takes that already exist, for a voice pass. It never
+  // leaves a claim with no take: a failed rewrite keeps what was there.
+  const rewrite = params.get("rewrite") === "1";
+  const report = await writeTakesFor(db, context.env ?? {}, limit, { rewrite });
 
   let published = 0;
   try {

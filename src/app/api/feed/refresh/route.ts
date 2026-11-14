@@ -35,6 +35,18 @@ export async function POST(request: Request) {
   const db = await getDb();
   if (!db) return Response.json({ error: "D1 unavailable" }, { status: 500 });
 
+  const params = new URL(request.url).searchParams;
+  // ?rewrite=12 re-writes takes that already exist, for a voice pass, without
+  // pulling the wire or touching anything else.
+  const rewrite = Number(params.get("rewrite") ?? 0);
+  if (rewrite > 0) {
+    const glossed = await glossFeed(db, env, Math.min(20, rewrite), { rewrite: true });
+    return Response.json(
+      { ok: true, rewrite: true, glossed },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const result = await refreshFeed(db);
   const glossed = await glossFeed(db, env, 12);
   return Response.json({ ok: true, ...result, glossed });

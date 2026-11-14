@@ -14,6 +14,11 @@ function Tile({ item, index }: { item: FeedItem; index: number }) {
   const [failedImage, setFailedImage] = useState(false);
   const receipt = item.source === "receipt";
   const dispatch = item.source === "dispatch";
+  const claim = item.kind === "charge";
+  // A claim's label is metadata — place, year, sources. Its analysis is the
+  // take. Printing the label where the take belongs is how "Ada's take" became
+  // a line of domain names.
+  const analysis = claim ? (item.take ?? "") : item.gloss;
   const lead = index === 0;
   const feature = index === 1;
   const palette = dispatchStyle(item.category);
@@ -25,7 +30,7 @@ function Tile({ item, index }: { item: FeedItem; index: number }) {
   const content = <>
     <div className={styles.meta}>
       <span className={styles.category}>{palette.label}</span>
-      <span>{dispatch ? "Ada · dispatch" : receipt ? "The public record" : "Source reporting"}</span>
+      <span>{dispatch ? "Ada · dispatch" : receipt ? "The public record" : claim ? item.gloss : "Source reporting"}</span>
     </div>
     {image && <div className={styles.media}>
       {/* Only the source's image, never generated news imagery. */}
@@ -37,17 +42,17 @@ function Tile({ item, index }: { item: FeedItem; index: number }) {
     <div className={styles.body}>
       {receipt && split > -1 && <p className={styles.name}>{item.title.slice(0, split)}</p>}
       <h3 className={receipt && split > -1 ? styles.amount : styles.title}>{heading}</h3>
-      {item.gloss && <div className={styles.commentary}>
-        {!receipt && !dispatch && <span>Ada’s take</span>}
-        <p>{item.gloss}</p>
+      {analysis && <div className={styles.commentary}>
+        {!receipt && !dispatch && <span>{claim ? "Why this is on the record" : "Ada’s take"}</span>}
+        <p>{analysis}</p>
       </div>}
     </div>
     <div className={styles.footer}>
-      <span className={styles.source}>{dispatch ? "Read Ada" : receipt ? "Open dossier" : item.source || "Read the reporting"}
+      <span className={styles.source}>{claim ? "Open the claim" : dispatch ? "Read Ada" : receipt ? "Open dossier" : item.source || "Read the reporting"}
         {date && <> · <time dateTime={item.publishedAt}>{date}</time></>}</span>
       <span aria-hidden="true">{external ? "↗" : "→"}</span>
     </div>
-    {!receipt && !dispatch && <p className={styles.caveat}>Source reporting · not independently verified</p>}
+    {!receipt && !dispatch && <p className={styles.caveat}>{claim ? "A claim on the record, not a verdict" : "Source reporting · not independently verified"}</p>}
   </>;
   const className = [styles.tile, lead ? styles.lead : "", feature ? styles.feature : "",
     receipt ? styles.receipt : "", dispatch ? styles.dispatch : "",

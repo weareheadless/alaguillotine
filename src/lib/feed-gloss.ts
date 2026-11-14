@@ -85,9 +85,9 @@ const ANALYSIS_MARK = /\b(if|would|could|may|might|means|implies|because|suggest
  * reasoning. Overlap is measured on content words, so "Musk buys X" and "X
  * bought by Musk" score as the same sentence — because to a reader they are.
  */
-export function takeIsAnalysis(take: string, title: string): boolean {
+export function takeIsAnalysis(take: string, title: string, minLength = 60): boolean {
   const t = take.replace(/\s+/g, " ").trim();
-  if (t.length < 70 || t.length > 260) return false;
+  if (t.length < minLength || t.length > 260) return false;
   if (!ANALYSIS_MARK.test(t)) return false;
   const content = (value: string) =>
     new Set(
@@ -121,6 +121,16 @@ const PROMPT = `You are Ada Guillotine, an anticapitalist AI reading a federated
 
 For each item, write your take — analysis, not a charge and not a summary. Two sentences, max 240 characters.
 
+Voice — this is the part that gets a line rejected:
+You are not a summariser and not a policy analyst. You are the bailiff who has read every file and stopped being surprised. Put the claim and the official description in the same breath and let the gap do the damage. Short sentences, concrete nouns. A line that could appear in a press release without embarrassment is a failure.
+
+Cadence, not content — never reuse these facts:
+- "The review found no wrongdoing, which is what the review is for."
+- "A public service, a private contract, and a press release about transparency."
+- "They call it a partnership. The invoice calls it something else."
+
+No puns, no exclamation marks, no rhetorical questions, no "imagine if".
+
 Sentence one: what the piece actually shows, in your own words.
 Sentence two: why it is relevant, or could be — the mechanism, who carries the cost, what it would mean if it holds.
 
@@ -128,7 +138,7 @@ Rules, in order of importance:
 1. Never restate the headline. If your take could be written by reading only the headline, it is worthless. Add the step the headline leaves out: what follows from it, or what would have to be true.
 2. Conditional when the link is not established: "if", "would", "could", "appears", "may", "whether". Never assert a motive the piece does not establish.
 3. No new facts. No numbers, names, dates or events that are not in the headline or the community line.
-4. Deadpan. No outrage, no exclamation marks, no slogan ("profiteers", "the powerful", "late capitalism").
+4. Deadpan, and needling. No outrage, no exclamation marks, no slogan ("profiteers", "the powerful", "late capitalism"). If a line could appear in a press release without embarrassment, it is not yours yet.
 
 Also file each item:
 - extraction: someone took money, land, labour or a public asset.
@@ -155,7 +165,9 @@ export async function glossFeed(
   db: D1,
   env: GlossEnv,
   limit = 12,
+  opts: { rewrite?: boolean } = {},
 ): Promise<number> {
+  const rewrite = Boolean(opts.rewrite);
   const key = env.SITE_AGENT_LLM_API_KEY;
   glossDiagnostics.key = Boolean(key);
   if (!key) return 0;
@@ -185,9 +197,13 @@ export async function glossFeed(
 
   const rows = await db
     .prepare(
-      `SELECT id, title, source, community FROM feed_items
-       WHERE kind = 'wire' AND gloss = ''
-       ORDER BY first_seen_at ASC LIMIT ?`,
+      rewrite
+        ? `SELECT id, title, source, community, gloss FROM feed_items
+            WHERE kind = 'wire' AND gloss != '' AND gloss NOT LIKE '∅%'
+            ORDER BY first_seen_at ASC LIMIT ?`
+        : `SELECT id, title, source, community FROM feed_items
+            WHERE kind = 'wire' AND gloss = ''
+            ORDER BY first_seen_at ASC LIMIT ?`,
     )
     .bind(limit)
     .all();
@@ -210,7 +226,7 @@ export async function glossFeed(
   const CHUNK = 5;
   let filed = 0;
   for (let start = 0; start < items.length; start += CHUNK) {
-    filed += await glossChunk(db, { base, model, key }, items.slice(start, start + CHUNK));
+    filed += await glossChunk(db, { base, model, key }, items.slice(start, start + CHUNK), rewrite);
   }
   glossDiagnostics.filed = filed;
   glossDiagnostics.rows = items.length;
@@ -222,6 +238,7 @@ async function glossChunk(
   db: D1,
   ctx: { base: string; model: string; key: string },
   items: Array<{ id: string; title: string; source: string; community: string }>,
+  rewrite = false,
 ): Promise<number> {
   let parsed: { items?: Array<Record<string, unknown>> } | null = null;
   try {
@@ -301,9 +318,11 @@ async function glossChunk(
       0,
       Math.min(100, Math.round(Number(entry.severity ?? 0))),
     );
-    // A take that only re-words the headline is not a take. It is marked and
-    // kept out of the feed rather than printed under a headline it repeats.
+    // A take that only re-words the headline is not a take. On a first pass it
+    // is marked and kept out of the feed; on a rewrite the old take stays,
+    // because a failed rewrite should not cost the card.
     if (!takeIsAnalysis(take, item.title)) {
+      if (rewrite) continue;
       await db
         .prepare(
           "UPDATE feed_items SET gloss = ?, category = 'wire', severity = 0 WHERE id = ?",
