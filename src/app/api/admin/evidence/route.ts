@@ -3,6 +3,7 @@ import { isAdminAuthed } from "@/lib/admin-auth";
 import {
   auditEvidence,
   listEvidence,
+  rankedWorklist,
   reviewCounts,
   reviewEvidence,
   type ReviewDb,
@@ -28,6 +29,17 @@ export async function GET(request: Request) {
   if (!database) return Response.json({ error: "unavailable" }, { status: 503 });
 
   const url = new URL(request.url);
+  if (url.searchParams.get("view") === "ranked") {
+    const [people, counts] = await Promise.all([
+      rankedWorklist(database),
+      reviewCounts(database),
+    ]);
+    return Response.json(
+      { people, counts },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const status = (url.searchParams.get("status") ?? "pending") as ReviewStatus | "all";
   const [page, counts] = await Promise.all([
     listEvidence(database, {

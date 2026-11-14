@@ -37,7 +37,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * package, and a press strategy is not a massacre. These are editorial
  * weights, stated here so they can be argued with.
  */
-const CATEGORY_WEIGHT: Record<string, number> = {
+export const CATEGORY_WEIGHT: Record<string, number> = {
   genocide: 1,
   war: 0.9,
   repression: 0.8,
@@ -51,7 +51,7 @@ const CATEGORY_WEIGHT: Record<string, number> = {
   media: 0.4,
 };
 
-const DEFAULT_WEIGHT = 0.5;
+export const DEFAULT_WEIGHT = 0.5;
 
 /** The sum at which the score reaches about 63. A handful of strong acts. */
 export const SCORE_SATURATION = 2.5;
@@ -169,6 +169,13 @@ function utc(year: number, month: number, day: number): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+/** How much a precisely dated act counts today: full weight to 55% at the edge. */
+export function windowWeight(at: Date, now: number = Date.now()): number {
+  const ageDays = (now - at.getTime()) / DAY_MS;
+  const fade = Math.min(1, Math.max(0, ageDays / EVIDENCE_WINDOW_DAYS));
+  return 1 - (1 - RECENCY_FLOOR) * fade;
+}
+
 /**
  * Score a person's ledger inside the window.
  *
@@ -210,8 +217,7 @@ export function evidenceFor(
     if (stamp.precise && ageDays <= EVIDENCE_WINDOW_DAYS && ageDays >= -7) {
       // Fresh acts lead. The fade is linear, so it can be checked by hand:
       // today is 1.0, ninety days is 0.775, the last day of the window is 0.55.
-      const fade = Math.min(1, Math.max(0, ageDays / EVIDENCE_WINDOW_DAYS));
-      weight = 1 - (1 - RECENCY_FLOOR) * fade;
+      weight = windowWeight(stamp.at, now);
     } else if (entry.year === currentYear && !stamp.precise) {
       // A bare year cannot put the act inside the window. Half is the honest
       // guess, and it keeps a January act from counting like an October one.

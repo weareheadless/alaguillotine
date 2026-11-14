@@ -1,4 +1,12 @@
-import { actDate } from "./evidence";
+import { namePair } from "./archive-store";
+import {
+  actDate,
+  evidenceFor,
+  CATEGORY_WEIGHT,
+  DEFAULT_WEIGHT,
+  EVIDENCE_WINDOW_DAYS,
+  windowWeight,
+} from "./evidence";
 
 /**
  * Evidence review.
@@ -42,6 +50,8 @@ export interface ReviewRow {
   reviewedAt: string | null;
   actDate: string | null;
   datePrecision: string;
+  evidenceQuote: string;
+  sourceLang: string;
 }
 
 const rowToReview = (r: Record<string, unknown>): ReviewRow => {
@@ -68,6 +78,8 @@ const rowToReview = (r: Record<string, unknown>): ReviewRow => {
     reviewedAt: r.reviewed_at == null ? null : String(r.reviewed_at),
     actDate: r.act_date == null ? null : String(r.act_date),
     datePrecision: String(r.date_precision ?? "year"),
+    evidenceQuote: String(r.evidence_quote ?? ""),
+    sourceLang: String(r.source_lang ?? ""),
   };
 };
 
@@ -97,7 +109,8 @@ export async function listEvidence(
   const rows = await db
     .prepare(
       `SELECT id, person, role, act, place, year, category, confidence, sources, case_id,
-              created_at, review_status, review_note, reviewed_at, act_date, date_precision
+              created_at, review_status, review_note, reviewed_at, act_date, date_precision,
+              evidence_quote, source_lang
          FROM ledger_entries ${clause}
         ORDER BY created_at DESC, rowid DESC
         LIMIT ? OFFSET ?`,
@@ -159,7 +172,8 @@ export async function reviewEvidence(
   const after = await db
     .prepare(
       `SELECT id, person, role, act, place, year, category, confidence, sources, case_id,
-              created_at, review_status, review_note, reviewed_at, act_date, date_precision
+              created_at, review_status, review_note, reviewed_at, act_date, date_precision,
+              evidence_quote, source_lang
          FROM ledger_entries WHERE id = ?`,
     )
     .bind(input.id)
@@ -318,4 +332,141 @@ export async function reviewCounts(db: ReviewDb): Promise<StatusCounts> {
     total += n;
   }
   return { counts, total };
+}
+
+
+export interface RankedClaim extends ReviewRow {
+  /** This act's contribution to the displayed score. */
+  weight: number;
+  /** True when the act falls inside the blade window. */
+  inWindow: boolean;
+  /** Mechanical gaps an editor should look at first. */
+  gaps: string[];
+}
+
+export interface RankedPerson {
+  person: string;
+  /** Recomputed from every claim filed under any spelling of the name. */
+  score: number;
+  /** The number the site is showing for this person. */
+  storedScore: number;
+  claims: RankedClaim[];
+  /** Acts on file for this person, inside or outside the window. */
+  onFile: number;
+  /** Name spellings the ledger files this person's claims under. */
+  variants: Array<{ key: string; n: number }>;
+  /** True when the stored score differs from the record by more than 0.5. */
+  mismatch: boolean;
+}
+
+/**
+ * The review order that matters.
+ *
+ * A score is the sum of the five heaviest acts inside the window, so those are
+ * the acts that decide who stands at the top of the line. Reviewing the ledger
+ * alphabetically would spend a week on rows that cannot move a number. This
+ * returns, for each ranked person, the claims their score is actually made of,
+ * with the mechanical gaps already marked — missing date, missing source,
+ * low confidence, no supporting passage.
+ */
+export async function rankedWorklist(db: ReviewDb): Promise<RankedPerson[]> {
+  const queue = await db
+    .prepare("SELECT name, score FROM queue_people ORDER BY score DESC, rank ASC")
+    .bind()
+    .all();
+
+  const now = Date.now();
+  const out: RankedPerson[] = [];
+
+  for (const q of queue.results ?? []) {
+    const name = String(q.name ?? "");
+    if (!name) continue;
+    const storedScore = Number(q.score ?? 0);
+    const [first, last] = namePair(name);
+    // The same person is filed under more than one spelling. The score uses
+    // whichever single key it finds first; this reads all of them, so a
+    // mismatch here means the blade is not counting the whole record.
+    const rows = await db
+      .prepare(
+        `SELECT id, person, role, act, place, year, category, confidence, sources, case_id,
+                created_at, review_status, review_note, reviewed_at, act_date, date_precision,
+                evidence_quote, source_lang, attribution
+           FROM ledger_entries
+          WHERE review_status IN ('accepted', 'legacy')
+            AND (lower(person) = lower(?)
+                 OR (lower(person) LIKE ? AND lower(person) LIKE ?))
+          ORDER BY confidence DESC, year DESC
+          LIMIT 200`,
+      )
+      .bind(name, `%${first}%`, `%${last}%`)
+      .all();
+
+    const variants = new Map<string, number>();
+    for (const r of rows.results ?? []) {
+      const key = String(r.person ?? "");
+      if (key) variants.set(key, (variants.get(key) ?? 0) + 1);
+    }
+
+    const claims: RankedClaim[] = [];
+    for (const r of rows.results ?? []) {
+      const row = rowToReview(r);
+      const stamp = row.actDate
+        ? { at: new Date(`${row.actDate}T00:00:00Z`), precise: true }
+        : actDate(row.act, row.year);
+      const inWindow = Boolean(
+        stamp &&
+          stamp.precise &&
+          (now - stamp.at.getTime()) / 86_400_000 <= EVIDENCE_WINDOW_DAYS,
+      );
+      const category = CATEGORY_WEIGHT[row.category.toLowerCase()] ?? DEFAULT_WEIGHT;
+      const attribution = Number((r.attribution as number | undefined) ?? 1);
+      // The same two branches the scorer uses: a dated act inside the window
+      // fades with age; an undated act from the current year counts half,
+      // because the year proves it is recent but not that it is inside the
+      // window. Anything else counts nothing.
+      const decay = inWindow && stamp ? windowWeight(stamp.at, now) : 0;
+      const undated = !stamp?.precise && row.year === new Date().getUTCFullYear() ? 0.5 : 0;
+      const weight = (decay || undated) * (row.confidence / 100) * category * attribution;
+
+      const gaps: string[] = [];
+      if (!row.sources.length) gaps.push("no source");
+      if (!row.actDate && !(stamp && stamp.precise)) gaps.push("no act date");
+      if (row.confidence < 70) gaps.push("confidence below 70");
+      if (!row.evidenceQuote) gaps.push("no supporting passage");
+      if (attribution < 1 && !row.reviewNote) gaps.push("attribution unexplained");
+
+      claims.push({ ...row, weight, inWindow, gaps });
+    }
+
+    claims.sort((a, b) => b.weight - a.weight || b.confidence - a.confidence);
+    // The score comes from the scorer itself, not a second implementation of
+    // it: a worklist that disagrees with the line is worse than none.
+    const score = evidenceFor(
+      (rows.results ?? []).map((r) => ({
+        act: String(r.act ?? ""),
+        year: Number(r.year ?? 0),
+        category: String(r.category ?? ""),
+        confidence: Number(r.confidence ?? 0),
+        attribution: Number((r.attribution as number | undefined) ?? 1),
+        actDate: r.act_date == null ? null : String(r.act_date),
+      })),
+      now,
+    ).score;
+
+    const recomputed = Math.round(score * 10) / 10;
+    out.push({
+      person: name,
+      score: recomputed,
+      storedScore,
+      claims: claims.slice(0, 8),
+      onFile: (rows.results ?? []).length,
+      variants: [...variants.entries()]
+        .map(([key, n]) => ({ key, n }))
+        .sort((a, b) => b.n - a.n)
+        .slice(0, 6),
+      mismatch: Math.abs(recomputed - storedScore) > 0.5,
+    });
+  }
+
+  return out;
 }

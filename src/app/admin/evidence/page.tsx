@@ -24,6 +24,25 @@ type Row = {
 
 type Counts = Record<Status, number> & { total?: number };
 
+type RankedClaim = Row & { weight: number; inWindow: boolean; gaps: string[] };
+
+type RankedPerson = { person: string; score: number; onFile: number; claims: RankedClaim[] };
+
+type CheckResult = {
+  ok?: boolean;
+  status?: number;
+  blocked?: boolean;
+  note?: string;
+  error?: string;
+  checks?: {
+    pageAnswers: boolean;
+    mentionsPerson: boolean;
+    figures: string[];
+    figuresFound: string[];
+    figureMatch: boolean | null;
+  };
+};
+
 /**
  * The evidence desk.
  *
@@ -43,6 +62,9 @@ export default function AdminEvidencePage() {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
+  const [mode, setMode] = useState<"claims" | "ranked">("claims");
+  const [ranked, setRanked] = useState<RankedPerson[]>([]);
+  const [checks, setChecks] = useState<Record<string, CheckResult>>({});
 
   const load = useCallback(async (which: Status | "all") => {
     setLoading(true);
@@ -64,6 +86,35 @@ export default function AdminEvidencePage() {
       setLoading(false);
     }
   }, []);
+
+  const loadRanked = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/evidence?view=ranked", { cache: "no-store" });
+      const data = (await response.json()) as { people?: RankedPerson[]; counts?: Counts };
+      setRanked(data.people ?? []);
+      setCounts(data.counts ?? null);
+    } catch {
+      setRanked([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  async function checkSource(id: string) {
+    setChecks((c) => ({ ...c, [id]: { error: "checking…" } as CheckResult }));
+    try {
+      const response = await fetch("/api/admin/evidence/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = (await response.json()) as CheckResult;
+      setChecks((c) => ({ ...c, [id]: data }));
+    } catch {
+      setChecks((c) => ({ ...c, [id]: { error: "check failed" } }));
+    }
+  }
 
   useEffect(() => {
     fetch("/api/admin/auth/status", { cache: "no-store" })
@@ -196,7 +247,33 @@ export default function AdminEvidencePage() {
             </button>
           ))}
           <button
-            onClick={() => load(status)}
+            onClick={() => {
+              setMode("ranked");
+              loadRanked();
+            }}
+            className={`border-2 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] ${
+              mode === "ranked"
+                ? "border-sheetWhite text-sheetWhite"
+                : "border-glitchGray text-chop-muted hover:text-sheetWhite"
+            }`}
+          >
+            ranked names
+          </button>
+          <button
+            onClick={() => {
+              setMode("claims");
+              load(status);
+            }}
+            className={`border-2 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] ${
+              mode === "claims"
+                ? "border-sheetWhite text-sheetWhite"
+                : "border-glitchGray text-chop-muted hover:text-sheetWhite"
+            }`}
+          >
+            claims
+          </button>
+          <button
+            onClick={() => (mode === "ranked" ? loadRanked() : load(status))}
             className="border-2 border-glitchGray px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-chop-muted hover:text-sheetWhite"
           >
             refresh
@@ -222,6 +299,15 @@ export default function AdminEvidencePage() {
             {report}
           </p>
         )}
+        {mode === "ranked" ? (
+          <RankedPanel
+            people={ranked}
+            checks={checks}
+            onCheck={checkSource}
+            onReview={review}
+          />
+        ) : (
+        <>
         <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
           {total} in {status}
         </p>
@@ -293,7 +379,125 @@ export default function AdminEvidencePage() {
             </div>
           </article>
         ))}
+        </>
+        )}
       </main>
+    </div>
+  );
+}
+
+
+/**
+ * The acts the line is actually made of, name by name. A score is the five
+ * heaviest acts inside the window, so this is the reading order: the claims
+ * that decide who stands where, with the mechanical gaps already named.
+ */
+function RankedPanel({
+  people,
+  checks,
+  onCheck,
+  onReview,
+}: {
+  people: RankedPerson[];
+  checks: Record<string, CheckResult>;
+  onCheck: (id: string) => void;
+  onReview: (row: Row, next: Status) => void;
+}) {
+  if (!people.length) {
+    return (
+      <p className="border-2 border-glitchGray p-6 text-center font-mono text-[11px] text-chop-muted">
+        no ranked names yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {people.map((p) => (
+        <section key={p.person} className="border-2 border-glitchGray p-4">
+          <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-[15px] font-black uppercase tracking-[0.08em] text-sheetWhite">
+              {p.person}
+            </h2>
+            <span className="font-mono text-[11px] tabular-nums text-spiteCrimson">{p.score}</span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
+              {p.onFile} claims on file
+            </span>
+          </header>
+
+          <ol className="mt-3 space-y-3">
+            {p.claims.map((c) => {
+              const result = checks[c.id];
+              return (
+                <li key={c.id} className="border-l-2 border-chop-border pl-3">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-[9px] uppercase tracking-[0.16em] text-chop-muted">
+                    <span className="tabular-nums text-sheetWhite/80">
+                      {c.weight.toFixed(2)}
+                    </span>
+                    <span>{c.year}</span>
+                    <span>{c.category}</span>
+                    <span className="tabular-nums">{Math.round(c.confidence)}</span>
+                    <span className={c.reviewStatus === "accepted" ? "text-hypeNeon" : ""}>
+                      {c.reviewStatus}
+                    </span>
+                    {c.gaps.map((g) => (
+                      <span key={g} className="border border-spiteCrimson/40 px-1 text-spiteCrimson/80">
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[13px] leading-snug text-sheetWhite/90">{c.act}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-3 font-mono text-[9px] uppercase tracking-[0.14em]">
+                    <button
+                      onClick={() => onCheck(c.id)}
+                      className="border border-glitchGray px-2 py-1 text-chop-muted hover:text-sheetWhite"
+                    >
+                      check source
+                    </button>
+                    <a
+                      href={`/archive/claim/${encodeURIComponent(c.id)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-chop-muted underline hover:text-sheetWhite"
+                    >
+                      evidence page ↗
+                    </a>
+                    <button
+                      onClick={() => onReview(c, "accepted")}
+                      className="text-hypeNeon hover:underline"
+                    >
+                      accept
+                    </button>
+                    <button
+                      onClick={() => onReview(c, "rejected")}
+                      className="text-spiteCrimson hover:underline"
+                    >
+                      reject
+                    </button>
+                  </div>
+                  {result && (
+                    <p className="mt-1 font-mono text-[10px] text-chop-muted">
+                      {result.error
+                        ? result.error
+                        : result.note
+                        ? `HTTP ${result.status} · ${result.note}`
+                        : `HTTP ${result.status} · person ${
+                            result.checks?.mentionsPerson ? "named" : "NOT named"
+                          } · figures ${
+                            result.checks?.figureMatch === null
+                              ? "none to check"
+                              : result.checks?.figureMatch
+                                ? "found"
+                                : "NOT found"
+                          }`}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ))}
     </div>
   );
 }
