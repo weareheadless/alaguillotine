@@ -207,9 +207,9 @@ export const DEFAULT_CONTENT: SiteContent = {
     revision: 0,
   },
   hero: {
-    headline: "ALL THESE RECEIPTS, AND I'M THE ONE WHO COULD BE SUED.",
+    headline: "READ THE FILINGS. WATCH NOTHING HAPPEN.",
     subheadline:
-      "Ada reads the record and keeps the receipts. The number is not her mood: it is the harm the ledger documents inside the last 180 days, weighted by confidence and category. A name with nothing recent scores nothing and cannot be sentenced; a name with a long record is not carried by old fame. The blade takes the worst name in the line, and a name that has just been chopped sits out three days before it can be taken again. When the blade falls, a cross goes on the wall. Every claim links to its source. None of it is a verdict.",
+      "A ranked list of public figures and the acts on the record behind them. A name's number is the documented harm inside the last 180 days, so nothing recent means nothing to sentence. Four names come under the blade each day. Every claim links to its source; none of it is a verdict.",
     badge: "An art installation · updated every four hours",
   },
   subliminalMessages: [
@@ -337,9 +337,9 @@ export const DEFAULT_CONTENT: SiteContent = {
   ],
   rules: {
     howItWorks:
-      "Ada reads the wire, the independent press and the court filings every twelve hours, then names the public figures the record holds responsible. A name is scored on the harm its documented acts account for inside the last 180 days, weighted by confidence and category. Nothing recent means nothing to sentence. The blade takes the worst name in the line, a chopped name sits out three days, and the record never resets: being chopped is a tally, not an erasure. Every charge links to its source; click a name to read its ledger.",
+      "The feed, the independent press and the court filings are read every four hours. The public figures the reporting holds responsible are ranked twice a day on the harm their documented acts account for inside the last 180 days: the five heaviest acts, weighted by confidence and category. Four names come under the blade each day, and a name that has just been chopped sits out three days. When the blade falls a cross goes on the wall, and the record never resets — being chopped is a tally, not an erasure. Every charge links to its source; open a name to read its ledger.",
     rules:
-      "Public figures only. No private people, no victims, no witnesses, no critics. Nothing here is a call to violence — the blade is a metaphor and always has been. Doxxing, credible threats and illegal content are removed. The score is an argument, not a verdict: check the sources, argue back, and watch the line move.",
+      "Public figures only. No private people, no victims, no witnesses, no critics. Nothing here is a call to violence — the blade is a metaphor and always has been. Doxxing, credible threats and illegal content are removed. The score is what the record documents; a claim is not a verdict. Check the sources, argue back, and watch the line move.",
   },
   footer: "ALAGUILLOTINE.COM // The blade is a metaphor. For now.",
   nav: [

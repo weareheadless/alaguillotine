@@ -139,11 +139,11 @@ export default function HomePage() {
               /* Two numbers, both checkable: how much record there is, and what
                  is on the wire right now. The second one lands on the feed, so
                  the line is a door rather than a slogan. */
-              <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-chop-muted">
+              <p className="mt-3 flex flex-col items-start gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-chop-muted sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2">
                 {typeof hate.ledgerTotal === "number" && (
                   <>
                     <span>{hate.ledgerTotal.toLocaleString()} charges on record</span>
-                    <span aria-hidden="true">·</span>
+                    <span aria-hidden="true" className="hidden sm:inline">·</span>
                   </>
                 )}
                 <a
@@ -156,12 +156,11 @@ export default function HomePage() {
                 </a>
               </p>
             )}
-            <p className="mt-5 hidden max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted md:block md:text-[13px]">
+            {/* One paragraph, both widths. The narrow screen used to get its own
+                hand-written version of the intro, and the two drifted: the
+                desktop copy explained the number and the phone copy did not. */}
+            <p className="mt-5 max-w-2xl font-mono text-[11px] leading-relaxed text-chop-muted md:text-[13px]">
               {heroSubheadline}
-            </p>
-            <p className="mt-4 max-w-2xl font-mono text-[11px] leading-snug text-chop-muted md:hidden">
-              Ada reads the record. The blade takes the worst name of the
-              last 180 days. Every claim links to its source.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button

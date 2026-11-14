@@ -175,7 +175,7 @@ export function Hateometer({ state }: { state: HateState }) {
           </p>
           <p className="pt-1 text-chop-muted/70">
             Same maths as the clock, opposite subject. It measures instability in the reporting,
-            not guilt — the blade is Ada&apos;s judgement, and this is only the weather.
+            not guilt — the blade ranks the record, and this is only the weather.
           </p>
         </div>
       </details>
