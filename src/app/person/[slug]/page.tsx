@@ -86,7 +86,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   const crosses = Math.min(person.timesChopped ?? 0, 40);
 
   return (
-    <main className="mx-auto max-w-6xl px-5 pb-24 pt-12">
+    <main className="mx-auto w-full max-w-[1400px] px-5 pb-24 pt-12">
       <Link
         href="/next-in-line"
         className="font-mono text-[10px] uppercase tracking-[0.25em] text-chop-muted hover:text-sheetWhite"
@@ -160,21 +160,22 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
           it says so.
         </p>
 
-        <p className="mt-2 font-mono text-[10px] leading-relaxed text-chop-muted">
-          <span className="text-sheetWhite">Why this name is on the line:</span>{" "}
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 font-mono text-[10px] text-chop-muted">
+          <span className="uppercase tracking-[0.18em] text-chop-muted">why this name is on the line</span>
           {counted.acts > 0 ? (
-            <>
-              {scoredClaims} claim{scoredClaims === 1 ? "" : "s"} fall inside the 180-day window.
-              Their five heaviest weights add to {counted.total}, and the score is
-              100 × (1 − e^(−{counted.total}/2.5)) = <span className="text-sheetWhite">{counted.score}</span>.
-              Acts older than the window, and anything at grade D, count for nothing — they stay on
-              the page and out of the number.
-            </>
+            <span>
+              {scoredClaims} claim{scoredClaims === 1 ? "" : "s"} in the last 180 days · weight{" "}
+              {counted.total} · score{" "}
+              <span className="font-black text-sheetWhite">{counted.score}</span> = 100 × (1 − e
+              <sup>−{counted.total}/2.5</sup>)
+            </span>
           ) : (
-            <>nothing on the record falls inside the 180-day window, so this name cannot be
-              sentenced. It keeps its page and its receipts.</>
+            <span>
+              nothing inside the 180-day window, so this name cannot be sentenced. It keeps its page
+              and its receipts.
+            </span>
           )}
-        </p>
+        </div>
       </section>
 
       {/* The number is the window. The newest credible act is the receipt, so

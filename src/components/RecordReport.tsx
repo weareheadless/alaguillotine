@@ -363,183 +363,84 @@ export function RecordReport({
       </section>
     ) : null}
 
-    <div className="mt-8 grid gap-6 lg:grid-cols-[260px_1fr] lg:gap-8">
-      <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-        <div className="border border-chop-border bg-white/[0.02] p-3">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
-            what this page says, in counts
-          </p>
-          <dl className="mt-2 space-y-1.5">
-            {[
-              [ledger.length, "claims on the record"],
-              [thin, "are a single unverified allegation"],
-              [untouched, "carry no recorded proceeding"],
-              [flows.length, flows.length === 1 ? "money entry" : "money entries"],
-              [tollTotal, "tolls attributed"],
-            ].map(([n, label]) => (
-              <div key={String(label)} className="flex items-baseline gap-2">
-                <dt className="w-7 shrink-0 text-right font-mono text-[13px] font-black tabular-nums text-sheetWhite">
-                  {n}
-                </dt>
-                <dd className="font-mono text-[10px] leading-snug text-chop-muted">{label}</dd>
-              </div>
-            ))}
-          </dl>
-          {pending > 0 ? (
-            <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-hypeNeon/80">
-              {pending} filed, awaiting review
-            </p>
-          ) : null}
-        </div>
+    <section className="mt-8" id="chart">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
+          the record, by year
+        </h2>
+        <span className="font-mono text-[10px] tabular-nums text-chop-muted">
+          {startYear}–{endYear}
+        </span>
+      </div>
 
-        {assetStatements.length > 0 ? (
-          <div className="border border-chop-border bg-white/[0.02] p-3">
-            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
-              declared net assets
-            </p>
-            <ul className="mt-1.5 space-y-1">
-              {assetStatements.map((d, i) => (
-                <li key={d.id} className="flex items-baseline justify-between gap-2">
-                  <span className="font-mono text-[14px] font-black tabular-nums text-spiteCrimson">
-                    {moneyIn(d.net ?? 0, d.currency)}
-                  </span>
-                  <span className="font-mono text-[9px] tabular-nums text-chop-muted">
-                    {d.periodTo?.slice(0, 4)}
-                    {i === 0 ? " · entering" : i === assetStatements.length - 1 ? " · leaving" : ""}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {firstStatement && lastStatement && firstStatement.id !== lastStatement.id ? (
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-sheetWhite/85">
-                {moneyIn((lastStatement.net ?? 0) - (firstStatement.net ?? 0), lastStatement.currency)}{" "}
-                over the period
-              </p>
-            ) : null}
-            {declaredIncome > 0 ? (
-              <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
-                {moneyIn(declaredIncome, incomeStatements[0].currency)} income declared
-              </p>
-            ) : null}
-            <a
-              href={safeHref(assetStatements[0].sourceUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 inline-block font-mono text-[8.5px] uppercase tracking-[0.14em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
-            >
-              the filing ↗
-            </a>
-            <p className="mt-1.5 font-mono text-[8.5px] leading-relaxed text-chop-muted">
-              Filed with the state at entry and at exit. A figure is a figure here, not an estimate.
-            </p>
-          </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[10px] text-chop-muted">
+        {hasMoney ? (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 bg-spiteCrimson/80" />
+            money to him
+          </span>
         ) : null}
-
-        {wealthPoints.length > 0 ? (
-          <div className="border border-chop-border bg-white/[0.02] p-3">
-            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
-              reported wealth
-            </p>
-            {wealthPoints.length > 1 && wealthPoints[wealthPoints.length - 1].y > wealthPoints[0].y ? (
-              <>
-                <WealthStrip points={wealthPoints} max={maxWealth} />
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-sheetWhite/80">
-                  {formatMoney(wealthPoints[wealthPoints.length - 1].v - wealthPoints[0].v, wealthCurrency)} between{" "}
-                  {wealthPoints[0].y} and {wealthPoints[wealthPoints.length - 1].y}
-                </p>
-              </>
-            ) : (
-              <ul className="mt-1.5 space-y-1">
-                {wealthPoints.map((p) => (
-                  <li key={`${p.y}-${p.v}`} className="flex items-baseline justify-between gap-2">
-                    <span className="font-mono text-[13px] font-black tabular-nums text-spiteCrimson">
-                      {p.n.display}
-                    </span>
-                    <span className="font-mono text-[9px] tabular-nums text-chop-muted">
-                      {p.y}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-1.5 font-mono text-[8.5px] leading-relaxed text-chop-muted">
-              {wealthPoints.length > 1 && wealthPoints[wealthPoints.length - 1].y > wealthPoints[0].y
-                ? "A step, not a slope: the last published figure holds until the next one, and the shaded band is the path nobody published."
-                : "Published estimates, not a series. Two figures in one year are two facts, not a trend."}
-            </p>
-          </div>
+        {hasMoney ? (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 bg-spiteCrimson/30" />
+            to a company he runs
+          </span>
         ) : null}
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 bg-sheetWhite/30" />
+          claims filed
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 bg-hypeNeon/25" />
+          office held
+        </span>
+        {hasMoney ? (
+          <span className="ml-auto text-[9px] uppercase tracking-[0.12em]">
+            grade A or B only
+            <span className="hidden sm:inline"> · the figure is on every bar</span>
+          </span>
+        ) : (
+          <span className="ml-auto text-[9px] uppercase tracking-[0.12em]">
+            no money on this record that clears grade B
+          </span>
+        )}
+      </div>
 
-        <div className="border border-chop-border bg-white/[0.02] p-3">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
-            grades
-          </p>
-          <p className="mt-1.5 font-mono text-[9px] leading-relaxed text-chop-muted">
-            A document or admission · B several investigations · C one investigation · D a single
-            allegation, which scores nothing.
-          </p>
-        </div>
-      </aside>
-
-      <div>
-        <section>
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
-              the record, by year
-            </h2>
-            <span className="font-mono text-[9px] tabular-nums text-chop-muted">
-              {startYear}–{endYear}
-            </span>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-y border-chop-border/70 py-2 font-mono text-chop-muted sm:grid-cols-3">
+      <div className="mt-4 flex gap-2">
+        <div className="w-12 shrink-0 font-mono text-[9px] tabular-nums text-chop-muted">
+          <div className="relative" style={{ height: hasMoney ? 168 : 0 }}>
             {hasMoney ? (
-              <div>
-                <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-sheetWhite/85">
-                  <span className="h-2 w-2 shrink-0 bg-spiteCrimson/75" />
-                  money
-                </p>
-                <p className="mt-0.5 text-[9px] tabular-nums">full column = {money(maxFlow)}</p>
-                <p className="mt-0.5 text-[8px] leading-snug">
-                  solid: paid to him · pale: to a company he runs — contract, grant or credit sale,
-                  the instrument is named on each row · grade A or B only
-                  {otherCurrency > 0
-                    ? ` · ${otherCurrency} entr${otherCurrency === 1 ? "y" : "ies"} in another currency are listed, not drawn`
-                    : ""}
-                </p>
-              </div>
+              <>
+                <span className="absolute right-0 top-0 -translate-y-1/3">{money(maxFlow)}</span>
+                <span className="absolute right-0 top-1/2 -translate-y-1/2">
+                  {money(maxFlow / 2)}
+                </span>
+              </>
             ) : null}
-            <div>
-              <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-sheetWhite/85">
-                <span className="h-2 w-2 shrink-0 bg-sheetWhite/30" />
-                claims
-              </p>
-              <p className="mt-0.5 text-[9px] tabular-nums">full column = {maxClaims}</p>
-              <p className="mt-0.5 text-[8px] leading-snug">filed against him that year</p>
-            </div>
-            <div>
-              <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-sheetWhite/85">
-                <span className="h-2 w-2 shrink-0 bg-hypeNeon/25" />
-                office
-              </p>
-              <p className="mt-0.5 text-[9px]">tinted column = a term held</p>
-              <p className="mt-0.5 text-[8px] leading-snug">the bar is the year, not the term</p>
-            </div>
+          </div>
+          <div className="relative" style={{ height: 64 }}>
+            <span className="absolute right-0 top-3">{maxClaims}</span>
+            <span className="absolute bottom-0 right-0 -translate-y-1/3">0</span>
+          </div>
+        </div>
+
+        <div className="relative min-w-0 flex-1">
+          <div className="pointer-events-none absolute inset-x-0 top-0" style={{ height: hasMoney ? 168 : 0 }}>
+            <div className="absolute inset-x-0 top-0 border-t border-chop-border/50" />
+            <div className="absolute inset-x-0 top-1/2 border-t border-chop-border/25" />
+            <div className="absolute inset-x-0 bottom-0 border-t border-chop-border/50" />
           </div>
 
-          <div className="mt-1.5 grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-[3px]">
+          <div className="relative grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-px sm:gap-[3px]">
             {yearList.map((y) => {
               const v = flowByYear.get(y) ?? 0;
               const claims = claimsByYear.get(y)?.length ?? 0;
               const held = heldIn(y);
-              // Only public office tints a column. A chief executive's job is a
-              // position, but it is not the office the page is asking about,
-              // and tinting every year of it made the whole chart grey.
               const state = held.some((p) => p.kind !== "firm");
               const f = firmByYear.get(y) ?? 0;
               const total = v + f;
-              const mh = total > 0 ? Math.max(4, (total / maxFlow) * 100) : 0;
-              const ch = claims > 0 ? Math.max(4, (claims / maxClaims) * 100) : 0;
+              const mh = total > 0 ? Math.max(2, (total / maxFlow) * 100) : 0;
+              const ch = claims > 0 ? Math.max(3, (claims / maxClaims) * 100) : 0;
               return (
                 <div key={y} className="relative flex flex-col">
                   {state ? (
@@ -547,22 +448,28 @@ export function RecordReport({
                   ) : null}
 
                   {hasMoney ? (
-                    <div className="relative flex h-24 items-end justify-center pt-4">
+                    <div className="relative flex items-end justify-center pt-7" style={{ height: hasMoney ? 168 : 0 }}>
                       {total > 0 ? (
                         <>
                           <div
-                            className="flex w-[62%] flex-col justify-end"
+                            className="flex w-[68%] flex-col justify-end"
                             style={{ height: `${mh}%` }}
                             title={`${money(v)} to him, ${money(f)} to a company or fund he controls, ${y}`}
                           >
                             {f > 0 ? (
-                              <div className="w-full bg-spiteCrimson/30" style={{ height: `${(f / total) * 100}%` }} />
+                              <div
+                                className="w-full bg-spiteCrimson/30"
+                                style={{ height: `${(f / total) * 100}%` }}
+                              />
                             ) : null}
                             {v > 0 ? (
-                              <div className="w-full bg-spiteCrimson/80" style={{ height: `${(v / total) * 100}%` }} />
+                              <div
+                                className="w-full bg-spiteCrimson/80"
+                                style={{ height: `${(v / total) * 100}%` }}
+                              />
                             ) : null}
                           </div>
-                          <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap font-mono text-[8px] tabular-nums text-sheetWhite/90">
+                          <span className="absolute left-1/2 top-2 hidden -translate-x-1/2 whitespace-nowrap font-mono text-[9px] tabular-nums text-sheetWhite/90 sm:block">
                             {money(total)}
                           </span>
                         </>
@@ -570,107 +477,221 @@ export function RecordReport({
                     </div>
                   ) : null}
 
-                  <div className="relative flex h-16 items-end justify-center border-t border-chop-border/70 pt-3.5">
+                  <div
+                    className="relative flex items-end justify-center border-t border-chop-border/70 pt-3.5"
+                    style={{ height: 64 }}
+                  >
                     {claims > 0 ? (
                       <>
                         <div
-                          className="w-[62%] bg-sheetWhite/30"
+                          className="w-[68%] bg-sheetWhite/30"
                           style={{ height: `${ch}%` }}
                           title={`${claims} claims filed for ${y}`}
                         />
-                        <span className="absolute left-1/2 top-0 -translate-x-1/2 font-mono text-[8px] tabular-nums text-chop-muted">
+                        <span className="absolute left-1/2 top-0 -translate-x-1/2 font-mono text-[9px] tabular-nums text-chop-muted">
                           {claims}
                         </span>
                       </>
                     ) : null}
                     {tollByYear.has(y) ? (
                       <span
-                        className="absolute bottom-0 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-warning"
+                        className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-warning"
                         title={`${tollByYear.get(y)?.display} — ${tollByYear.get(y)?.label}`}
                       />
                     ) : null}
                   </div>
 
-                  <span className="mt-1 text-center font-mono text-[8px] tabular-nums text-chop-muted">
-                    {String(y).slice(2)}
+                  <span className="mt-1.5 text-center font-mono text-[9px] tabular-nums text-chop-muted sm:text-[10px]">
+                    <span className="sm:hidden">{String(y).slice(2)}</span>
+                    <span className="hidden sm:inline">{y}</span>
                   </span>
                 </div>
               );
             })}
           </div>
+        </div>
+      </div>
 
-          <p className="mt-1 font-mono text-[8.5px] leading-relaxed text-chop-muted">
-            A quiet column means nothing was collected for that year, not that nothing happened:
-            the passes look at recent coverage, and history has to be asked for by name. Amber dot
-            = a toll attributed that year, on its own scale, never the money axis.
+      <p className="mt-2 max-w-3xl font-mono text-[10px] leading-relaxed text-chop-muted">
+        A quiet column means nothing was collected for that year, not that nothing happened. The
+        top row is money the record stands behind; the bottom row is claims filed. Amber dot = a
+        toll attributed that year, on its own scale, never the money axis.
+      </p>
+    </section>
+
+    <section className="mt-8 grid grid-cols-2 gap-px border border-chop-border bg-chop-border sm:grid-cols-3 lg:grid-cols-6">
+      {[
+        [ledger.length, "claims on the record"],
+        [thin, "single unverified allegation"],
+        [untouched, "no proceeding recorded"],
+        [flows.length, flows.length === 1 ? "money entry" : "money entries"],
+        [pending, "filed, awaiting review"],
+        [tollTotal, "tolls attributed"],
+      ].map(([n, label]) => (
+        <div key={String(label)} className="bg-[#080808] px-3 py-2.5">
+          <p className="font-mono text-[22px] font-black leading-none tabular-nums text-sheetWhite">
+            {n}
           </p>
-        </section>
+          <p className="mt-1 font-mono text-[9px] uppercase leading-snug tracking-[0.12em] text-chop-muted">
+            {label}
+          </p>
+        </div>
+      ))}
+    </section>
 
-        <section className="mt-8">
-          <h2 className="border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
-            the record, year by year
-          </h2>
+    {(assetStatements.length > 0 || wealthPoints.length > 0) ? (
+      <section className="mt-4 grid gap-4 sm:grid-cols-2">
+        {assetStatements.length > 0 ? (
+          <div className="border border-chop-border bg-white/[0.02] p-3.5">
+            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
+              declared net assets, filed with the state
+            </p>
+            <ul className="mt-2 space-y-1">
+              {assetStatements.map((d, i) => (
+                <li key={d.id} className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-[18px] font-black tabular-nums text-spiteCrimson">
+                    {moneyIn(d.net ?? 0, d.currency)}
+                  </span>
+                  <span className="font-mono text-[10px] tabular-nums text-chop-muted">
+                    {d.periodTo?.slice(0, 4)}
+                    {i === 0 ? " · entering" : i === assetStatements.length - 1 ? " · leaving" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {firstStatement && lastStatement && firstStatement.id !== lastStatement.id ? (
+              <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-sheetWhite/85">
+                {moneyIn((lastStatement.net ?? 0) - (firstStatement.net ?? 0), lastStatement.currency)}{" "}
+                over the period
+              </p>
+            ) : null}
+            {declaredIncome > 0 ? (
+              <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
+                {moneyIn(declaredIncome, incomeStatements[0].currency)} income declared
+              </p>
+            ) : null}
+            <a
+              href={safeHref(assetStatements[0].sourceUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+            >
+              the filing ↗
+            </a>
+          </div>
+        ) : null}
 
-          <ol className="mt-2">
-            {activeYears
-              .slice()
-              .reverse()
-              .map((y) => {
-                const claims = claimsByYear.get(y) ?? [];
-                const held = heldIn(y);
-                const yearFlows = flows.filter((n) => yearOf(n) === y);
-                const yearTolls = tolls.filter((n) => yearOf(n) === y);
-                const touch = claims.filter((e) =>
-                  ["charged", "convicted", "settled", "sanctioned", "investigated"].includes(
-                    e.outcome,
-                  ),
-                ).length;
-                return (
-                  <li key={y} className="border-b border-chop-border py-4">
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <span className="font-mono text-[15px] font-black tabular-nums text-sheetWhite">
-                        {y}
-                      </span>
-                      {held.length > 0 ? (
-                        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-hypeNeon/80">
-                          {held.map((p) => p.role).join(" · ")}
-                        </span>
-                      ) : (
-                        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted">
-                          no office held
-                        </span>
-                      )}
-                      <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted">
-                        {claims.length} claim{claims.length === 1 ? "" : "s"} · {touch} proceeding
-                        {touch === 1 ? "" : "s"}
-                      </span>
-                    </div>
+        {wealthPoints.length > 0 ? (
+          <div className="border border-chop-border bg-white/[0.02] p-3.5">
+            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
+              reported wealth
+            </p>
+            <ul className="mt-2 space-y-1">
+              {wealthPoints.map((p, i) => (
+                <li key={`w-${p.y}-${i}`} className="flex items-baseline justify-between gap-2">
+                  <span className="font-mono text-[18px] font-black tabular-nums text-spiteCrimson">
+                    {formatMoney(p.v, wealthCurrency)}
+                  </span>
+                  <span className="font-mono text-[10px] tabular-nums text-chop-muted">{p.y}</span>
+                </li>
+              ))}
+            </ul>
+            {wealthPoints.length > 1 && wealthPoints[wealthPoints.length - 1].y > wealthPoints[0].y ? (
+              <>
+                <WealthStrip points={wealthPoints} max={maxWealth} />
+                <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-chop-muted">
+                  {formatMoney(wealthPoints[wealthPoints.length - 1].v - wealthPoints[0].v, wealthCurrency)}{" "}
+                  between the two published points · the shaded path is not published
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-chop-muted">
+                One published point. Two figures in one year are two facts, not a trend.
+              </p>
+            )}
+          </div>
+        ) : null}
+      </section>
+    ) : null}
 
+    <section className="mt-10">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-chop-border pb-2">
+        <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
+          the record, year by year
+        </h2>
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted">
+          {activeYears.length} year{activeYears.length === 1 ? "" : "s"} with something in them
+        </span>
+      </div>
+
+      <ol>
+        {activeYears
+          .slice()
+          .reverse()
+          .map((y, idx) => {
+            const claims = claimsByYear.get(y) ?? [];
+            const held = heldIn(y);
+            const yearFlows = flows.filter((n) => yearOf(n) === y);
+            const yearTolls = tolls.filter((n) => yearOf(n) === y);
+            const touch = claims.filter((e) =>
+              ["charged", "convicted", "settled", "sanctioned", "investigated"].includes(e.outcome),
+            ).length;
+            const yearMoney = (flowByYear.get(y) ?? 0) + (firmByYear.get(y) ?? 0);
+            const lead = claims.slice(0, 4);
+            const rest = claims.slice(4);
+            return (
+              <li key={y} className="border-b border-chop-border">
+                <details open={idx === 0} className="group">
+                  <summary className="flex cursor-pointer flex-wrap items-baseline gap-x-3 gap-y-1 py-3 [&::-webkit-details-marker]:hidden">
+                    <span className="w-12 shrink-0 font-mono text-[18px] font-black leading-none tabular-nums text-sheetWhite">
+                      {y}
+                    </span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-hypeNeon/80">
+                      {held.length > 0
+                        ? held.map((p) => p.role).join(" · ")
+                        : "no office held"}
+                    </span>
+                    <span className="ml-auto font-mono text-[10px] tabular-nums text-chop-muted">
+                      {yearMoney > 0 ? `${money(yearMoney)} · ` : ""}
+                      {claims.length} claim{claims.length === 1 ? "" : "s"} · {touch} proceeding
+                      {touch === 1 ? "" : "s"}
+                    </span>
+                    <span className="font-mono text-[11px] text-chop-muted group-open:hidden">+</span>
+                    <span className="hidden font-mono text-[11px] text-chop-muted group-open:inline">−</span>
+                  </summary>
+
+                  <div className="pb-4 sm:pl-12">
                     {yearFlows.length > 0 ? (
-                      <ul className="mt-2 space-y-1">
+                      <ul className="mb-3 space-y-1.5">
                         {yearFlows.map((n, i) => (
-                          <li
-                            key={`f-${n.kind}-${n.label}-${i}`}
-                            className="flex flex-wrap items-baseline gap-x-2"
-                          >
+                          <li key={`f-${n.kind}-${n.label}-${i}`} className="flex gap-2.5">
                             <span
-                              className={`font-mono text-[13px] font-black tabular-nums ${
-                                n.qualifier === "approved" ? "text-chop-muted" : "text-spiteCrimson"
+                              className={`w-16 shrink-0 text-right font-mono text-[14px] font-black leading-snug tabular-nums ${
+                                n.qualifier === "approved" ||
+                                n.kind === "fines" ||
+                                n.kind === "donations"
+                                  ? "text-chop-muted"
+                                  : "text-spiteCrimson"
                               }`}
                             >
                               {n.display}
                             </span>
-                            <span className="text-[12px] leading-snug text-sheetWhite/85">
-                              {n.label}
-                              {n.counterparty ? (
-                                <span className="text-chop-muted"> · {n.counterparty}</span>
-                              ) : null}
-                            </span>
-                            <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
-                              {n.instrument || n.kind}
-                              {n.qualifier === "approved" ? " · approved ceiling, not cash" : ""}
-                              {n.capacity ? ` · as ${n.capacity}` : ""}
-                              {n.grade ? ` · ${n.grade}` : ""}
+                            <span className="min-w-0">
+                              <span className="block text-[13px] leading-snug text-sheetWhite/90">
+                                {n.label}
+                                {n.counterparty ? (
+                                  <span className="text-chop-muted"> · {n.counterparty}</span>
+                                ) : null}
+                              </span>
+                              <span className="mt-0.5 block font-mono text-[9.5px] uppercase tracking-[0.1em] text-chop-muted">
+                                {n.instrument || n.kind}
+                                {n.qualifier === "approved" ? " · approved ceiling, not cash" : ""}
+                                {n.capacity ? ` · as ${n.capacity}` : ""}
+                                {n.grade ? ` · grade ${n.grade}` : ""}
+                                {n.grade && !RECEIPT_GRADES.has(n.grade) && n.qualifier !== "approved"
+                                  ? " · listed, not drawn"
+                                  : ""}
+                              </span>
                             </span>
                           </li>
                         ))}
@@ -678,16 +699,16 @@ export function RecordReport({
                     ) : null}
 
                     {yearTolls.length > 0 ? (
-                      <ul className="mt-1 space-y-1">
+                      <ul className="mb-3 space-y-1">
                         {yearTolls.map((n, i) => (
                           <li
                             key={`t-${n.kind}-${n.label}-${i}`}
                             className="flex flex-wrap items-baseline gap-x-2"
                           >
-                            <span className="font-mono text-[12px] font-bold tabular-nums text-warning">
+                            <span className="font-mono text-[13px] font-bold tabular-nums text-warning">
                               {n.display}
                             </span>
-                            <span className="text-[11px] leading-snug text-chop-muted">
+                            <span className="text-[12px] leading-snug text-chop-muted">
                               {n.label}
                               {n.qualifier ? ` · ${n.qualifier}` : ""}
                             </span>
@@ -696,114 +717,119 @@ export function RecordReport({
                       </ul>
                     ) : null}
 
-                    {claims.length > 0 ? (
-                      <ul className="mt-2 space-y-2">
-                        {groupClaims(claims).map((group) => (
-                          <li key={group.label || "all"} className="list-none">
-                            {group.label ? (
-                              <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.2em] text-chop-muted/80">
-                                {group.label} · {group.items.length}
-                              </p>
-                            ) : null}
-                            <ul className="space-y-2">
-                              {group.items.map((e) => (
-                          <li key={e.id || e.act} className="border-l border-chop-border pl-2.5">
-                            <div className="flex flex-wrap items-baseline gap-x-2 font-mono text-[8.5px] uppercase tracking-[0.15em] text-chop-muted">
-                              {e.grade ? (
-                                <span className={`border px-1 ${GRADE_CHIP[e.grade] ?? GRADE_CHIP.C}`}>
-                                  {e.grade}
-                                </span>
-                              ) : null}
-                              <span>{e.category}</span>
-                              {e.place ? <span>· {e.place}</span> : null}
-                              <span
-                                className={
-                                  e.outcome === "unknown" || e.outcome === "no_action"
-                                    ? "text-spiteCrimson/80"
-                                    : "text-hypeNeon/80"
-                                }
-                              >
-                                {OUTCOME[e.outcome] ?? e.outcome}
-                              </span>
-                              {e.status === "pending" ? (
-                                <span className="border border-hypeNeon/40 px-1 text-hypeNeon/80">
-                                  awaiting review
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="mt-0.5 text-[12.5px] leading-snug text-sheetWhite/90">
-                              {e.act}
-                            </p>
-                            <div className="mt-0.5 flex flex-wrap gap-2.5">
-                              {e.id ? (
-                                <Link
-                                  href={`/archive/claim/${encodeURIComponent(e.id)}`}
-                                  className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-spiteCrimson/90 underline decoration-chop-border underline-offset-2 hover:text-spiteCrimson"
-                                >
-                                  evidence ↗
-                                </Link>
-                              ) : null}
-                              {e.sources.slice(0, 2).map((url) => (
-                                <a
-                                  key={url}
-                                  href={safeHref(url)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono text-[8.5px] uppercase tracking-[0.14em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
-                                >
-                                  source ↗
-                                </a>
-                              ))}
-                            </div>
-                          </li>
-                              ))}
-                            </ul>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                );
-              })}
-          </ol>
+                    <ul className="space-y-3">
+                      {lead.map((e) => (
+                        <ClaimItem key={e.id || e.act} entry={e} />
+                      ))}
+                    </ul>
 
-          {undated.length > 0 || undatedMoney.length > 0 ? (
-            <div className="mt-4 border border-chop-border bg-white/[0.02] p-3">
-              <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
-                no date to place {undated.length + undatedMoney.length} entry
-                {undated.length + undatedMoney.length === 1 ? "" : "s"} on
-              </p>
-              <p className="mt-1 font-mono text-[9px] leading-relaxed text-chop-muted">
-                Only the year is known, or less. They stay on the page and out of the chart,
-                because a mark needs a position in time.
-              </p>
-              <ul className="mt-2 space-y-1">
-                {undated.map((e) => (
-                  <li key={e.id || e.act} className="flex items-baseline gap-2">
-                    <span className="font-mono text-[9px] tabular-nums text-chop-muted">
-                      {e.year || "—"}
-                    </span>
-                    <span className="text-[11.5px] leading-snug text-sheetWhite/80">{e.act}</span>
-                  </li>
-                ))}
-                {undatedMoney.map((n, i) => (
-                  <li key={`um-${n.label}-${i}`} className="flex items-baseline gap-2">
-                    <span className="font-mono text-[9px] tabular-nums text-chop-muted">
-                      {n.year || "—"}
-                    </span>
-                    <span className="text-[11.5px] leading-snug text-sheetWhite/80">
-                      <span className="font-mono font-bold text-spiteCrimson">{n.display}</span>{" "}
-                      {n.counterparty || n.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </section>
-      </div>
-    </div>
+                    {rest.length > 0 ? (
+                      <details className="group mt-2">
+                        <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.14em] text-chop-muted [&::-webkit-details-marker]:hidden hover:text-sheetWhite">
+                          <span className="group-open:hidden">
+                            show the other {rest.length} claim{rest.length === 1 ? "" : "s"} in {y}
+                          </span>
+                          <span className="hidden group-open:inline">hide them</span>
+                        </summary>
+                        <ul className="mt-3 space-y-3">
+                          {rest.map((e) => (
+                            <ClaimItem key={e.id || e.act} entry={e} />
+                          ))}
+                        </ul>
+                      </details>
+                    ) : null}
+                  </div>
+                </details>
+              </li>
+            );
+          })}
+      </ol>
+
+      {undated.length > 0 || undatedMoney.length > 0 ? (
+        <details className="mt-4 border border-chop-border bg-white/[0.02] p-3">
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.18em] text-chop-muted [&::-webkit-details-marker]:hidden">
+            {undated.length + undatedMoney.length} entr
+            {undated.length + undatedMoney.length === 1 ? "y" : "ies"} with no date to place on the
+            chart
+          </summary>
+          <p className="mt-1 font-mono text-[10px] leading-relaxed text-chop-muted">
+            Only the year is known, or less. They stay on the page and out of the chart, because a
+            mark needs a position in time.
+          </p>
+          <ul className="mt-2 space-y-1">
+            {undated.map((e) => (
+              <li key={e.id || e.act} className="flex items-baseline gap-2">
+                <span className="w-10 shrink-0 font-mono text-[10px] tabular-nums text-chop-muted">
+                  {e.year || "—"}
+                </span>
+                <span className="text-[12.5px] leading-snug text-sheetWhite/80">{e.act}</span>
+              </li>
+            ))}
+            {undatedMoney.map((n, i) => (
+              <li key={`um-${n.label}-${i}`} className="flex items-baseline gap-2">
+                <span className="w-10 shrink-0 font-mono text-[10px] tabular-nums text-chop-muted">
+                  {n.year || "—"}
+                </span>
+                <span className="text-[12.5px] leading-snug text-sheetWhite/80">
+                  <span className="font-mono font-bold text-spiteCrimson">{n.display}</span>{" "}
+                  {n.counterparty || n.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </section>
     </>
+  );
+}
+
+/** One claim: grade, where and when, what was done, and the receipts. */
+function ClaimItem({ entry: e }: { entry: LedgerEntry }) {
+  return (
+    <li className="border-l border-chop-border pl-3">
+      <div className="flex flex-wrap items-baseline gap-x-2 font-mono text-[10px] uppercase tracking-[0.12em] text-chop-muted">
+        {e.grade ? (
+          <span className={`border px-1 ${GRADE_CHIP[e.grade] ?? GRADE_CHIP.C}`}>{e.grade}</span>
+        ) : null}
+        <span>{e.category}</span>
+        {e.place ? <span>· {e.place}</span> : null}
+        <span
+          className={
+            e.outcome === "unknown" || e.outcome === "no_action"
+              ? "text-spiteCrimson/80"
+              : "text-hypeNeon/80"
+          }
+        >
+          {OUTCOME[e.outcome] ?? e.outcome}
+        </span>
+        {e.status === "pending" ? (
+          <span className="border border-hypeNeon/40 px-1 text-hypeNeon/80">awaiting review</span>
+        ) : null}
+      </div>
+      <p className="mt-0.5 text-[13px] leading-snug text-sheetWhite/90">{e.act}</p>
+      <div className="mt-1 flex flex-wrap gap-2.5">
+        {e.id ? (
+          <Link
+            href={`/archive/claim/${encodeURIComponent(e.id)}`}
+            className="font-mono text-[9px] uppercase tracking-[0.14em] text-spiteCrimson/90 underline decoration-chop-border underline-offset-2 hover:text-spiteCrimson"
+          >
+            evidence ↗
+          </Link>
+        ) : null}
+        {e.sources.slice(0, 2).map((url) => (
+          <a
+            key={url}
+            href={safeHref(url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+          >
+            source ↗
+          </a>
+        ))}
+      </div>
+    </li>
   );
 }
 
