@@ -133,8 +133,12 @@ export function RecordReport({
   for (const n of flows) {
     const y = yearOf(n);
     if (y == null) continue;
-    // A fine is money leaving; the bars are what arrived.
+    // The bars answer one question: what arrived. A fine is money leaving, a
+    // donation is campaign money, and a company's profit is not the person's.
+    // Adding any of them produced a column that meant nothing.
     if (n.direction === "out") continue;
+    if (n.kind === "fines" || n.kind === "donations") continue;
+    if (n.whose === "campaign" || n.whose === "firm" || n.whose === "fund") continue;
     flowByYear.set(y, (flowByYear.get(y) ?? 0) + valueOf(n));
   }
   const maxFlow = Math.max(1, ...flowByYear.values());
@@ -216,7 +220,13 @@ export function RecordReport({
               reported wealth
             </p>
             {wealthPoints.length > 1 && wealthPoints[wealthPoints.length - 1].y > wealthPoints[0].y ? (
-              <WealthStrip points={wealthPoints} max={maxWealth} />
+              <>
+                <WealthStrip points={wealthPoints} max={maxWealth} />
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-sheetWhite/80">
+                  {money(wealthPoints[wealthPoints.length - 1].v - wealthPoints[0].v)} between{" "}
+                  {wealthPoints[0].y} and {wealthPoints[wealthPoints.length - 1].y}
+                </p>
+              </>
             ) : (
               <ul className="mt-1.5 space-y-1">
                 {wealthPoints.map((p) => (
@@ -307,9 +317,10 @@ export function RecordReport({
           </div>
 
           <p className="mt-1 font-mono text-[8.5px] leading-relaxed text-chop-muted">
-            Bar = money recorded arriving that year, from the source's own figure. Tinted column =
-            an office or official role held. Amber dot = a toll attributed that year, on its own
-            scale, never this one.
+            Bar = money this record holds for that year, from the source's own figure. A quiet
+            column means nothing was collected for it, not that nothing happened: the passes look
+            at recent coverage, and history has to be asked for by name. Tinted column = an office
+            held. Amber dot = a toll attributed that year, on its own scale, never this one.
           </p>
         </section>
 
