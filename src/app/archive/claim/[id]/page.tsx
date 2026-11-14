@@ -87,6 +87,14 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
         <h1 className="mt-3 text-2xl font-bold leading-snug text-sheetWhite md:text-3xl">
           {row.act}
         </h1>
+        {row.take ? (
+          <div className="mt-4 border-l-2 border-hypeNeon/50 pl-3">
+            <p className="font-mono text-[8.5px] uppercase tracking-[0.2em] text-chop-muted">
+              Ada’s take
+            </p>
+            <p className="mt-1 max-w-3xl text-[14px] leading-snug text-sheetWhite/85">{row.take}</p>
+          </div>
+        ) : null}
 
         <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-chop-border py-5 font-mono text-[11px] sm:grid-cols-4">
           <div>
