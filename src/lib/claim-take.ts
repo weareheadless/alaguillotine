@@ -69,16 +69,19 @@ export async function writeTakesFor(
 
   const rows = await db
     .prepare(
-      `SELECT id, person, role, act, place, year, category, evidence_grade
-         FROM ledger_entries
-        WHERE review_status IN ('accepted', 'legacy')
-          AND evidence_grade IN ('A', 'B', 'C')
-          AND (take IS NULL OR take = '')
-          AND lower(person) IN (SELECT lower(name) FROM queue_people)
-        ORDER BY created_at DESC
+      `SELECT le.id, le.person, le.role, le.act, le.place, le.year, le.category,
+              le.evidence_grade
+         FROM ledger_entries le
+         JOIN queue_people qp ON lower(qp.name) = lower(le.person)
+        WHERE le.review_status IN ('accepted', 'legacy')
+          AND le.evidence_grade IN ('A', 'B', 'C')
+          AND (le.take IS NULL OR le.take = '')
+        -- The line is where readers start, so the names nearest the blade get
+        -- their takes first. Within a name, the newest claim first.
+        ORDER BY COALESCE(qp.rank, 9999) ASC, le.created_at DESC
         LIMIT ?`,
     )
-    .bind(Math.min(30, Math.max(1, limit)))
+    .bind(Math.min(60, Math.max(1, limit)))
     .all();
 
   const claims = (rows.results ?? []).map((r) => ({

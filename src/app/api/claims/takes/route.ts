@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const db = context.env?.D1 as Parameters<typeof writeTakesFor>[0] | undefined;
   if (!db) return Response.json({ error: "D1 binding unavailable" }, { status: 500 });
 
-  const limit = Math.min(25, Math.max(1, Number(new URL(request.url).searchParams.get("limit") ?? 10)));
+  const limit = Math.min(60, Math.max(1, Number(new URL(request.url).searchParams.get("limit") ?? 10)));
   const report = await writeTakesFor(db, context.env ?? {}, limit);
 
   let published = 0;

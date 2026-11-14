@@ -160,6 +160,29 @@ export async function glossFeed(
   glossDiagnostics.key = Boolean(key);
   if (!key) return 0;
 
+  // Glosses written before the take rule are charges in disguise: a sentence
+  // that repeats the headline and calls it analysis. They are cleared here and
+  // go back through the same validator as everything else — one attempt, then
+  // either a take that reasons or the ungrounded mark, never a loop.
+  try {
+    const stale = await db
+      .prepare(
+        `SELECT id, title, gloss FROM feed_items
+          WHERE kind = 'wire' AND gloss != '' AND gloss NOT LIKE '∅%'
+          ORDER BY first_seen_at DESC LIMIT 40`,
+      )
+      .bind()
+      .all();
+    for (const row of stale.results ?? []) {
+      const id = String(row.id ?? "");
+      if (!id) continue;
+      if (takeIsAnalysis(String(row.gloss ?? ""), String(row.title ?? ""))) continue;
+      await db.prepare("UPDATE feed_items SET gloss = '', category = 'wire', severity = 0 WHERE id = ?").bind(id).run();
+    }
+  } catch {
+    /* revalidation is best effort; it never blocks the pass */
+  }
+
   const rows = await db
     .prepare(
       `SELECT id, title, source, community FROM feed_items

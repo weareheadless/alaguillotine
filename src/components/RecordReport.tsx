@@ -808,6 +808,14 @@ function ClaimItem({ entry: e }: { entry: LedgerEntry }) {
         ) : null}
       </div>
       <p className="mt-0.5 text-[13px] leading-snug text-sheetWhite/90">{e.act}</p>
+      {e.take ? (
+        <p className="mt-1 border-l-2 border-hypeNeon/35 pl-2 text-[12px] leading-snug text-chop-muted">
+          <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-hypeNeon/70">
+            Ada’s take ·{" "}
+          </span>
+          {e.take}
+        </p>
+      ) : null}
       <div className="mt-1 flex flex-wrap gap-2.5">
         {e.id ? (
           <Link

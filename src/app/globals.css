@@ -1109,3 +1109,80 @@ body::after {
     transform: none;
   }
 }
+.doom-feed { max-width: 740px; margin: auto; padding: 36px 18px 100px; }
+.doom-intro { padding: 12px 0 30px; }
+.doom-eyebrow { font: 700 .65rem/1.5 ui-monospace, monospace; letter-spacing: .15em; text-transform: uppercase; }
+.doom-intro h1 { font: 900 clamp(2.6rem, 7vw, 4.4rem)/.98 Arial, sans-serif; letter-spacing: -.065em; margin: 15px 0; }
+.doom-intro h1 span { color: #E11D48; }
+.doom-intro > p:not(.doom-eyebrow) { color: #a1a1aa; font-size: .85rem; }
+.doom-intro details { margin-top: 20px; font-size: .72rem; color: #a1a1aa; max-width: 65ch; }
+.doom-intro summary { cursor: pointer; color: #f4f4f5; }
+.doom-intro details p { margin-top: 12px; line-height: 1.7; }
+.doom-post { --doom-accent: #E11D48; background: #141416; border: 1px solid #303034; margin-bottom: 24px; overflow: hidden; }
+.doom-byline { display: flex; align-items: center; gap: 10px; padding: 16px 20px; }
+.doom-avatar { width: 32px; height: 32px; flex: none; display: grid; place-items: center; color: #0b0b0c; background: var(--doom-accent); font-weight: 900; }
+.doom-byline strong { display: block; font-size: .75rem; overflow-wrap: anywhere; }
+.doom-byline div > span { display: block; font-size: .6rem; color: #a1a1aa; margin-top: 3px; }
+.doom-category { color: var(--doom-accent); margin-left: auto; font: 700 .6rem/1.2 monospace; text-transform: uppercase; }
+.doom-post-body { padding: 16px 24px 26px; }
+.doom-post h2 { font: 800 clamp(1.45rem, 4vw, 2rem)/1.15 Arial, sans-serif; letter-spacing: -.035em; overflow-wrap: anywhere; margin-top: 12px; }
+.doom-post .doom-eyebrow { color: var(--doom-accent); }
+.doom-ada { border-left: 3px solid var(--doom-accent); padding-left: 14px; margin-top: 24px; }
+.doom-ada b { font-size: .55rem; letter-spacing: .14em; color: var(--doom-accent); }
+.doom-ada p { font-size: .88rem; line-height: 1.65; margin-top: 5px; color: #d4d4d8; }
+.doom-image { position: relative; background: #202023; }
+.doom-image img { width: 100%; max-height: 440px; object-fit: cover; }
+.doom-image span { position: absolute; bottom: 8px; right: 8px; background: #0b0b0c; padding: 4px 8px; font-size: .6rem; }
+.doom-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; border-top: 1px solid #303034; padding: 16px 24px; }
+.doom-actions > span { font-size: .6rem; color: #a1a1aa; }
+.doom-source { font-size: .7rem; font-weight: 800; margin-right: auto; }
+.doom-source:hover { text-decoration: underline; }
+.doom-poster { background: var(--doom-accent); color: #0b0b0c; }
+.doom-poster h2 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.03; font-weight: 900; }
+.doom-poster .doom-post-body { padding-top: 36px; padding-bottom: 40px; }
+.doom-poster .doom-eyebrow, .doom-poster .doom-category, .doom-poster .doom-ada b, .doom-poster .doom-ada p, .doom-poster .doom-byline div > span, .doom-poster .doom-actions > span { color: #18181b; }
+.doom-poster .doom-ada { border-color: #18181b; }
+.doom-poster .doom-avatar { color: var(--doom-accent); background: #0b0b0c; }
+.doom-poster .doom-actions { border-color: #0b0b0c55; }
+.doom-receipt { background: #edece7; color: #18181b; }
+.doom-receipt .doom-number { font-size: clamp(2.5rem, 8vw, 5.5rem); line-height: .95; margin: 20px 0; letter-spacing: -.07em; }
+.doom-receipt .doom-receipt-label { font-size: 1.1rem; font-weight: 700; }
+.doom-receipt .doom-footnote { font-size: .65rem; line-height: 1.7; color: #52525b; margin-top: 24px; max-width: 55ch; }
+.doom-receipt .doom-category, .doom-receipt .doom-eyebrow { color: #9f1239; }
+.doom-receipt .doom-actions > span, .doom-receipt .doom-byline div > span { color: #52525b; }
+.doom-dispatch { border-top: 6px solid var(--doom-accent); }
+.doom-dispatch h2 { font-size: clamp(2rem, 5vw, 3rem); }
+.doom-dek { color: #a1a1aa; font-size: .8rem; margin-top: 16px; line-height: 1.7; }
+.doom-excerpt { font: 1.1rem/1.8 Georgia, serif; margin-top: 24px; color: #e4e4e7; }
+.doom-excerpt p + p { margin-top: 16px; }
+.doom-excerpt button { font: 700 .7rem/1.5 monospace; color: var(--doom-accent); margin-top: 18px; cursor: pointer; }
+.doom-excerpt small { display: block; font: .65rem/1.7 monospace; color: #a1a1aa; margin-top: 16px; }
+.doom-fund { background: #fde047; color: #0b0b0c; margin: 10px 0 24px; padding: 28px; }
+.doom-fund > p { font: 900 clamp(2rem, 5vw, 3rem)/1.05 Arial, sans-serif; letter-spacing: -.05em; margin: 20px 0; }
+.doom-fund a { font-size: .75rem; font-weight: 900; text-decoration: underline; }
+.doom-fund small { display: block; margin-top: 20px; font-size: .65rem; }
+.doom-checkpoint { padding: 46px 24px; margin: 0 0 24px; border-block: 1px solid #52525b; }
+.doom-checkpoint .doom-eyebrow { color: #fda4af; }
+.doom-checkpoint h2 { font: 900 clamp(2rem, 5vw, 3.5rem)/1 Arial,sans-serif; letter-spacing: -.05em; margin: 18px 0; }
+.doom-checkpoint p { color: #a1a1aa; line-height: 1.8; font-size: .85rem; max-width: 55ch; }
+.doom-checkpoint strong { color: #f4f4f5; }
+.doom-checkpoint a { display: block; margin-top: 20px; font-size: .65rem; color: #fda4af; }
+.doom-load { text-align: center; padding: 40px 0; font-size: .8rem; color: #a1a1aa; }
+.doom-load button, .doom-load a { display: inline-block; border: 1px solid #52525b; padding: 12px 20px; margin-top: 12px; cursor: pointer; color: #f4f4f5; }
+.doom-load button:disabled { opacity: .6; cursor: wait; }
+.doom-pocket { position: fixed; z-index: 40; bottom: 0; left: 0; display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 12px; background: #0b0b0cf5; border-top: 2px solid #E11D48; font: .65rem/1.3 monospace; }
+.doom-pocket b { color: #f4f4f5; font-variant-numeric: tabular-nums; }
+.doom-pocket > span { color: #a1a1aa; }
+.doom-pocket a { margin-left: 10px; color: #fda4af; }
+.doom-feed :is(a,button,summary):focus-visible { outline: 3px solid #60a5fa; outline-offset: 4px; }
+@media (max-width: 480px) {
+ .doom-feed { padding: 20px 10px 90px; }
+ .doom-post-body { padding: 12px 18px 24px; }
+ .doom-byline { padding: 14px; gap: 8px; }
+ .doom-category { max-width: 75px; }
+ .doom-pocket { font-size: .55rem; gap: 5px; }
+ .doom-pocket a { margin-left: 3px; }
+}
+.dispatch-prose { font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; line-height: 1.85; max-width: 65ch; }
+.dispatch-prose > div:first-child > p { font-size: 1.3rem; line-height: 1.7; color: #f4f4f5; }
+.dispatch-pullquote { font-family: Arial, sans-serif; font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.15; font-weight: 800; letter-spacing: -.04em; padding: 22px 0 22px 22px; border-left: 5px solid; margin: 36px 0 12px; }

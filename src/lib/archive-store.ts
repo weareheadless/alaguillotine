@@ -374,6 +374,8 @@ export interface LedgerEntry {
   outcome: string;
   /** pending | accepted | rejected | legacy */
   status: string;
+  /** Ada's take: what follows from the act, in the conditional where needed. */
+  take: string;
 }
 
 /**
@@ -437,7 +439,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   const rows = await d
     .prepare(
       `SELECT id, act, place, year, category, confidence, sources, attribution, act_date,
-              evidence_grade, institutional_status, review_status
+              evidence_grade, institutional_status, review_status, take
          FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
     .bind(name, ...(first && last ? [`%${first}%`, `%${last}%`] : []))
@@ -461,6 +463,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
       grade: String(r.evidence_grade ?? ""),
       outcome: String(r.institutional_status ?? "unknown"),
       status: String(r.review_status ?? "legacy"),
+      take: String(r.take ?? ""),
     };
   });
 }
