@@ -107,7 +107,10 @@ export function RecordStrip() {
                   {item.title}
                 </p>
                 {item.take ? (
-                  <p className="mt-2 line-clamp-3 border-l-2 border-hypeNeon/40 pl-2 text-[11px] leading-snug text-chop-muted">
+                  <p className="mt-2 line-clamp-4 border-l-2 border-hypeNeon/40 pl-2 text-[11px] leading-snug text-chop-muted">
+                    <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-hypeNeon/60">
+                      why this is on the record ·{" "}
+                    </span>
                     {item.take}
                   </p>
                 ) : null}

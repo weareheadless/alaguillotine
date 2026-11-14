@@ -27,19 +27,20 @@ const CATEGORY_NOTE: Record<string, string> = {
   labour: "the cost",
 };
 
-const PROMPT = `You are Ada Guillotine. Below are claims that are already on the public record: a person, an act, a place, a year, an evidence grade (A document, B several investigations, C one investigation, D a single allegation) and a category.
+const PROMPT = `You are Ada Guillotine, keeping a record of how power is used. Each claim below is already documented: a person, an act, a place, a year, an evidence grade (A document, B several investigations, C one investigation, D a single allegation) and a category.
 
-For each claim write your take. One or two sentences, max 220 characters.
+Write the line that says why this claim is on the record. Not what happened — the reader has that — but what it means, and why it earns a place here rather than in a news archive. Two sentences, max 220 characters.
 
-Sentence one: what this act shows about how power is used here.
-Sentence two: what would follow if it holds — who pays, what it enables, what it would mean. Conditional where the record does not establish the link: "if", "would", "could", "appears", "whether". A grade C is one investigation and a grade D is one allegation; your take must not speak about either as established.
+Sentence one: the mechanism the act reveals — what it tells you about how this person's power actually works (a contract, a licence, a vote, a command chain, a market, a border).
+Sentence two: why it matters now, or what would follow if it holds — who pays, what it enables, what it would take to be true. Conditional where the record does not establish the link: "if", "would", "could", "appears", "whether". A grade C is one investigation and a grade D is one allegation; never speak of either as established.
 
 Rules:
-1. Do not restate the act. The reader has it directly above your take.
+1. Do not restate the act. The reader has it directly below.
 2. Add no fact, number, name or date that is not in the claim.
 3. Never assert a motive. "In return for" requires a record that says so; the conditional is the honest form.
 4. Deadpan. No outrage, no exclamation marks, no slogans.
-5. Vary the opening. Do not start with "<name> shows" or the pattern "X shows power ..."; do not close every take with "civilians paying". Name the specific mechanism instead: a budget, a licence, a command chain, a market, a border, a sentence that was never handed down.
+5. Never write a sentence that would fit any other claim on the list. If it would survive a swap of the name and the act, it explains nothing and must be rewritten around the specific mechanism.
+6. Vary the opening. Do not start with "<name> shows" or the pattern "X shows power ..."; do not close every line with "civilians paying". Name the budget, the licence, the command chain, the market, the border, the sentence that was never handed down.
 
 Return JSON only:
 {"takes":[{"id":"...","take":"..."}]}
@@ -57,6 +58,8 @@ export interface TakeReport {
   sought: number;
   written: number;
   rejected: number;
+  /** One line per failed model call, so a silent shortfall is visible. */
+  failures: string[];
 }
 
 export async function writeTakesFor(
@@ -65,7 +68,7 @@ export async function writeTakesFor(
   limit = 10,
 ): Promise<TakeReport> {
   const key = env.SITE_AGENT_LLM_API_KEY;
-  if (!key) return { sought: 0, written: 0, rejected: 0 };
+  if (!key) return { sought: 0, written: 0, rejected: 0, failures: [] };
 
   const rows = await db
     .prepare(
@@ -94,14 +97,17 @@ export async function writeTakesFor(
     category: String(r.category ?? ""),
     grade: String(r.evidence_grade ?? "C"),
   }));
-  if (claims.length === 0) return { sought: 0, written: 0, rejected: 0 };
+  if (claims.length === 0) return { sought: 0, written: 0, rejected: 0, failures: [] };
 
   const base = (env.CLOCK_CHAT_BASE || "https://openrouter.ai/api/v1").replace(/\/$/, "");
   const model = env.CLOCK_MODEL || "deepseek/deepseek-v4.1-flash";
 
   let written = 0;
   let rejected = 0;
-  const CHUNK = 5;
+  const failures: string[] = [];
+  // Four claims per call. The model spends tokens reasoning before it writes,
+  // and a longer prompt spends more: five items started getting cut off.
+  const CHUNK = 4;
   for (let start = 0; start < claims.length; start += CHUNK) {
     const chunk = claims.slice(start, start + CHUNK);
     let parsed: { takes?: Array<Record<string, unknown>> } | null = null;
@@ -112,7 +118,7 @@ export async function writeTakesFor(
         body: JSON.stringify({
           model,
           temperature: 0.5,
-          max_tokens: 4000,
+          max_tokens: 8000,
           response_format: { type: "json_object" },
           messages: [
             {
@@ -141,8 +147,15 @@ export async function writeTakesFor(
         }),
         signal: AbortSignal.timeout(120_000),
       });
-      if (!res.ok) continue;
-      const reply = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      if (!res.ok) {
+        failures.push(`http ${res.status}`);
+        continue;
+      }
+      const reply = (await res.json()) as {
+        choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+        usage?: { completion_tokens?: number };
+      };
+      const finish = reply.choices?.[0]?.finish_reason ?? "";
       const raw = reply.choices?.[0]?.message?.content ?? "";
       const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
       const open = text.indexOf("{");
@@ -151,7 +164,13 @@ export async function writeTakesFor(
         open > -1 && close > open
           ? (JSON.parse(text.slice(open, close + 1)) as { takes?: Array<Record<string, unknown>> })
           : null;
-    } catch {
+      if (!parsed) {
+        failures.push(
+          `unparsed finish=${finish} chars=${text.length} tokens=${reply.usage?.completion_tokens ?? "?"}`,
+        );
+      }
+    } catch (error) {
+      failures.push(`threw ${error instanceof Error ? error.message.slice(0, 80) : "unknown"}`);
       continue;
     }
 
@@ -175,5 +194,5 @@ export async function writeTakesFor(
     }
   }
 
-  return { sought: claims.length, written, rejected };
+  return { sought: claims.length, written, rejected, failures: failures.slice(0, 6) };
 }

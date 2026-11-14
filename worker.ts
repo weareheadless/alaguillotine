@@ -145,7 +145,7 @@ export default {
           "/api/coverage?batch=2",
           "/api/numbers?batch=2",
           "/api/claims/verify?limit=20",
-          "/api/claims/takes?limit=40",
+          "/api/claims/takes?limit=60",
           "/api/claim-feed/publish?days=3",
           ...(midnight
             ? [

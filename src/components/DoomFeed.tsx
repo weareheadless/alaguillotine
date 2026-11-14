@@ -83,7 +83,7 @@ function Card({ item, index }: { item: FeedItem; index: number }) {
         </> : claim ? <>
           <p className="doom-eyebrow">{item.gloss}</p>
           <h2 className="!text-[1.1rem] !leading-snug sm:!text-[1.3rem]">{item.title}</h2>
-          {item.take && <div className="doom-ada"><b>ADA’S TAKE</b><p>{item.take}</p></div>}
+          {item.take && <div className="doom-ada"><b>WHY THIS IS ON THE RECORD</b><p>{item.take}</p></div>}
           <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
             A claim on the record, not a verdict. {awaiting
               ? "Filed by the research pass and not yet reviewed; it scores nothing until a reader passes it."

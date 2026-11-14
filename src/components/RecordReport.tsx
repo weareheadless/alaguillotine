@@ -807,15 +807,21 @@ function ClaimItem({ entry: e }: { entry: LedgerEntry }) {
           <span className="border border-hypeNeon/40 px-1 text-hypeNeon/80">awaiting review</span>
         ) : null}
       </div>
-      <p className="mt-0.5 text-[13px] leading-snug text-sheetWhite/90">{e.act}</p>
+      {/* The reason comes first; the act is the receipt for it. A claim nobody
+          has read is listed as unread rather than presented as a finding. */}
       {e.take ? (
-        <p className="mt-1 border-l-2 border-hypeNeon/35 pl-2 text-[12px] leading-snug text-chop-muted">
+        <p className="mt-1 text-[13px] leading-snug text-sheetWhite/90">
           <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-hypeNeon/70">
-            Ada’s take ·{" "}
+            why this is on the record ·{" "}
           </span>
           {e.take}
         </p>
-      ) : null}
+      ) : (
+        <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted/70">
+          not yet read · the act is listed, not explained
+        </p>
+      )}
+      <p className="mt-0.5 text-[11.5px] leading-snug text-chop-muted">{e.act}</p>
       <div className="mt-1 flex flex-wrap gap-2.5">
         {e.id ? (
           <Link

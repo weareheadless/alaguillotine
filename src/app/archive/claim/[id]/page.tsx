@@ -90,7 +90,7 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
         {row.take ? (
           <div className="mt-4 border-l-2 border-hypeNeon/50 pl-3">
             <p className="font-mono text-[8.5px] uppercase tracking-[0.2em] text-chop-muted">
-              Ada’s take
+              Why this is on the record
             </p>
             <p className="mt-1 max-w-3xl text-[14px] leading-snug text-sheetWhite/85">{row.take}</p>
           </div>
