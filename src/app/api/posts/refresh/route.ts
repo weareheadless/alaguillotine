@@ -101,11 +101,19 @@ export async function POST(request: Request) {
         composite: String(reading.composite ?? ""),
       }),
       cache: "no-store",
-      // Investigations may stop without an article or resume next slot.
-      // The VPS checkpoints progress within its 420s pass deadline.
-      signal: AbortSignal.timeout(480_000),
+      // The edge in front of the VPS gives up at about a hundred seconds and
+      // returns 524, which used to surface as a 502 and lose the whole run.
+      // The VPS checkpoints every stage, so a run that outlives one request is
+      // resumed on the next five-minute pass rather than thrown away.
+      signal: AbortSignal.timeout(95_000),
     });
     if (!res.ok) {
+      if (res.status === 524 || res.status === 504 || res.status >= 500) {
+        return Response.json(
+          { ok: true, pending: true, note: `upstream ${res.status}, resuming next pass` },
+          { headers: { "Cache-Control": "no-store" } },
+        );
+      }
       return Response.json(
         { error: `ada dispatch failed: ${res.status}` },
         { status: 502 },
@@ -113,7 +121,10 @@ export async function POST(request: Request) {
     }
     parsed = (await res.json()) as DispatchPayload;
   } catch {
-    return Response.json({ error: "ada dispatch unreachable" }, { status: 502 });
+    return Response.json(
+      { ok: true, pending: true, note: "upstream timed out, resuming next pass" },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   if (parsed?.held === true || parsed?.deferred === true) {

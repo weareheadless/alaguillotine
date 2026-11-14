@@ -56,6 +56,21 @@ export default {
           }
         }),
       );
+      // A dispatch that outlived one request is resumed here. The route skips
+      // the call entirely when the last dispatch is recent, so this costs
+      // nothing on a normal day.
+      context.waitUntil(
+        invokeApp(
+          "/api/posts/refresh",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/posts/refresh returned HTTP ${response.status}.`);
+          }
+        }),
+      );
       return;
     }
     // The blade keeps its own time: sentence at the reading, drop at the
