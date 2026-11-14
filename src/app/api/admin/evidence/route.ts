@@ -76,6 +76,25 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid json" }, { status: 400 });
   }
 
+  // Spelling is not identity: link two spellings of one person. The scorer
+  // then counts both under the canonical name.
+  if (body.alias && body.canonical) {
+    const alias = String(body.alias).trim().toLowerCase();
+    const canonical = String(body.canonical).trim();
+    if (!alias || !canonical) {
+      return Response.json({ error: "alias and canonical are required" }, { status: 400 });
+    }
+    await database
+      .prepare(
+        `INSERT INTO person_aliases (alias, canonical, note, at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(alias) DO UPDATE SET canonical = excluded.canonical, note = excluded.note`,
+      )
+      .bind(alias, canonical, String(body.note ?? "").slice(0, 300), new Date().toISOString())
+      .run();
+    return Response.json({ ok: true, alias, canonical });
+  }
+
   if (body.audit === true) {
     const report = await auditEvidence(database);
     return Response.json({ ok: true, ...report }, { headers: { "Cache-Control": "no-store" } });

@@ -471,6 +471,29 @@ export interface LedgerSummary {
 export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>> {
   const d = await db();
   if (!d) return new Map();
+
+  // Spelling is not identity. Rows filed under an approved alias count toward
+  // the canonical name, so a person is not reduced to the spelling a subeditor
+  // happened to use.
+  const aliases = new Map<string, string>();
+  try {
+    const aliasRows = await d
+      .prepare("SELECT alias, canonical FROM person_aliases")
+      .bind()
+      .all();
+    for (const a of aliasRows.results ?? []) {
+      const alias = String(a.alias ?? "").trim().toLowerCase();
+      const canonical = String(a.canonical ?? "").trim();
+      if (alias && canonical) aliases.set(alias, canonical);
+    }
+  } catch {
+    /* table not created yet */
+  }
+  const canonicalKey = (name: string): string => {
+    const key = name.trim().toLowerCase();
+    return (aliases.get(key) ?? name).trim().toLowerCase();
+  };
+
   const rows = await d
     .prepare(
       // Pending and rejected claims are on the record and do not score. The
@@ -487,7 +510,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
   const cutoff = new Date().getFullYear() - 1;
 
   for (const r of rows.results ?? []) {
-    const key = String(r.n ?? "");
+    const key = canonicalKey(String(r.n ?? ""));
     if (!key) continue;
     const conf = Number(r.confidence ?? 0);
     const s =
