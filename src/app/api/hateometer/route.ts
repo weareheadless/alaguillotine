@@ -37,9 +37,10 @@ export async function GET() {
 
     const chops = await listChops(db);
     const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
-    const [summaries, ledgerStats] = await Promise.all([
+    const [summaries, ledgerStats, wire] = await Promise.all([
       readLedgerSummaries(),
       chargeStats(),
+      feedCount(db),
     ]);
     const coverage = await coverageBySlug(db);
     const allNumbers = await readAllNumbers(db);
@@ -88,6 +89,7 @@ export async function GET() {
       computedAt: row?.computedAt ?? null,
       ledgerTotal: ledgerStats.total,
       ledgerToday: ledgerStats.last24h,
+      wire,
       nextRunAt: row
         ? new Date(Date.parse(row.computedAt) + 12 * 60 * 60 * 1000).toISOString()
         : null,
@@ -108,5 +110,34 @@ export async function GET() {
   } catch (error) {
     console.error("hate_read_failed", error instanceof Error ? error.message : "unknown");
     return Response.json(emptyHate(), { headers: { "Cache-Control": "no-store" } });
+  }
+}
+
+/**
+ * What the feed is holding right now.
+ *
+ * The same predicate the feed page queries with, so the number in the hero line
+ * is the number of cards a reader would actually find: everything, subject to
+ * the wire's one-day rule. A count that no page can reproduce is a decoration.
+ */
+async function feedCount(db: Awaited<ReturnType<typeof getDb>>) {
+  if (!db) return { count: 0, newestAt: null as string | null };
+  try {
+    const row = await db
+      .prepare(
+        `SELECT COUNT(*) AS n, MAX(published_at) AS newest
+           FROM feed_items
+          WHERE cluster = id
+            AND (kind != 'wire'
+                 OR (gloss != '' AND gloss NOT LIKE '∅%'
+                     AND published_at >= datetime('now', '-1 day')))`,
+      )
+      .first<{ n?: number; newest?: string | null }>();
+    return {
+      count: Number(row?.n ?? 0),
+      newestAt: row?.newest ? String(row.newest) : null,
+    };
+  } catch {
+    return { count: 0, newestAt: null as string | null };
   }
 }

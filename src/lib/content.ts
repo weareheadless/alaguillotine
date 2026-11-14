@@ -207,7 +207,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     revision: 0,
   },
   hero: {
-    headline: "ADA KEEPS SCORE. THEY STILL SLEEP FINE.",
+    headline: "ALL THESE RECEIPTS, AND I'M THE ONE WHO COULD BE SUED.",
     subheadline:
       "Ada reads the record and keeps the receipts. The number is not her mood: it is the harm the ledger documents inside the last 180 days, weighted by confidence and category. A name with nothing recent scores nothing and cannot be sentenced; a name with a long record is not carried by old fame. The blade takes the worst name in the line, and a name that has just been chopped sits out three days before it can be taken again. When the blade falls, a cross goes on the wall. Every claim links to its source. None of it is a verdict.",
     badge: "An art installation · updated every four hours",

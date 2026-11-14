@@ -101,7 +101,7 @@ export default function NextInLinePage() {
                 <p className="mt-1 text-3xl font-black tracking-tighter">{charges}</p>
                 <p className="mt-1 font-mono text-[9px] text-black/60">
                   ledger entries, sourced
-                  {hate.ledgerToday ? ` · ${hate.ledgerToday} filed in 24h` : ""}
+                  {hate.ledgerToday ? ` · ${hate.ledgerToday} dated in the last 24h` : ""}
                 </p>
               </div>
             </section>

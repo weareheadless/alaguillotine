@@ -339,7 +339,7 @@ export default function ManifestoPage() {
               </strong>{" "}
               receipts,{" "}
               <strong className="font-bold text-sheetWhite">{standing.filedToday}</strong> of
-              them filed in the past day.{" "}
+              them recording an act in the past day.{" "}
               <strong className="font-bold text-sheetWhite">{standing.chopped}</strong> names
               have been chopped;{" "}
               <strong className="font-bold text-sheetWhite">{standing.cooling}</strong> are

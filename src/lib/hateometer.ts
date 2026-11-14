@@ -124,8 +124,13 @@ export interface HateState {
   stale: boolean;
   /** The whole ledger, not the queue's share: charges on record. */
   ledgerTotal?: number;
-  /** Charges filed in the last twenty-four hours. */
+  /** Charges whose act is dated inside the last twenty-four hours. */
   ledgerToday?: number;
+  /** What the feed is holding right now: items and the newest timestamp. */
+  wire?: {
+    count: number;
+    newestAt: string | null;
+  };
   /** The name under the blade, and how long until it falls. */
   execution?: {
     person: string;

@@ -867,15 +867,24 @@ export async function ledgerSourceCoverage(): Promise<{
   }
 }
 
+/**
+ * Charges on record, and how many of them are actually current.
+ *
+ * "Filed in the last day" used to count rows inserted since yesterday, which is
+ * how a bulk import of the archive reported four thousand charges filed today.
+ * The date that matters is the act's, so a claim is recent only when the act
+ * happened inside the day. A number nobody can check is the one thing this
+ * site cannot print.
+ */
 export async function chargeStats(): Promise<ChargeStats> {
   const d = await db();
   if (!d) return { total: 0, last24h: 0 };
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   try {
     const row = await d
       .prepare(
         `SELECT COUNT(*) AS total,
-                SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS recent
+                SUM(CASE WHEN act_date >= ? THEN 1 ELSE 0 END) AS recent
            FROM ledger_entries`,
       )
       .bind(since)

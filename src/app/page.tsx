@@ -43,14 +43,28 @@ const CUT_IN: CutIn = {
  * them. The crosses hang beside the blade, so the record stays in view without
  * pushing the feed down the page.
  */
+/** How long ago the feed last took something in, in the reader's units. */
+function updatedAgo(iso: string): string {
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return "";
+  const minutes = Math.max(0, Math.round((Date.now() - at) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return `${Math.round(hours / 24)} d ago`;
+}
+
 export default function HomePage() {
   const { content } = useSiteContent();
   const { show } = useDrawer();
   const { state } = useClock();
-  // Ada rewrites the front page when she has something to say; otherwise the
-  // standing copy holds.
-  const heroHeadline = state.voice.headline || content.hero.headline;
-  const heroSubheadline = state.voice.subheadline || content.hero.subheadline;
+  // The front page says one thing, always. It used to take Ada's generated
+  // headline when she offered one, which meant the site's main line changed
+  // identity every four hours and drifted into the same two-beat slogan. The
+  // standing line is the promise; the numbers under it are what move.
+  const heroHeadline = content.hero.headline;
+  const heroSubheadline = content.hero.subheadline;
   const { state: hate, pull: pullHate } = useHateometer();
   // Once a name is chopped it stays chopped until the card is replaced. The
   // poll can take a moment, and the head must not reappear in the gap.
@@ -121,6 +135,27 @@ export default function HomePage() {
             <h1 className="mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
               {heroHeadline}
             </h1>
+            {(hate.wire?.count || typeof hate.ledgerTotal === "number") && (
+              /* Two numbers, both checkable: how much record there is, and what
+                 is on the wire right now. The second one lands on the feed, so
+                 the line is a door rather than a slogan. */
+              <p className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-chop-muted">
+                {typeof hate.ledgerTotal === "number" && (
+                  <>
+                    <span>{hate.ledgerTotal.toLocaleString()} charges on record</span>
+                    <span aria-hidden="true">·</span>
+                  </>
+                )}
+                <a
+                  href="#home-feed"
+                  className="underline decoration-chop-border decoration-1 underline-offset-[3px] hover:text-sheetWhite hover:decoration-hypeNeon"
+                >
+                  {hate.wire?.count ? `${hate.wire.count} in the feed` : "the feed"}
+                  {hate.wire?.newestAt ? `, newest ${updatedAgo(hate.wire.newestAt)}` : ""}
+                  <span aria-hidden="true"> →</span>
+                </a>
+              </p>
+            )}
             <p className="mt-5 hidden max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted md:block md:text-[13px]">
               {heroSubheadline}
             </p>

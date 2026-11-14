@@ -123,7 +123,7 @@ export function FeedMosaic() {
     return () => { controller.abort(); window.clearTimeout(timeout); };
   }, [attempt]);
 
-  return <section className={styles.section} aria-labelledby="home-feed-title">
+  return <section id="home-feed" className={styles.section} aria-labelledby="home-feed-title">
     <header className={styles.heading}>
       <div><p>The wire. The receipts. The people behind them.</p><h2 id="home-feed-title">The feed</h2></div>
       <Link href="/feed">Full feed <span aria-hidden="true">↗</span></Link>
