@@ -4,265 +4,177 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { dispatchStyle } from "@/lib/dispatch-style";
 import type { FeedItem } from "@/lib/feed";
+import { DOOM_RATES } from "@/lib/doom-rates";
 
-/**
- * The doom scroll.
- *
- * Cards are posts. The wire is endless, the record is finite, and the page
- * says so: it counts what you have read and how long it took, and it does not
- * record any of it. The only thing that grows is the meter above.
- */
+function SessionCheckpoint({ startedAt }: { startedAt: number }) {
+  const ref = useRef<HTMLElement>(null);
+  const [seconds, setSeconds] = useState<number | null>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(entries => {
+      if (!entries[0]?.isIntersecting) return;
+      setSeconds(Math.max(0, (Date.now() - startedAt) / 1000));
+      observer.disconnect();
+    }, { threshold: .3 });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [startedAt]);
+  return <aside ref={ref} className="doom-checkpoint">
+    <span className="doom-eyebrow">Meanwhile, outside this tab.</span>
+    <h2>The world didn’t<br />pause for the scroll.</h2>
+    {seconds !== null && <p>In {Math.floor(seconds)} seconds here, the historical rates equate to
+      <strong> ${Math.floor(seconds * DOOM_RATES.wealth).toLocaleString("en-US")}</strong> in billionaire wealth growth and
+      <strong> {Math.floor(seconds * DOOM_RATES.co2).toLocaleString("en-US")} tonnes</strong> of fossil CO₂.</p>}
+    <a href="#doom-method">An extrapolation, not a live count. Sources ↑</a>
+  </aside>;
+}
 
-const ADS = [
-  {
-    title: "$CHOP",
-    body: "The only asset that admits it is a meme. Hold it, or don't; the record is public either way.",
-    note: "This ad cannot follow you. There is no pixel. It paid for the servers, and you can read the wallet.",
-  },
-  {
-    title: "THE FUND",
-    body: "A meme coin with a ledger and no promises. The wallet is public. The yield is a joke.",
-    note: "No targeting. No profile of you. The ad is here because it is ours.",
-  },
-];
+function SourceLink({ item, children }: { item: FeedItem; children: React.ReactNode }) {
+  return item.url.startsWith("https://") || item.url.startsWith("http://") ? (
+    <a href={item.url} target="_blank" rel="noopener noreferrer" className="doom-source">{children} ↗</a>
+  ) : <Link href={item.url} className="doom-source">{children} →</Link>;
+}
 
-function Card({ item }: { item: FeedItem }) {
-  const plain = item.category === "wire";
-  const style = dispatchStyle(plain ? "extraction" : item.category);
-  const accent =
-    item.kind === "record" ? "#F4F4F5" : plain ? "#3F3F46" : style.accent;
-  const ink = item.kind === "record" || plain ? "#0B0B0C" : style.ink;
-  const label =
-    item.kind === "record"
-      ? `the record · ${item.source}`
-      : plain
-        ? "the wire"
-        : style.label;
-  // A record leads with the fact; the wire leads with Ada's charge.
-  const lead =
-    item.kind === "record" ? item.title : item.gloss || item.title;
-  const sub =
-    item.kind === "record"
-      ? item.gloss
-      : item.gloss
-        ? item.title
-        : "";
-  const external = item.url.startsWith("http");
-  const why =
-    item.kind === "record"
-      ? "why: it is in the record"
-      : item.clusterSize > 1
-        ? `why: ${item.clusterSize} communities posted it`
-        : `why: severity ${item.severity} · ${item.score} points`;
+function Card({ item, index }: { item: FeedItem; index: number }) {
+  const style = dispatchStyle(item.category);
+  const receipt = item.kind === "record" && item.source === "receipt";
+  const dispatch = item.source === "dispatch";
+  const claim = item.kind === "charge";
+  const awaiting = claim && item.gloss.includes("awaiting review");
+  const split = receipt ? item.title.indexOf(":") : -1;
+  const [failedImage, setFailedImage] = useState(false);
+  const image = item.image && !failedImage;
+  const poster = !receipt && !dispatch && !image && index % 4 === 0;
+  const [expanded, setExpanded] = useState(false);
+  const excerpt = item.excerpt?.split(/\n{2,}/).filter(Boolean) ?? [];
 
-  const inner = (
-    <>
-      <div
-        className="flex items-center gap-2 border-b-2 border-black px-2.5 py-1"
-        style={{ backgroundColor: accent, color: ink }}
-      >
-        <span className="h-1.5 w-1.5 shrink-0" style={{ backgroundColor: ink }} />
-        <span className="text-[8px] font-black uppercase tracking-[0.22em]">
-          {label}
-        </span>
-        <span className="ml-auto truncate text-[7px] font-bold uppercase tracking-[0.1em] opacity-60">
-          {item.clusterSize > 1
-            ? `${item.clusterSize} communities, one story`
-            : item.source}
-        </span>
-      </div>
-      <div className="p-3">
-        <p className="text-[14px] font-bold leading-snug text-sheetWhite">
-          {lead}
-        </p>
-        {sub && (
-          <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-chop-muted">
-            {sub}
+  return (
+    <article className={`doom-post ${receipt ? "doom-receipt" : dispatch ? "doom-dispatch" : poster ? "doom-poster" : ""}`}
+      style={{ "--doom-accent": style.accent } as React.CSSProperties}>
+      <header className="doom-byline">
+        <span className="doom-avatar">{claim ? "§" : dispatch ? "A" : receipt ? "$" : "↗"}</span>
+        <div><strong>{claim ? "The record" : dispatch ? "Ada Guillotine" : receipt ? "The public record" : item.source || "The wire"}</strong>
+          <span>{claim
+            ? `${item.community} · ${awaiting ? "filed, awaiting review" : "claim on the record"}`
+            : dispatch ? "Dispatch" : receipt ? "Sourced receipt" : "Community reporting · not independently verified"}</span></div>
+        <span className="doom-category">{style.label}</span>
+      </header>
+      {image && <div className="doom-image">
+        {/* Source-provided thumbnail, not generated imagery. No referrer sent. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={item.image} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailedImage(true)} />
+        <span>Source image</span>
+      </div>}
+      <div className="doom-post-body">
+        {receipt && split > -1 ? <>
+          <p className="doom-eyebrow">{item.title.slice(0, split)}</p>
+          <h2 className="doom-number">{item.title.slice(split + 1).trim()}</h2>
+          <p className="doom-receipt-label">{item.gloss}</p>
+          <p className="doom-footnote">An entry in the record, not a criminal verdict. Open the dossier for its source and context.</p>
+        </> : dispatch ? <>
+          <p className="doom-eyebrow">Ada, uninterrupted.</p>
+          <h2>{item.title}</h2>
+          <p className="doom-dek">{item.gloss}</p>
+          {excerpt.length > 0 && <div className="doom-excerpt">
+            {(expanded ? excerpt : excerpt.slice(0, 1)).map((text, i) => <p key={i}>{text}</p>)}
+            {excerpt.length > 1 && <button onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>{expanded ? "Less" : "Read more here"}</button>}
+            {expanded && <small>Excerpt. The full dispatch continues at the link below.</small>}
+          </div>}
+        </> : claim ? <>
+          <p className="doom-eyebrow">{item.gloss}</p>
+          <h2 className="!text-[1.1rem] !leading-snug sm:!text-[1.3rem]">{item.title}</h2>
+          <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+            A claim on the record, not a verdict. {awaiting
+              ? "Filed by the research pass and not yet reviewed; it scores nothing until a reader passes it."
+              : "Reviewed. Its grade, its date and its sources are on the claim page."}
           </p>
-        )}
-        <p className="mt-2 font-mono text-[7.5px] uppercase tracking-[0.12em] text-chop-muted/70">
-          {why}
-        </p>
+        </> : <>
+          <p className="doom-eyebrow">{poster ? "Read that again." : style.note}</p>
+          <h2>{item.title}</h2>
+          {item.gloss && <div className="doom-ada"><b>ADA’S TAKE</b><p>{item.gloss}</p></div>}
+        </>}
       </div>
-    </>
-  );
-
-  const shell =
-    "block border-2 border-black bg-[#0E0E10] transition-colors hover:bg-[#141417]";
-
-  if (external) {
-    return (
-      <a href={item.url} target="_blank" rel="noreferrer" className={shell}>
-        {inner}
-      </a>
-    );
-  }
-  return (
-    <Link href={item.url} className={shell}>
-      {inner}
-    </Link>
+      <footer className="doom-actions">
+        <SourceLink item={item}>{claim ? "Open the claim" : receipt ? "Follow the money" : dispatch ? "Full dispatch" : "Read the reporting"}</SourceLink>
+        <span>{item.kind === "wire" ? `${item.score.toLocaleString()} community points` : claim ? "Sourced in the record" : "From the archive"}</span>
+        {item.clusterSize > 1 && <span>{item.clusterSize} related posts</span>}
+      </footer>
+    </article>
   );
 }
 
-function AdCard({ index }: { index: number }) {
-  const ad = ADS[index % ADS.length];
-  return (
-    <div className="border-2 border-black bg-[#FDE047] p-3 text-canvasBlack">
-      <div className="flex items-center gap-2 border-b-2 border-black pb-1.5">
-        <span className="text-[8px] font-black uppercase tracking-[0.22em]">
-          ad · the fund
-        </span>
-        <span className="ml-auto text-[7px] font-bold uppercase tracking-[0.12em] opacity-60">
-          no pixel
-        </span>
-      </div>
-      <p className="mt-2 font-black uppercase tracking-tight text-lg leading-none">
-        {ad.title}
-      </p>
-      <p className="mt-1.5 font-mono text-[11px] leading-relaxed">{ad.body}</p>
-      <p className="mt-2 font-mono text-[7.5px] uppercase leading-relaxed tracking-[0.1em] opacity-60">
-        {ad.note}
-      </p>
-    </div>
-  );
+function FundCard() {
+  return <aside className="doom-fund"><span className="doom-eyebrow">House ad · $CHOP</span>
+    <p>Finally.<br />A coin with the decency<br />to admit it’s a joke.</p>
+    <Link href="/?fund=1">Read about the fund →</Link>
+    <small>Meme token. No promised returns. SOL is the donation currency.</small>
+  </aside>;
 }
 
-export function DoomFeed({
-  initial,
-  total,
-  read,
-  discarded,
-}: {
-  initial: FeedItem[];
-  total: number;
-  read: number;
-  discarded: number;
+export function DoomFeed({ initial, total, read, discarded }: {
+  initial: FeedItem[]; total: number; read: number; discarded: number;
 }) {
-  const [items, setItems] = useState<FeedItem[]>(initial);
+  const [items, setItems] = useState(initial);
   const [done, setDone] = useState(initial.length >= total);
-  const [endDismissed, setEndDismissed] = useState(false);
-  const [minutes, setMinutes] = useState(0);
+  const [error, setError] = useState(false);
+  const [busy, setBusy] = useState(false);
   const loading = useRef(false);
   const offset = useRef(initial.length);
-  const ids = useRef(new Set(initial.map((item) => item.id)));
-  const sentinel = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const start = Date.now();
-    const timer = setInterval(
-      () => setMinutes(Math.floor((Date.now() - start) / 60_000)),
-      10_000,
-    );
-    return () => clearInterval(timer);
-  }, []);
+  const ids = useRef(new Set(initial.map(item => item.id)));
+  const sentinel = useRef<HTMLDivElement>(null);
+  const startedAt = useRef(Date.now());
 
   const loadMore = useCallback(async () => {
     if (loading.current || done) return;
     loading.current = true;
+    setBusy(true);
+    setError(false);
     try {
-      const res = await fetch(`/api/feed?offset=${offset.current}&limit=8`);
-      const data = (await res.json()) as { items?: FeedItem[]; total?: number };
-      const batch = data.items ?? [];
-      const fresh = batch.filter((item) => !ids.current.has(item.id));
-      for (const item of fresh) ids.current.add(item.id);
-      offset.current += batch.length;
-      if (fresh.length > 0) {
-        setItems((prev) => [...prev, ...fresh]);
-      }
-      if (batch.length === 0 || offset.current >= (data.total ?? 0)) {
-        setDone(true);
-      }
-    } catch {
-      setDone(true);
-    } finally {
-      loading.current = false;
-    }
+      const res = await fetch(`/api/feed?offset=${offset.current}&limit=12`);
+      if (!res.ok) throw new Error("Feed unavailable");
+      const data = await res.json() as { items: FeedItem[]; total: number };
+      if (!Array.isArray(data.items)) throw new Error("Invalid feed");
+      const fresh = data.items.filter(item => !ids.current.has(item.id));
+      fresh.forEach(item => ids.current.add(item.id));
+      offset.current += data.items.length;
+      setItems(prev => [...prev, ...fresh]);
+      setDone(data.items.length === 0 || offset.current >= data.total);
+    } catch { setError(true); }
+    finally { loading.current = false; setBusy(false); }
   }, [done]);
 
   useEffect(() => {
     const node = sentinel.current;
-    if (!node || done) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) void loadMore();
-      },
-      { rootMargin: "700px 0px" },
-    );
+    if (!node || done || error) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting) void loadMore();
+    }, { rootMargin: "500px 0px" });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [loadMore, done]);
+  }, [loadMore, done, error, items.length]);
 
-  return (
-    <div className="mx-auto max-w-2xl px-4 pb-28 pt-6">
-      <header className="mb-4">
-        <p className="font-mono text-[9px] uppercase tracking-[0.35em] text-spiteCrimson">
-          social · doom
-        </p>
-        <h1 className="mt-2 text-3xl font-black uppercase leading-none tracking-tighter md:text-4xl">
-          The <span className="text-spiteCrimson">Feed</span>
-        </h1>
-        <p className="mt-2 max-w-xl font-mono text-[11px] leading-relaxed text-chop-muted">
-          They post. You are the product. Every card is a story from the
-          federated wire, a receipt from the record, or a dispatch. The ranking
-          is published, the metrics are labelled, and nothing here is recorded
-          about you.
-        </p>
-        <p className="mt-3 border-y border-chop-border py-2 font-mono text-[8.5px] uppercase leading-relaxed tracking-[0.14em] text-chop-muted">
-          the wire: <b className="text-sheetWhite">{read}</b> items read ·{" "}
-          <b className="text-sheetWhite">{discarded}</b> carried no charge and are
-          not here. the refusal is the edit.
-        </p>
-        <details className="mt-3">
-          <summary className="cursor-pointer font-mono text-[8.5px] font-black uppercase tracking-[0.2em] text-spiteCrimson">
-            why am I seeing this?
-          </summary>
-          <p className="mt-2 border-l-2 border-spiteCrimson pl-3 font-mono text-[10px] leading-relaxed text-chop-muted">
-            Heat = severity × 10 + community score + 200 ÷ hours since the feed
-            first saw it. Severity is Ada&apos;s judgement of the mechanism, not
-            the story&apos;s volume. Duplicates are collapsed: twelve
-            communities posting the same press release is one story. There is no
-            profile of you, no cookie, no dwell time, no advertiser bidding. The
-            feed cannot follow you off the page because it does not know who you
-            are.
-          </p>
-        </details>
-      </header>
-
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <div key={item.id} className="space-y-3">
-            <Card item={item} />
-            {(index + 1) % 7 === 0 && <AdCard index={index} />}
-            {index === 23 && !endDismissed && (
-              <div className="border-2 border-spiteCrimson bg-spiteCrimson/10 p-4 text-center">
-                <p className="text-[13px] font-black uppercase tracking-tight text-sheetWhite">
-                  You have reached the end of your attention.
-                </p>
-                <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
-                  The wire does not end. It is not designed to.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setEndDismissed(true)}
-                  className="mt-3 border-2 border-black bg-spiteCrimson px-3 py-1.5 font-mono text-[9px] font-black uppercase tracking-[0.18em] text-sheetWhite"
-                >
-                  keep scrolling
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div ref={sentinel} className="h-24" />
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t-2 border-chop-border pt-3 font-mono text-[8.5px] uppercase tracking-[0.14em] text-chop-muted">
-        <span>
-          <b className="text-sheetWhite">{items.length}</b> posts ·{" "}
-          <b className="text-sheetWhite">{minutes}</b> min · 0 recorded
-        </span>
-        <span>{done ? "the wire is quiet" : "loading"}</span>
-      </div>
+  return <main className="doom-feed">
+    <header className="doom-intro">
+      <p className="doom-eyebrow">A LA GUILLOTINE / THE FEED</p>
+      <h1>The news forgets.<br /><span>This feed doesn’t.</span></h1>
+      <p>News. Money. Consequences. Ada keeps the receipts.</p>
+      <details><summary>What’s in your feed?</summary>
+        <p>Community reporting, Ada’s commentary, receipts and dispatches. No personalised ranking. {read} wire items collected; {discarded} have no published commentary yet—not necessarily rejected.</p>
+        <p>Three wire posts, then one record entry while both are available. Within each lane: severity × 10 + min(community score, 200) + 200 / (1 + hours since collection). Record cards are in the order they entered the record, newest first. Related headlines are grouped automatically; grouping can be imperfect.</p>
+        <p>No fake reactions, manufactured notifications or generated news photos. External source images may make requests to their host.</p>
+      </details>
+    </header>
+    <div className="doom-stream">
+      {items.map((item, index) => <div key={item.id}>
+        <Card item={item} index={index} />
+        {(index + 1) % 9 === 0 && <FundCard />}
+        {index === 11 && <SessionCheckpoint startedAt={startedAt.current} />}
+      </div>)}
     </div>
-  );
+    <div ref={sentinel} className="doom-load" aria-live="polite">
+      {error ? <><p>The next posts didn’t load.</p><button onClick={() => void loadMore()}>Try again</button></> :
+        done ? <><p>You’re caught up with the published feed.</p><Link href="/next-in-line">Explore the record →</Link></> :
+          <button onClick={() => void loadMore()} disabled={busy}>{busy ? "Loading the next posts…" : "More from the wire ↓"}</button>}
+    </div>
+  </main>;
 }

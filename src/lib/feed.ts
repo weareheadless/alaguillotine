@@ -35,6 +35,8 @@ export interface FeedItem {
   publishedAt: string;
   firstSeenAt: string;
   heat: number;
+  image: string;
+  excerpt: string;
 }
 
 interface Row {
@@ -54,6 +56,8 @@ interface Row {
   published_at?: string;
   first_seen_at?: string;
   heat?: number;
+  image_url?: string;
+  excerpt?: string;
   n?: number;
 }
 
@@ -66,6 +70,11 @@ const HEAT =
 
 const SELECT = `SELECT id, kind, url, title, gloss, source, community, category,
   score, comments, severity, cluster, cluster_size, published_at, first_seen_at,
+  image_url,
+  (SELECT CASE WHEN json_extract(editorial, '$.correction') IS NOT NULL
+    THEN 'Correction: ' || json_extract(editorial, '$.correction')
+    ELSE substr(body, 1, 1200) END FROM dispatches
+    WHERE '/blog/' || slug = feed_items.url LIMIT 1) AS excerpt,
   ${HEAT} AS heat
 FROM feed_items`;
 
@@ -87,6 +96,8 @@ export function toFeedItem(row: Row): FeedItem {
     publishedAt: String(row.published_at ?? ""),
     firstSeenAt: String(row.first_seen_at ?? ""),
     heat: Number(row.heat ?? 0),
+    image: String(row.image_url ?? ""),
+    excerpt: String(row.excerpt ?? ""),
   };
 }
 
@@ -98,9 +109,22 @@ export async function readFeedPage(
   // One row per story: duplicates point at their cluster's representative.
   const rows = await db
     .prepare(
-      `${SELECT}
-       WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'))
-       ORDER BY heat DESC, first_seen_at DESC LIMIT ? OFFSET ?`,
+      `WITH candidates AS (
+        ${SELECT} WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'))
+       ), lanes AS (
+         SELECT *, ROW_NUMBER() OVER (
+           PARTITION BY CASE WHEN kind IN ('record', 'charge') THEN 1 ELSE 0 END
+           -- The record lane is chronological: a claim filed this morning is
+           -- the newest thing in the record, whatever the act's date and
+           -- whatever weight it carries. Heat still ranks the wire.
+           ORDER BY CASE WHEN kind IN ('record', 'charge') THEN first_seen_at END DESC,
+                    heat DESC, first_seen_at DESC, id
+         ) - 1 AS position FROM candidates
+       )
+       SELECT * FROM lanes
+       ORDER BY CASE WHEN kind IN ('record', 'charge') THEN position * 4 + 3
+         ELSE CAST(position / 3 AS INTEGER) * 4 + position % 3 END,
+         heat DESC, id LIMIT ? OFFSET ?`,
     )
     .bind(limit, offset)
     .all();
@@ -264,6 +288,10 @@ export async function refreshFeed(db: D1): Promise<RefreshResult> {
         )
         .run()) as { meta?: { changes?: number } };
       if ((res.meta?.changes ?? 0) > 0) added += 1;
+      if (post.image) {
+        await db.prepare("UPDATE feed_items SET image_url = ? WHERE id = ?")
+          .bind(post.image, id).run();
+      }
     }
   } catch (error) {
     console.error("feed_wire_failed", error);
