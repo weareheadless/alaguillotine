@@ -366,6 +366,10 @@ export interface LedgerEntry {
   actDate: string | null;
   /** A/B/C/D. */
   grade: string;
+  /** charged | convicted | investigated | settled | sanctioned | no_action | blocked | unknown */
+  outcome: string;
+  /** pending | accepted | rejected | legacy */
+  status: string;
 }
 
 /**
@@ -428,7 +432,8 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
     : "lower(person) = lower(?)";
   const rows = await d
     .prepare(
-      `SELECT id, act, place, year, category, confidence, sources, attribution, act_date, evidence_grade
+      `SELECT id, act, place, year, category, confidence, sources, attribution, act_date,
+              evidence_grade, institutional_status, review_status
          FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
     .bind(name, ...(first && last ? [`%${first}%`, `%${last}%`] : []))
@@ -450,6 +455,8 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
       sources,
       actDate: r.act_date == null ? null : String(r.act_date),
       grade: String(r.evidence_grade ?? ""),
+      outcome: String(r.institutional_status ?? "unknown"),
+      status: String(r.review_status ?? "legacy"),
     };
   });
 }

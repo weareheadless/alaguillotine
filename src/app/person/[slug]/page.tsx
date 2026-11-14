@@ -53,6 +53,17 @@ const GRADE_CHIP: Record<string, string> = {
   D: "border-spiteCrimson/60 text-spiteCrimson",
 };
 
+const OUTCOME: Record<string, string> = {
+  charged: "charged",
+  convicted: "convicted",
+  investigated: "investigated",
+  settled: "settled",
+  sanctioned: "sanctioned",
+  no_action: "no action taken",
+  blocked: "proceedings blocked",
+  unknown: "no proceeding recorded",
+};
+
 const DECLARED: Record<string, string> = {
   disclosed: "disclosed",
   exempt: "no disclosure duty",
@@ -105,6 +116,26 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   )
     .filter(([k]) => !moneyKinds.has(k))
     .map(([, label]) => label);
+  // The reading is a count, not a judgement. Every clause here can be checked
+  // against the rows below it: how many acts, how many are thin, what the
+  // system did about them, and what the record does not contain.
+  const acts = ledger.length;
+  const thin = ledger.filter((e) => e.grade === "D").length;
+  const pendingReview = ledger.filter((e) => e.status === "pending").length;
+  const proceeding = ledger.filter((e) =>
+    ["charged", "convicted", "settled", "sanctioned"].includes(e.outcome),
+  ).length;
+  const investigated = ledger.filter((e) => e.outcome === "investigated").length;
+  const untouched = acts - proceeding - investigated;
+  const moneyYears = numbers
+    .map((n) => n.actDate?.slice(0, 4) ?? (n.year ? String(n.year) : ""))
+    .filter(Boolean)
+    .sort();
+  const fromOffice = numbers.filter((n) => n.inOffice).length;
+  const moneySpan = moneyYears.length
+    ? `${moneyYears[0]}–${moneyYears[moneyYears.length - 1]}`
+    : "";
+
   const absence = [
     missing.length ? `Not on this record: ${missing.join(", ")}.` : "",
     numbers.some((n) => n.declared === "disclosed")
@@ -209,6 +240,69 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
         conduct and money, in the order it happened
       </p>
 
+      {acts > 0 ? (
+        <div className="mt-4 border border-chop-border bg-white/[0.02] p-3">
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
+            what this page says, in counts
+          </p>
+          <p className="mt-2 text-[12px] leading-relaxed text-sheetWhite/85">
+            <span className="tabular-nums text-sheetWhite">{acts}</span> act
+            {acts === 1 ? "" : "s"} on the record
+            {thin ? (
+              <>
+                , <span className="tabular-nums text-spiteCrimson">{thin}</span> of them a single
+                unverified allegation
+              </>
+            ) : null}
+            .{" "}
+            {untouched > 0 ? (
+              <>
+                <span className="tabular-nums text-spiteCrimson">{untouched}</span> carry no recorded
+                proceeding
+              </>
+            ) : (
+              <>every act carries a recorded proceeding</>
+            )}
+            {investigated ? (
+              <>
+                , <span className="tabular-nums">{investigated}</span> were investigated without a
+                charge
+              </>
+            ) : null}
+            {proceeding ? (
+              <>
+                , <span className="tabular-nums">{proceeding}</span> reached a charge, settlement or
+                sanction
+              </>
+            ) : null}
+            .
+          </p>
+          {numbers.length > 0 ? (
+            <p className="mt-1.5 text-[12px] leading-relaxed text-chop-muted">
+              <span className="tabular-nums text-sheetWhite">{numbers.length}</span> money entr
+              {numbers.length === 1 ? "y" : "ies"}
+              {moneySpan ? `, ${moneySpan}` : ""}: what arrived, through what, from whom, and whether
+              anyone was told.
+            </p>
+          ) : null}
+          {fromOffice > 0 ? (
+            <p className="mt-1.5 text-[12px] leading-relaxed text-chop-muted">
+              <span className="tabular-nums text-sheetWhite">{fromOffice}</span> of them are dated to
+              a time when an office or an official role was held.
+            </p>
+          ) : null}
+          {pendingReview ? (
+            <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-hypeNeon/80">
+              {pendingReview} awaiting review — filed, not yet accepted
+            </p>
+          ) : null}
+          <p className="mt-1.5 font-mono text-[9px] leading-relaxed text-chop-muted">
+            grades: A document or admission · B several investigations · C one investigation ·
+            D a single allegation, which scores nothing
+          </p>
+        </div>
+      ) : null}
+
       {timeline.length === 0 ? (
         <p className="mt-4 font-mono text-[11px] leading-relaxed text-chop-muted">
           No ledger entries yet. The charge above comes from the current reporting;
@@ -254,6 +348,14 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
                     </span>
                   ) : null}
                 </p>
+                {item.n.capacity ? (
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em]">
+                    <span className="text-chop-muted">as </span>
+                    <span className={item.n.inOffice ? "text-hypeNeon" : "text-sheetWhite/70"}>
+                      {item.n.capacity}
+                    </span>
+                  </p>
+                ) : null}
                 <p className="mt-1 text-[12px] leading-snug text-chop-muted">{item.n.evidenceQuote}</p>
                 <a
                   href={safeHref(item.n.sourceUrl)}
@@ -279,6 +381,20 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
                       <span>·</span>
                       <span>{item.e.place}</span>
                     </>
+                  ) : null}
+                  <span
+                    className={
+                      item.e.outcome === "unknown" || item.e.outcome === "no_action"
+                        ? "text-spiteCrimson/80"
+                        : "text-hypeNeon/80"
+                    }
+                  >
+                    {OUTCOME[item.e.outcome] ?? item.e.outcome}
+                  </span>
+                  {item.e.status === "pending" ? (
+                    <span className="border border-hypeNeon/40 px-1 text-hypeNeon/80">
+                      awaiting review
+                    </span>
                   ) : null}
                 </div>
                 <p className="mt-1.5 text-[14px] leading-snug text-sheetWhite">{item.e.act}</p>

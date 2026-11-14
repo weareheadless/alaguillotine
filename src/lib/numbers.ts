@@ -77,6 +77,10 @@ export interface PersonNumber {
   gradeBasis?: string;
   /** disclosed | exempt | no_filing | withheld | unknown */
   declared?: string;
+  /** The role held at the date of the movement, in the source's own terms. */
+  capacity?: string;
+  /** 1 when that role was a public office or an official assignment. */
+  inOffice?: boolean;
 }
 
 type Result = { results?: Array<Record<string, unknown>> };
@@ -131,6 +135,8 @@ function numberFromRow(r: Record<string, unknown>): PersonNumber {
     grade: String(r.evidence_grade ?? ""),
     gradeBasis: String(r.grade_basis ?? ""),
     declared: String(r.declared ?? ""),
+    capacity: String(r.capacity ?? ""),
+    inOffice: Number(r.in_office ?? 0) === 1,
   };
 }
 
@@ -150,7 +156,8 @@ export async function readNumbersFor(db: NumbersDb, slug: string): Promise<Perso
     const rows = await db
       .prepare(
         `SELECT kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
-                act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared
+                act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared,
+                capacity, in_office
            FROM person_numbers WHERE slug = ?`,
       )
       .bind(slug)
@@ -168,7 +175,8 @@ export async function readAllNumbers(
     const rows = await db
       .prepare(
         `SELECT slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
-                act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared
+                act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared,
+                capacity, in_office
            FROM person_numbers`,
       )
       .bind()
@@ -276,6 +284,7 @@ RULES — hard:
 8. Never include a number about a victim, witness, critic or private person.
 8a. When the text says who paid or was paid, put them in counterparty. When it names the instrument (fee, equity, lease, contract, donation, penalty, subsidy, gift, loan, settlement), put it in instrument. direction is "in" when the money moved toward the subject or a company they control, "out" when it moved away.
 8b. act_date is the date of the movement, ISO, only when the results give a day or month. Leave it empty rather than guessing it from the publication date.
+8c0. capacity is the role the subject held at the date of the movement — the office, the firm, or nothing ("private citizen"). Take it from the text; leave it empty rather than assume. This is what turns a payment into a possible conflict, so it matters more than the figure.
 8c. declared: "disclosed" if the movement appears in a filing or disclosure the subject made, "exempt" if the role carries no disclosure duty, "no_filing" if reporting says none was made, "withheld" if it was refused, otherwise "unknown".
 9. The number must be about the subject or an organisation the subject controls. Say so in the label when it is the organisation.
 10. harm must be true. If the number is neutral context, do not return it at all — the site only keeps what indicts.
@@ -449,6 +458,7 @@ export async function researchNumbersCase(
         declared: ["disclosed", "exempt", "no_filing", "withheld", "unknown"].includes(declared)
           ? declared
           : "",
+        capacity: String(row.capacity ?? "").trim().slice(0, 80),
       });
     }
   }
@@ -490,8 +500,9 @@ export async function writeNumbers(
         .prepare(
           `INSERT INTO person_numbers
              (slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
-              checked_at, act_date, direction, instrument, counterparty, declared)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              checked_at, act_date, direction, instrument, counterparty, declared,
+              capacity, in_office)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(slug, kind, label) DO UPDATE SET
              display = excluded.display,
              value = excluded.value,
@@ -505,7 +516,9 @@ export async function writeNumbers(
              direction = excluded.direction,
              instrument = excluded.instrument,
              counterparty = excluded.counterparty,
-             declared = excluded.declared`,
+             declared = excluded.declared,
+             capacity = excluded.capacity,
+             in_office = excluded.in_office`,
         )
         .bind(
           slug,
@@ -524,6 +537,8 @@ export async function writeNumbers(
           n.instrument ?? "",
           n.counterparty ?? "",
           n.declared ?? "",
+          n.capacity ?? "",
+          n.inOffice ? 1 : 0,
         )
         .run();
       written += 1;
