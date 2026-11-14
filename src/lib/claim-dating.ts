@@ -83,6 +83,24 @@ export function dateFromText(text: string): string | null {
   return null;
 }
 
+/**
+ * Day and month with no year, resolved against the year the claim records.
+ *
+ * "On 13 November" is not a guess about the year: the claim already carries
+ * it. What would be a guess is inventing a day, which this never does.
+ */
+export function dateWithYear(text: string, year: number): string | null {
+  if (!year || year < 1900 || year > 2200) return null;
+  const match = String(text ?? "").match(
+    new RegExp(`\\b(\\d{1,2})\\s+(?:${MONTH_PATTERN})\\b`, "i"),
+  );
+  if (!match) return null;
+  const name = match[0].trim().toLowerCase().split(/\s+/)[1]?.replace(/\.$/, "") ?? "";
+  const month = MONTHS[name];
+  if (!month) return null;
+  return iso(year, month, Number(match[1]));
+}
+
 export interface DatingReport {
   seen: number;
   dated: number;
@@ -102,7 +120,7 @@ export interface DatingReport {
 export async function dateClaims(db: D1, limit = 200): Promise<DatingReport> {
   const rows = await db
     .prepare(
-      `SELECT le.id, le.act, le.evidence_quote
+      `SELECT le.id, le.act, le.evidence_quote, le.year
          FROM ledger_entries le
          JOIN queue_people qp ON lower(qp.name) = lower(le.person)
         WHERE le.act_date IS NULL
@@ -117,6 +135,7 @@ export async function dateClaims(db: D1, limit = 200): Promise<DatingReport> {
     id: String(row.id ?? ""),
     act: String(row.act ?? ""),
     quote: String(row.evidence_quote ?? ""),
+    year: Number(row.year ?? 0),
   }));
 
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
@@ -126,7 +145,11 @@ export async function dateClaims(db: D1, limit = 200): Promise<DatingReport> {
 
   for (const item of items) {
     if (!item.id) continue;
-    const found = dateFromText(item.act) ?? dateFromText(item.quote);
+    const found =
+      dateFromText(item.act) ??
+      dateFromText(item.quote) ??
+      dateWithYear(item.act, item.year) ??
+      dateWithYear(item.quote, item.year);
     if (!found) {
       // A day and a month but no year is not nothing: it is why the claim
       // cannot be placed. Counting it keeps the gap visible.
