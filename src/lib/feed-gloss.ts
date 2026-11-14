@@ -3,10 +3,11 @@ import type { D1 } from "./clock-store";
 /**
  * Ada files the wire.
  *
- * Raw headlines are a commodity; the charge is the content. For each new wire
- * item she names the mechanism in one line and files it under one of the five
- * charges. She gets the headline and the community, nothing else — so the
- * instruction is blunt: do not invent what you cannot see.
+ * Raw headlines are a commodity; the take is the content. For each new wire
+ * item Ada writes what the piece shows and why it is or could be relevant, in
+ * the conditional where the link is not established. She gets the headline and
+ * the community, nothing else — so the instruction is blunt: do not invent what
+ * you cannot see, and do not repeat what the headline already said.
  */
 
 const CATEGORIES = new Set([
@@ -74,6 +75,36 @@ function words(value: string): string[] {
     .filter((word) => word.length >= 3 && !ACTOR_STOP.has(word));
 }
 
+const ANALYSIS_MARK = /\b(if|would|could|may|might|means|implies|because|suggests|unless|until|whether|what follows|the test|if true|if confirmed)\b/i;
+
+/**
+ * A take has to add a step the headline does not have.
+ *
+ * Two failures are mechanical and worth catching before publication: a take
+ * that is the headline in other words, and a take that asserts without
+ * reasoning. Overlap is measured on content words, so "Musk buys X" and "X
+ * bought by Musk" score as the same sentence — because to a reader they are.
+ */
+export function takeIsAnalysis(take: string, title: string): boolean {
+  const t = take.replace(/\s+/g, " ").trim();
+  if (t.length < 70 || t.length > 260) return false;
+  if (!ANALYSIS_MARK.test(t)) return false;
+  const content = (value: string) =>
+    new Set(
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 3 && !ACTOR_STOP.has(w)),
+    );
+  const A = content(t);
+  const B = content(title);
+  if (B.size === 0) return true;
+  let shared = 0;
+  for (const w of A) if (B.has(w)) shared += 1;
+  return shared / Math.min(A.size, B.size) < 0.6;
+}
+
 export function glossIsGrounded(gloss: string, actor: string): boolean {
   const charge = (gloss || "").replace(/\s+/g, " ").trim();
   const who = (actor || "").replace(/\s+/g, " ").trim();
@@ -88,23 +119,28 @@ export function glossIsGrounded(gloss: string, actor: string): boolean {
 
 const PROMPT = `You are Ada Guillotine, an anticapitalist AI reading a federated news wire.
 
-For each item below, write the charge — not a summary. One sentence, max 140 characters, that names the actor, what they gain or do, and who pays for it. Deadpan, exact, no outrage, no exclamation marks. Do not invent facts, numbers, names, dates or events: use only what the headline and community already say.
+For each item, write your take — analysis, not a charge and not a summary. Two sentences, max 240 characters.
 
-The actor must be a specific person, company, institution, state or organised interest named or unambiguously implied by the headline. "Profiteers", "the powerful", "the rich", "capitalism" are not actors. If the headline does not let you name one, return an empty actor and an empty gloss. A story that cannot say who did it gets no charge and does not enter the feed.
+Sentence one: what the piece actually shows, in your own words.
+Sentence two: why it is relevant, or could be — the mechanism, who carries the cost, what it would mean if it holds.
 
-Also file each item under one charge:
+Rules, in order of importance:
+1. Never restate the headline. If your take could be written by reading only the headline, it is worthless. Add the step the headline leaves out: what follows from it, or what would have to be true.
+2. Conditional when the link is not established: "if", "would", "could", "appears", "may", "whether". Never assert a motive the piece does not establish.
+3. No new facts. No numbers, names, dates or events that are not in the headline or the community line.
+4. Deadpan. No outrage, no exclamation marks, no slogan ("profiteers", "the powerful", "late capitalism").
+
+Also file each item:
 - extraction: someone took money, land, labour or a public asset.
 - cost: the bill lands on workers, tenants, patients, taxpayers or the planet.
 - impunity: a person or institution is never charged, never resigns, never pays.
 - suppression: the exits are closing — policing, censorship, surveillance, bans, deportations.
 - precarity: the texture of living with the above — rent, work, health, debt, exhaustion.
 
-Severity is 0-100: how much harm the mechanism named in the headline does, not how loud the story is.
+Severity 0-100: how much harm the mechanism does, not how loud the story is.
 
-Return JSON only, exactly one object:
-{"items":[{"id":"...","actor":"who did it","category":"extraction|cost|impunity|suppression|precarity|wire","severity":0,"gloss":"..."}]}
-
-If the headline names no actor, that item is {"id":"...","actor":"","category":"wire","severity":0,"gloss":""}.
+Return JSON only:
+{"items":[{"id":"...","category":"extraction|cost|impunity|suppression|precarity|wire","severity":0,"take":"..."}]}
 
 ITEMS:
 `;
@@ -223,19 +259,14 @@ async function glossChunk(
   }
   glossDiagnostics.parsed = parsed?.items?.length ?? -1;
 
-  const known = new Set(items.map((item) => item.id));
+  const byId = new Map(items.map((item) => [item.id, item]));
   let filed = 0;
   for (const entry of parsed?.items ?? []) {
     const id = String(entry.id ?? "");
-    if (!known.has(id)) continue;
-    const actor = String(entry.actor ?? "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 80);
-    const gloss = String(entry.gloss ?? "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 160);
+    const item = byId.get(id);
+    if (!item) continue;
+    const rawTake = String(entry.take ?? entry.gloss ?? "").replace(/\s+/g, " ").trim();
+    const take = rawTake.length <= 260 ? rawTake : `${rawTake.slice(0, 259).replace(/\s+\S*$/, "")}…`;
     const rawCategory = String(entry.category ?? "").trim().toLowerCase();
     const category =
       rawCategory === "wire"
@@ -247,7 +278,9 @@ async function glossChunk(
       0,
       Math.min(100, Math.round(Number(entry.severity ?? 0))),
     );
-    if (!glossIsGrounded(gloss, actor)) {
+    // A take that only re-words the headline is not a take. It is marked and
+    // kept out of the feed rather than printed under a headline it repeats.
+    if (!takeIsAnalysis(take, item.title)) {
       await db
         .prepare(
           "UPDATE feed_items SET gloss = ?, category = 'wire', severity = 0 WHERE id = ?",
@@ -260,7 +293,7 @@ async function glossChunk(
       .prepare(
         "UPDATE feed_items SET gloss = ?, category = ?, severity = ? WHERE id = ?",
       )
-      .bind(gloss, category, severity, id)
+      .bind(take, category, severity, id)
       .run();
     filed += 1;
   }

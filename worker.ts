@@ -144,6 +144,8 @@ export default {
           "/api/manifesto/refresh",
           "/api/coverage?batch=2",
           "/api/numbers?batch=2",
+          "/api/claims/verify?limit=20",
+          "/api/claims/takes?limit=8",
           "/api/claim-feed/publish?days=3",
           ...(midnight
             ? [

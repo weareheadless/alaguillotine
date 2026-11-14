@@ -18,6 +18,7 @@ interface Claim {
   url: string;
   title: string;
   gloss: string;
+  take?: string;
   person: string;
   publishedAt: string;
   firstSeenAt: string;
@@ -102,9 +103,14 @@ export function RecordStrip() {
                     <span className="text-chop-muted">on the record</span>
                   )}
                 </div>
-                <p className="mt-2 line-clamp-3 text-[13px] leading-snug text-sheetWhite/90">
+                <p className="mt-2 line-clamp-2 text-[13px] leading-snug text-sheetWhite/90">
                   {item.title}
                 </p>
+                {item.take ? (
+                  <p className="mt-2 line-clamp-3 border-l-2 border-hypeNeon/40 pl-2 text-[11px] leading-snug text-chop-muted">
+                    {item.take}
+                  </p>
+                ) : null}
               </div>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-mono text-[9px] tabular-nums text-chop-muted">

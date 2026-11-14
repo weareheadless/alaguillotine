@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb } from "@/lib/clock-store";
 import { refreshFeed } from "@/lib/feed";
 import { glossFeed } from "@/lib/feed-gloss";
+import { isAdminAuthed } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +26,9 @@ export async function POST(request: Request) {
   };
   const env = context.env ?? {};
   const secret = env.CRON_SECRET;
-  if (
-    !secret ||
-    (request.headers.get("authorization") ?? "") !== `Bearer ${secret}`
-  ) {
+  const cron =
+    Boolean(secret) && (request.headers.get("authorization") ?? "") === `Bearer ${secret}`;
+  if (!cron && !(await isAdminAuthed(request))) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -24,6 +24,7 @@ export interface FeedItem {
   url: string;
   title: string;
   gloss: string;
+  take?: string;
   source: string;
   community: string;
   category: string;
@@ -45,6 +46,7 @@ interface Row {
   url?: string;
   title?: string;
   gloss?: string;
+  take?: string;
   source?: string;
   community?: string;
   category?: string;
@@ -68,7 +70,7 @@ interface Row {
 const HEAT =
   "(severity * 10 + MIN(score, 200) + 800.0 / (1.0 + (julianday('now') - julianday(first_seen_at)) * 24.0 / 12.0))";
 
-const SELECT = `SELECT id, kind, url, title, gloss, source, community, category,
+const SELECT = `SELECT id, kind, url, title, gloss, take, source, community, category,
   score, comments, severity, cluster, cluster_size, published_at, first_seen_at,
   image_url,
   (SELECT CASE WHEN json_extract(editorial, '$.correction') IS NOT NULL
@@ -85,6 +87,7 @@ export function toFeedItem(row: Row): FeedItem {
     url: String(row.url ?? ""),
     title: String(row.title ?? ""),
     gloss: String(row.gloss ?? ""),
+    take: String(row.take ?? ""),
     source: String(row.source ?? ""),
     community: String(row.community ?? ""),
     category: String(row.category ?? "wire"),

@@ -98,18 +98,20 @@ function insert(db: LedgerDb, r: Record<string, unknown>): Promise<boolean> {
     status === "pending" ? " · filed, awaiting review" : status === "legacy" ? "" : " · reviewed"
   }`;
 
-  return db
+  const take = short(String(r.take ?? ""), 240);
+  const write = db
     .prepare(
       `INSERT OR IGNORE INTO feed_items
-        (id, kind, url, title, gloss, source, community, category, score, comments,
+        (id, kind, url, title, gloss, take, source, community, category, score, comments,
          severity, cluster, cluster_size, published_at, first_seen_at)
-       VALUES (?, 'charge', ?, ?, ?, 'The record', ?, ?, 0, 0, ?, ?, 1, ?, ?)`,
+       VALUES (?, 'charge', ?, ?, ?, ?, 'The record', ?, ?, 0, 0, ?, ?, 1, ?, ?)`,
     )
     .bind(
       feedId(claimId),
       `/archive/claim/${encodeURIComponent(claimId)}`,
       short(act, 180),
       gloss,
+      take,
       person,
       category,
       status === "pending" ? 2 : SEVERITY[grade] ?? 2,
@@ -120,6 +122,19 @@ function insert(db: LedgerDb, r: Record<string, unknown>): Promise<boolean> {
     .run()
     .then((res) => ((res as { meta?: { changes?: number } }).meta?.changes ?? 0) > 0)
     .catch(() => false);
+
+  // A card published before the take existed picks it up on the next pass.
+  if (take) {
+    write
+      .then(() =>
+        db
+          .prepare("UPDATE feed_items SET take = ? WHERE id = ? AND take = ''")
+          .bind(take, feedId(claimId))
+          .run(),
+      )
+      .catch(() => undefined);
+  }
+  return write;
 }
 
 export async function publishClaimsToFeed(
@@ -130,12 +145,31 @@ export async function publishClaimsToFeed(
   const limit = opts.limit ?? 40;
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
 
+  // Cards published before Ada's take existed pick one up here, so a take
+  // written late still reaches the card that is already on the page.
+  try {
+    await db
+      .prepare(
+        `UPDATE feed_items
+            SET take = COALESCE((
+                  SELECT le.take FROM ledger_entries le
+                   WHERE '/archive/claim/' || replace(le.id, ':', '%3A') = feed_items.url
+                     AND le.take IS NOT NULL AND le.take != ''
+                ), '')
+          WHERE kind = 'charge' AND (take IS NULL OR take = '')`,
+      )
+      .bind()
+      .run();
+  } catch {
+    /* the backfill is best effort */
+  }
+
   let rows: Array<Record<string, unknown>> = [];
   try {
     const res = await db
       .prepare(
         `SELECT id, person, act, place, year, category, confidence, sources, act_date,
-                evidence_grade, review_status, created_at
+                evidence_grade, review_status, created_at, take
            FROM ledger_entries
           WHERE (
                   (review_status IN ('accepted', 'legacy') AND evidence_grade IN ('A', 'B', 'C'))

@@ -19,8 +19,8 @@ export async function GET() {
   try {
     const rows = await db
       .prepare(
-        `SELECT id, url, title, gloss, community, published_at, first_seen_at FROM (
-           SELECT id, url, title, gloss, community, published_at, first_seen_at,
+        `SELECT id, url, title, gloss, take, community, published_at, first_seen_at FROM (
+           SELECT id, url, title, gloss, take, community, published_at, first_seen_at,
                   ROW_NUMBER() OVER (PARTITION BY community ORDER BY first_seen_at DESC) AS rn
              FROM feed_items
             WHERE kind = 'charge'
@@ -35,6 +35,7 @@ export async function GET() {
           url: String(r.url ?? ""),
           title: String(r.title ?? ""),
           gloss: String(r.gloss ?? ""),
+          take: String(r.take ?? ""),
           person: String(r.community ?? ""),
           publishedAt: String(r.published_at ?? ""),
           firstSeenAt: String(r.first_seen_at ?? ""),

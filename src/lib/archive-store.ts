@@ -81,6 +81,8 @@ export interface LedgerRow {
   /** charged | convicted | investigated | settled | no_action | blocked | unknown */
   outcome: string;
   gradeBasis: string;
+  /** Ada's take: what follows from the act, in the conditional where needed. */
+  take: string;
 }
 
 export interface LedgerQuery {
@@ -189,6 +191,7 @@ export async function listLedger(query: LedgerQuery = {}): Promise<LedgerPage> {
         grade: String(r.evidence_grade ?? ""),
         outcome: String(r.institutional_status ?? "unknown"),
         gradeBasis: String(r.grade_basis ?? ""),
+        take: String(r.take ?? ""),
       };
     }),
   };
@@ -202,7 +205,7 @@ export async function getLedgerEntry(id: string): Promise<LedgerRow | null> {
     .prepare(
       `SELECT id, person, role, act, place, year, category, confidence, attribution, sources,
               review_status, review_note, act_date, date_precision, evidence_quote, source_lang,
-              created_at, evidence_grade, institutional_status, grade_basis
+              created_at, evidence_grade, institutional_status, grade_basis, take
          FROM ledger_entries WHERE id = ?`,
     )
     .bind(id)
@@ -235,6 +238,7 @@ export async function getLedgerEntry(id: string): Promise<LedgerRow | null> {
     grade: String(r.evidence_grade ?? ""),
     outcome: String(r.institutional_status ?? "unknown"),
     gradeBasis: String(r.grade_basis ?? ""),
+    take: String(r.take ?? ""),
   };
 }
 

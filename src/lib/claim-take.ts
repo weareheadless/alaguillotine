@@ -1,0 +1,176 @@
+import type { D1 } from "./clock-store";
+import { takeIsAnalysis } from "./feed-gloss";
+
+/**
+ * Ada's take, beside the claim.
+ *
+ * The claim states the act. The take says what follows from it — or what would
+ * have to be true for it to matter, in the conditional, because most of the
+ * record stops at "this happened" and pretends the meaning is obvious. It is
+ * not obvious, and a page that pretends otherwise is a slogan.
+ *
+ * What the take may not do: add a fact, name a beneficiary the claim does not
+ * name, or restate the claim in other words. If it cannot clear those bars it
+ * is not stored, and the claim travels without one.
+ */
+
+const CATEGORY_NOTE: Record<string, string> = {
+  finance: "the money",
+  corruption: "the money",
+  tax: "the money",
+  war: "the cost",
+  arms: "the cost",
+  repression: "the closing exits",
+  media: "the closing exits",
+  migration: "the cost",
+  climate: "the cost",
+  labour: "the cost",
+};
+
+const PROMPT = `You are Ada Guillotine. Below are claims that are already on the public record: a person, an act, a place, a year, an evidence grade (A document, B several investigations, C one investigation, D a single allegation) and a category.
+
+For each claim write your take. One or two sentences, max 220 characters.
+
+Sentence one: what this act shows about how power is used here.
+Sentence two: what would follow if it holds — who pays, what it enables, what it would mean. Conditional where the record does not establish the link: "if", "would", "could", "appears", "whether". A grade C is one investigation and a grade D is one allegation; your take must not speak about either as established.
+
+Rules:
+1. Do not restate the act. The reader has it directly above your take.
+2. Add no fact, number, name or date that is not in the claim.
+3. Never assert a motive. "In return for" requires a record that says so; the conditional is the honest form.
+4. Deadpan. No outrage, no exclamation marks, no slogans.
+5. Vary the opening. Do not start with "<name> shows" or the pattern "X shows power ..."; do not close every take with "civilians paying". Name the specific mechanism instead: a budget, a licence, a command chain, a market, a border, a sentence that was never handed down.
+
+Return JSON only:
+{"takes":[{"id":"...","take":"..."}]}
+
+CLAIMS:
+`;
+
+interface TakeEnv {
+  SITE_AGENT_LLM_API_KEY?: string;
+  CLOCK_CHAT_BASE?: string;
+  CLOCK_MODEL?: string;
+}
+
+export interface TakeReport {
+  sought: number;
+  written: number;
+  rejected: number;
+}
+
+export async function writeTakesFor(
+  db: D1,
+  env: TakeEnv,
+  limit = 10,
+): Promise<TakeReport> {
+  const key = env.SITE_AGENT_LLM_API_KEY;
+  if (!key) return { sought: 0, written: 0, rejected: 0 };
+
+  const rows = await db
+    .prepare(
+      `SELECT id, person, role, act, place, year, category, evidence_grade
+         FROM ledger_entries
+        WHERE review_status IN ('accepted', 'legacy')
+          AND evidence_grade IN ('A', 'B', 'C')
+          AND (take IS NULL OR take = '')
+          AND lower(person) IN (SELECT lower(name) FROM queue_people)
+        ORDER BY created_at DESC
+        LIMIT ?`,
+    )
+    .bind(Math.min(30, Math.max(1, limit)))
+    .all();
+
+  const claims = (rows.results ?? []).map((r) => ({
+    id: String(r.id ?? ""),
+    person: String(r.person ?? ""),
+    role: String(r.role ?? ""),
+    act: String(r.act ?? ""),
+    place: String(r.place ?? ""),
+    year: r.year == null ? null : Number(r.year),
+    category: String(r.category ?? ""),
+    grade: String(r.evidence_grade ?? "C"),
+  }));
+  if (claims.length === 0) return { sought: 0, written: 0, rejected: 0 };
+
+  const base = (env.CLOCK_CHAT_BASE || "https://openrouter.ai/api/v1").replace(/\/$/, "");
+  const model = env.CLOCK_MODEL || "deepseek/deepseek-v4.1-flash";
+
+  let written = 0;
+  let rejected = 0;
+  const CHUNK = 5;
+  for (let start = 0; start < claims.length; start += CHUNK) {
+    const chunk = claims.slice(start, start + CHUNK);
+    let parsed: { takes?: Array<Record<string, unknown>> } | null = null;
+    try {
+      const res = await fetch(`${base}/chat/completions`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          temperature: 0.5,
+          max_tokens: 4000,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: "You write the take, not the charge. Output the JSON immediately.",
+            },
+            {
+              role: "user",
+              content:
+                PROMPT +
+                JSON.stringify(
+                  chunk.map((c) => ({
+                    id: c.id,
+                    person: c.person,
+                    role: c.role,
+                    act: c.act,
+                    place: c.place,
+                    year: c.year,
+                    category: c.category,
+                    grade: c.grade,
+                    mechanism: CATEGORY_NOTE[c.category.toLowerCase()] ?? "",
+                  })),
+                ),
+            },
+          ],
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!res.ok) continue;
+      const reply = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const raw = reply.choices?.[0]?.message?.content ?? "";
+      const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+      const open = text.indexOf("{");
+      const close = text.lastIndexOf("}");
+      parsed =
+        open > -1 && close > open
+          ? (JSON.parse(text.slice(open, close + 1)) as { takes?: Array<Record<string, unknown>> })
+          : null;
+    } catch {
+      continue;
+    }
+
+    const byId = new Map(chunk.map((c) => [c.id, c]));
+    for (const entry of parsed?.takes ?? []) {
+      const id = String(entry.id ?? "");
+      const claim = byId.get(id);
+      if (!claim) continue;
+      const raw = String(entry.take ?? "").replace(/\s+/g, " ").trim();
+      const take =
+        raw.length <= 240 ? raw : `${raw.slice(0, 239).replace(/\s+\S*$/, "")}…`;
+      if (!takeIsAnalysis(take, claim.act)) {
+        rejected += 1;
+        continue;
+      }
+      await db
+        .prepare("UPDATE ledger_entries SET take = ? WHERE id = ? AND (take IS NULL OR take = '')")
+        .bind(take, id)
+        .run();
+      written += 1;
+    }
+  }
+
+  return { sought: claims.length, written, rejected };
+}
