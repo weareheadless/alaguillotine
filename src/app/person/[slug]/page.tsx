@@ -6,7 +6,9 @@ import { getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
 import { PromiseAd } from "@/components/PromiseAd";
+import { evidenceFor } from "@/lib/evidence";
 import { RecordReport } from "@/components/RecordReport";
+import { chargeFor } from "@/lib/charge";
 
 export const dynamic = "force-dynamic";
 
@@ -55,8 +57,31 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   const ledger = await getLedgerFor(person.name);
   const positions = await getPositionsFor(slug);
   const declarations = await getDeclarationsFor(slug);
+
+  // The same function the blade uses, so the sentence under the name and the
+  // number beside it cannot disagree.
+  const today = Date.now();
+  const scoredClaims = ledger.filter((e) => {
+    if (!e.actDate) return e.year === new Date(today).getUTCFullYear();
+    const at = new Date(`${e.actDate}T00:00:00Z`).getTime();
+    return today - at <= 180 * 86400000 && at - today <= 7 * 86400000;
+  }).length;
+
+  const counted = evidenceFor(
+    ledger.map((e) => ({
+      act: e.act,
+      year: e.year,
+      category: e.category,
+      confidence: e.confidence,
+      actDate: e.actDate,
+      grade: e.grade,
+    })),
+  );
   const db = await getDb();
   const numbers = db ? await readNumbersFor(db, slug) : [];
+
+  // The receipt the charge rests on, or the sentence that clears the name.
+  const charge = chargeFor({ name: person.name, numbers, positions });
   const chopped = (person.timesChopped ?? 0) > 0;
   const crosses = Math.min(person.timesChopped ?? 0, 40);
 
@@ -114,12 +139,41 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
         </div>
       )}
 
-      <section className="mt-6">
+      <section className="mt-6 border border-chop-border bg-white/[0.02] p-3.5">
         <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">the charge</p>
-        <p className="mt-1 font-mono text-[12px] leading-relaxed text-chop-muted">{person.reason}</p>
+        <p className="mt-1 max-w-3xl text-[14px] font-semibold leading-snug text-sheetWhite">
+          {person.reason}
+        </p>
+
+        <p className="mt-2.5 font-mono text-[8.5px] uppercase tracking-[0.2em] text-chop-muted">
+          the receipt behind it
+        </p>
+        <p className="mt-1 max-w-3xl font-mono text-[11.5px] leading-relaxed text-sheetWhite/85">
+          {charge.headline}
+        </p>
+        <p className="mt-1 max-w-3xl font-mono text-[10px] leading-relaxed text-chop-muted">
+          {charge.support}
+        </p>
+
         <p className="mt-1.5 font-mono text-[9px] leading-relaxed text-chop-muted/70">
           Each clause below carries its date, its grade and its source. Where the record is thin,
           it says so.
+        </p>
+
+        <p className="mt-2 font-mono text-[10px] leading-relaxed text-chop-muted">
+          <span className="text-sheetWhite">Why this name is on the line:</span>{" "}
+          {counted.acts > 0 ? (
+            <>
+              {scoredClaims} claim{scoredClaims === 1 ? "" : "s"} fall inside the 180-day window.
+              Their five heaviest weights add to {counted.total}, and the score is
+              100 × (1 − e^(−{counted.total}/2.5)) = <span className="text-sheetWhite">{counted.score}</span>.
+              Acts older than the window, and anything at grade D, count for nothing — they stay on
+              the page and out of the number.
+            </>
+          ) : (
+            <>nothing on the record falls inside the 180-day window, so this name cannot be
+              sentenced. It keeps its page and its receipts.</>
+          )}
         </p>
       </section>
 

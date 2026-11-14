@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { DeclarationRow, LedgerEntry, PositionRow } from "@/lib/archive-store";
 import type { PersonNumber } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
+import { dominantCurrency, formatMoney, moneyOf } from "@/lib/money";
 
 /**
  * The report: one person, read top to bottom.
@@ -65,19 +66,15 @@ function groupClaims(claims: LedgerEntry[]): Array<{ label: string; items: Ledge
   });
 }
 
-const money = (n: number): string => {
-  if (n >= 1e12) return `$${(n / 1e12).toFixed(n >= 1e13 ? 0 : 1)}T`;
-  if (n >= 1e9) return `$${(n / 1e9).toFixed(n >= 1e10 ? 0 : 2)}B`;
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(0)}M`;
-  if (n >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
-  return `$${Math.round(n)}`;
-};
-
 const valueOf = (n: PersonNumber): number => {
-  if (n.value != null && n.value > 0) return n.value;
+  const m = moneyOf(n.value, n.unit);
+  if (m) return m.amount;
   const parsed = Number(String(n.display).replace(/[^0-9.]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+/** The bars carry what the desk stands behind: a document, or several inquiries. */
+const RECEIPT_GRADES = new Set(["A", "B"]);
 
 const yearOf = (n: { actDate?: string | null; year?: number | null }): number | null => {
   if (n.actDate) {
@@ -106,17 +103,26 @@ export function RecordReport({
   const tolls = numbers.filter((n) => TOLL_KINDS.has(n.kind));
   const wealth = numbers.filter((n) => n.kind === "wealth");
 
+  // A bar has to be money the desk would defend. Grade C is one investigation
+  // and grade D is one allegation; both stay in the list and out of the
+  // column. Currencies are never added together, so the chart draws the one
+  // most of the entries use and says how many it left out.
+  const backed = flows.filter((n) => RECEIPT_GRADES.has(String(n.grade ?? "")));
+  const chartCurrency = dominantCurrency(backed.map((n) => n.unit)) ?? "USD";
+  const charted = backed.filter((n) => moneyOf(n.value, n.unit)?.currency === chartCurrency);
+  const otherCurrency = backed.length - charted.length;
+  const money = (v: number): string => formatMoney(v, chartCurrency);
+  const wealthCurrency = dominantCurrency(wealth.map((n) => n.unit)) ?? "USD";
+
   const yearsOfItems = [
     ...ledger.map((e) => yearOf({ actDate: e.actDate, year: e.year })),
     ...flows.map((n) => yearOf(n)),
   ].filter((y): y is number => y != null);
 
   const firstYear = yearsOfItems.length ? Math.min(...yearsOfItems) : thisYear - 5;
-  // A position that is still open runs to this year.
-  const startYear = Math.min(
-    firstYear,
-    ...positions.map((p) => Number(p.fromDate.slice(0, 4)) || firstYear),
-  );
+  // The axis is drawn from what the record holds, not from when a job began: a
+  // role held since 2002 does not justify twenty-four empty columns.
+  const startYear = firstYear;
   const endYear = Math.max(thisYear, ...yearsOfItems);
 
   const yearList: number[] = [];
@@ -132,7 +138,7 @@ export function RecordReport({
   // Money documented per year. A holding is not a receipt, so wealth rows are
   // left out of the bars and shown on their own.
   const flowByYear = new Map<number, number>();
-  for (const n of flows) {
+  for (const n of charted) {
     const y = yearOf(n);
     if (y == null) continue;
     // The bars answer one question: what arrived. A fine is money leaving, a
@@ -143,8 +149,23 @@ export function RecordReport({
     if (n.whose === "campaign" || n.whose === "firm" || n.whose === "fund") continue;
     flowByYear.set(y, (flowByYear.get(y) ?? 0) + valueOf(n));
   }
-  const maxFlow = Math.max(1, ...flowByYear.values());
-  const hasMoney = [...flowByYear.values()].some((v) => v > 0);
+  // Money to a company or fund the person controls is drawn in the same bar,
+  // in a paler shade: it is the same year and the same question, and hiding it
+  // left the columns empty for exactly the people whose money arrives that way.
+  const firmByYear = new Map<number, number>();
+  for (const n of charted) {
+    const y = yearOf(n);
+    if (y == null) continue;
+    if (n.direction === "out" || n.kind === "fines" || n.kind === "donations") continue;
+    if (n.whose !== "firm" && n.whose !== "fund") continue;
+    firmByYear.set(y, (firmByYear.get(y) ?? 0) + valueOf(n));
+  }
+
+  const maxFlow = Math.max(
+    1,
+    ...yearList.map((y) => (flowByYear.get(y) ?? 0) + (firmByYear.get(y) ?? 0)),
+  );
+  const hasMoney = [...flowByYear.values(), ...firmByYear.values()].some((v) => v > 0);
 
   const tollByYear = new Map<number, PersonNumber>();
   for (const n of tolls) {
@@ -206,12 +227,12 @@ export function RecordReport({
     n.whose !== "firm" &&
     n.whose !== "fund";
 
-  const duringOffice = flows.filter((n) => {
+  const duringOffice = charted.filter((n) => {
     const at = dateOf(n);
     if (!at || !isReceipt(n)) return false;
     return statePositions.some((p) => withinTerm(p, at));
   });
-  const shortlyAfter = flows.filter((n) => {
+  const shortlyAfter = charted.filter((n) => {
     const at = dateOf(n);
     if (!at || !isReceipt(n)) return false;
     return statePositions.some((p) => {
@@ -339,7 +360,7 @@ export function RecordReport({
               [ledger.length, "claims on the record"],
               [thin, "are a single unverified allegation"],
               [untouched, "carry no recorded proceeding"],
-              [flows.length, "money entries"],
+              [flows.length, flows.length === 1 ? "money entry" : "money entries"],
               [tollTotal, "tolls attributed"],
             ].map(([n, label]) => (
               <div key={String(label)} className="flex items-baseline gap-2">
@@ -409,7 +430,7 @@ export function RecordReport({
               <>
                 <WealthStrip points={wealthPoints} max={maxWealth} />
                 <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-sheetWhite/80">
-                  {money(wealthPoints[wealthPoints.length - 1].v - wealthPoints[0].v)} between{" "}
+                  {formatMoney(wealthPoints[wealthPoints.length - 1].v - wealthPoints[0].v, wealthCurrency)} between{" "}
                   {wealthPoints[0].y} and {wealthPoints[wealthPoints.length - 1].y}
                 </p>
               </>
@@ -457,13 +478,49 @@ export function RecordReport({
             </span>
           </div>
 
-          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-[3px]">
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-y border-chop-border/70 py-2 font-mono text-chop-muted sm:grid-cols-3">
+            {hasMoney ? (
+              <div>
+                <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-sheetWhite/85">
+                  <span className="h-2 w-2 shrink-0 bg-spiteCrimson/75" />
+                  money
+                </p>
+                <p className="mt-0.5 text-[9px] tabular-nums">full column = {money(maxFlow)}</p>
+                <p className="mt-0.5 text-[8px] leading-snug">
+                  solid: paid to him · pale: paid to a company he runs · grade A or B only
+                  {otherCurrency > 0
+                    ? ` · ${otherCurrency} entr${otherCurrency === 1 ? "y" : "ies"} in another currency are listed, not drawn`
+                    : ""}
+                </p>
+              </div>
+            ) : null}
+            <div>
+              <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-sheetWhite/85">
+                <span className="h-2 w-2 shrink-0 bg-sheetWhite/30" />
+                claims
+              </p>
+              <p className="mt-0.5 text-[9px] tabular-nums">full column = {maxClaims}</p>
+              <p className="mt-0.5 text-[8px] leading-snug">filed against him that year</p>
+            </div>
+            <div>
+              <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-sheetWhite/85">
+                <span className="h-2 w-2 shrink-0 bg-hypeNeon/25" />
+                office
+              </p>
+              <p className="mt-0.5 text-[9px]">tinted column = a term held</p>
+              <p className="mt-0.5 text-[8px] leading-snug">the bar is the year, not the term</p>
+            </div>
+          </div>
+
+          <div className="mt-1.5 grid grid-cols-[repeat(auto-fit,minmax(0,1fr))] gap-[3px]">
             {yearList.map((y) => {
               const v = flowByYear.get(y) ?? 0;
               const claims = claimsByYear.get(y)?.length ?? 0;
               const held = heldIn(y);
               const state = held.some((p) => p.kind !== "firm");
-              const mh = v > 0 && maxFlow > 0 ? Math.max(4, (v / maxFlow) * 100) : 0;
+              const f = firmByYear.get(y) ?? 0;
+              const total = v + f;
+              const mh = total > 0 ? Math.max(4, (total / maxFlow) * 100) : 0;
               const ch = claims > 0 ? Math.max(4, (claims / maxClaims) * 100) : 0;
               return (
                 <div key={y} className="relative flex flex-col">
@@ -478,23 +535,30 @@ export function RecordReport({
                   ) : null}
 
                   {hasMoney ? (
-                    <div className="relative flex h-24 items-end justify-center">
-                      {v > 0 ? (
+                    <div className="relative flex h-24 items-end justify-center pt-4">
+                      {total > 0 ? (
                         <>
                           <div
-                            className="w-[62%] bg-spiteCrimson/75"
+                            className="flex w-[62%] flex-col justify-end"
                             style={{ height: `${mh}%` }}
-                            title={`${money(v)} documented in ${y}`}
-                          />
-                          <span className="absolute bottom-full mb-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[8px] tabular-nums text-sheetWhite/90">
-                            {money(v)}
+                            title={`${money(v)} to him, ${money(f)} to a company or fund he controls, ${y}`}
+                          >
+                            {f > 0 ? (
+                              <div className="w-full bg-spiteCrimson/30" style={{ height: `${(f / total) * 100}%` }} />
+                            ) : null}
+                            {v > 0 ? (
+                              <div className="w-full bg-spiteCrimson/80" style={{ height: `${(v / total) * 100}%` }} />
+                            ) : null}
+                          </div>
+                          <span className="absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap font-mono text-[8px] tabular-nums text-sheetWhite/90">
+                            {money(total)}
                           </span>
                         </>
                       ) : null}
                     </div>
                   ) : null}
 
-                  <div className="relative flex h-16 items-end justify-center border-t border-chop-border/70">
+                  <div className="relative flex h-16 items-end justify-center border-t border-chop-border/70 pt-3.5">
                     {claims > 0 ? (
                       <>
                         <div
@@ -502,7 +566,7 @@ export function RecordReport({
                           style={{ height: `${ch}%` }}
                           title={`${claims} claims filed for ${y}`}
                         />
-                        <span className="absolute bottom-full mb-0.5 left-1/2 -translate-x-1/2 font-mono text-[8px] tabular-nums text-chop-muted">
+                        <span className="absolute left-1/2 top-0 -translate-x-1/2 font-mono text-[8px] tabular-nums text-chop-muted">
                           {claims}
                         </span>
                       </>
@@ -524,10 +588,9 @@ export function RecordReport({
           </div>
 
           <p className="mt-1 font-mono text-[8.5px] leading-relaxed text-chop-muted">
-            {hasMoney ? "Red = money this record holds for that year. " : ""}
-            White = claims filed against him that year. A quiet column means nothing was collected
-            for it, not that nothing happened. Tinted column = an office held. Amber dot = a toll
-            attributed that year, on its own scale, never either of these.
+            A quiet column means nothing was collected for that year, not that nothing happened:
+            the passes look at recent coverage, and history has to be asked for by name. Amber dot
+            = a toll attributed that year, on its own scale, never the money axis.
           </p>
         </section>
 
@@ -582,7 +645,10 @@ export function RecordReport({
                               {n.display}
                             </span>
                             <span className="text-[12px] leading-snug text-sheetWhite/85">
-                              {n.counterparty || n.label}
+                              {n.label}
+                              {n.counterparty ? (
+                                <span className="text-chop-muted"> · {n.counterparty}</span>
+                              ) : null}
                             </span>
                             <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
                               {n.instrument || n.kind}
