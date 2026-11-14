@@ -14,6 +14,7 @@ import { QueueCard } from "../components/QueueCard";
 import type { Figure } from "../lib/hateometer";
 import { CrossesWall } from "../components/CrossesWall";
 import { FeedMosaic } from "../components/FeedMosaic";
+import { RecordStrip } from "../components/RecordStrip";
 import { SubliminalVideo } from "../components/SubliminalVideo";
 import { NewsReel, type CutIn } from "../components/NewsReel";
 import { LiveWire } from "../components/LiveWire";
@@ -234,6 +235,7 @@ export default function HomePage() {
 
         {/* ── The evidence ────────────────────────────────────────────── */}
         <div className="order-3 lg:order-4">
+          <RecordStrip />
           <FeedMosaic />
         </div>
 

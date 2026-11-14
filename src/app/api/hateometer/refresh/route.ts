@@ -6,6 +6,7 @@ import { ledgerSummaryFor, readLedgerSummaries } from "@/lib/archive-store";
 import { registerQueueNames } from "@/lib/coverage";
 import { writeLedgerEntries } from "@/lib/ledger-write";
 import { slugify } from "@/lib/slug";
+import { publishClaimsToFeed } from "@/lib/claim-feed";
 import type { Figure } from "@/lib/hateometer";
 
 export const dynamic = "force-dynamic";
@@ -144,6 +145,53 @@ export async function POST(request: Request) {
       }
     }
 
+    // Everyone already standing gets their new act filed too. Before this the
+    // pass only wrote a claim when a name *arrived*, so a person on the list
+    // could be in the wire for a week and their page would not move. One claim
+    // per name per pass, deduplicated by the act itself, capped so a busy wire
+    // cannot bury the review desk.
+    let refreshed = 0;
+    const arrivalNames = new Set(arrivals.map((a) => a.name.toLowerCase()));
+    const onTheList = new Set(queue.map((q) => q.name.toLowerCase()));
+    for (const fresh of pass.figures) {
+      if (refreshed >= 12) break;
+      const key = fresh.name.toLowerCase();
+      if (arrivalNames.has(key) || !onTheList.has(key)) continue;
+      if (boilerplate(fresh.reason)) continue;
+      const cited = fresh.items ?? [];
+      const sources = [
+        ...new Set(cited.map((i) => i.sourceUrl).filter((u) => /^https?:\/\//.test(u))),
+      ];
+      if (!sources.length) continue;
+      const dated = cited.find((i) => i.publishedAt);
+      const year =
+        Number(fresh.actYear) ||
+        (dated ? Number(String(dated.publishedAt).slice(0, 4)) : new Date().getUTCFullYear());
+      try {
+        const wrote = await writeLedgerEntries(db, fresh.name, [
+          {
+            person: fresh.name,
+            role: fresh.role,
+            act: fresh.reason,
+            place: fresh.country,
+            year: Number.isFinite(year) ? year : new Date().getUTCFullYear(),
+            category: categoryOf(cited[0]?.dimension),
+            confidence: sources.length >= 2 ? 60 : 45,
+            sources: sources.slice(0, 3),
+            caseId: `queue:${fresh.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            attribution: 1,
+          },
+        ]);
+        refreshed += wrote.added;
+      } catch (error) {
+        console.error(
+          "stander_receipt_failed",
+          error instanceof Error ? error.message : "unknown",
+        );
+      }
+    }
+    filed += refreshed;
+
     // Re-read the record if anything was just filed, so the arrival is scored
     // on the charge that put it here rather than on an empty ledger.
     const record = filed > 0 ? await readLedgerSummaries() : ledger;
@@ -208,11 +256,22 @@ export async function POST(request: Request) {
       computedAt: pass.computedAt,
     });
 
+    // The record reached the front page: accepted claims as charges, and
+    // pending A/B filings tagged as such. Idempotent, so running twice adds
+    // nothing.
+    let published = 0;
+    try {
+      published = (await publishClaimsToFeed(db, { days: 3, limit: 40 })).published;
+    } catch (error) {
+      console.error("claim_feed_failed", error instanceof Error ? error.message : "unknown");
+    }
+
     return Response.json({
       ok: true,
       level: pass.level,
       added: ranked.length - queue.length,
       filed,
+      published,
       named: pass.figures.length,
       stats: pass.stats ?? null,
       arrivals: admitted.slice(0, 12),

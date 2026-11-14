@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { clockConfig } from "@/lib/clock-research";
 import { CASES, researchCase } from "@/lib/backfill";
 import { slugify } from "@/lib/slug";
+import { publishClaimsToFeed } from "@/lib/claim-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -133,5 +134,17 @@ export async function POST(request: Request) {
   }
 
   if (!run.length) return Response.json({ ok: true, done: true });
-  return Response.json({ ok: true, run });
+
+  // Whatever this pass put on the record goes to the feed if it already clears
+  // review. Pending claims wait on their person's page, not on the front page.
+  let published = 0;
+  if (db) {
+    try {
+      published = (await publishClaimsToFeed(db, { days: 7, limit: 60 })).published;
+    } catch {
+      /* the feed is downstream of the record */
+    }
+  }
+
+  return Response.json({ ok: true, run, published });
 }

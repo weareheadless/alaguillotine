@@ -8,6 +8,7 @@ import {
   GRADE_WEIGHT,
   windowWeight,
 } from "./evidence";
+import { publishClaim } from "@/lib/claim-feed";
 
 /**
  * Evidence review.
@@ -231,6 +232,16 @@ export async function reviewEvidence(
     )
     .bind(input.id)
     .first<Record<string, unknown>>();
+
+  // An accepted claim goes to the front page the moment it is accepted, not
+  // on the next twelve-hour pass: the reader who did the work should see it.
+  if (input.status === "accepted") {
+    try {
+      await publishClaim(db, input.id);
+    } catch {
+      /* the feed is downstream of the record; it must not fail the review */
+    }
+  }
 
   return { ok: true, row: after ? rowToReview(after) : undefined };
 }
