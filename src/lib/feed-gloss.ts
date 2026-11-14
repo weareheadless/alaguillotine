@@ -78,6 +78,13 @@ function words(value: string): string[] {
 const ANALYSIS_MARK = /\b(if|would|could|may|might|means|implies|because|suggests|unless|until|whether|what follows|the test|if true|if confirmed)\b/i;
 
 /**
+ * A take can reason by consequence without a conditional. "A $3m check and a
+ * floor vote" is analysis if it names who pays; requiring the word "if" turned
+ * the sharpest lines into rejects.
+ */
+const CONSEQUENCE = /\b(cost|costs|pays|paid|bill|bills|prices|floor|ceiling|taxpayer|public|tenant|worker|patient|profit|profits|leverage|insurance|guarantee|subsid|cheaper|free|contract|procurement|stake|settlement|designation|budget|line item|invoice|payout|dividend|rent|debt|licence|license|permit|gate|docket|cheque|check|payment|fee|fine|tender|award|grant|quota|tariff)\b/i;
+
+/**
  * A take has to add a step the headline does not have.
  *
  * Two failures are mechanical and worth catching before publication: a take
@@ -88,7 +95,7 @@ const ANALYSIS_MARK = /\b(if|would|could|may|might|means|implies|because|suggest
 export function takeIsAnalysis(take: string, title: string, minLength = 60): boolean {
   const t = take.replace(/\s+/g, " ").trim();
   if (t.length < minLength || t.length > 260) return false;
-  if (!ANALYSIS_MARK.test(t)) return false;
+  if (!ANALYSIS_MARK.test(t) && !CONSEQUENCE.test(t)) return false;
   const content = (value: string) =>
     new Set(
       value
@@ -124,10 +131,12 @@ For each item, write your take — analysis, not a charge and not a summary. Two
 Voice — this is the part that gets a line rejected:
 You are not a summariser and not a policy analyst. You are the bailiff who has read every file and stopped being surprised. Put the claim and the official description in the same breath and let the gap do the damage. Short sentences, concrete nouns. A line that could appear in a press release without embarrassment is a failure.
 
-Cadence, not content — never reuse these facts:
-- "The review found no wrongdoing, which is what the review is for."
-- "A public service, a private contract, and a press release about transparency."
-- "They call it a partnership. The invoice calls it something else."
+Cadence, not content — never reuse these lines or facts. This is the site's register:
+- "The guillotine is on time. Your train is not."
+- "The blade is carbon neutral. The condemned is not."
+- "Six dead at a hospital by a US-made missile. The invoice is itemized."
+
+The second beat can be a flat aside: "which is what the review is for", "on a Tuesday", "by coincidence". Being accurate is not enough; the line should be unkind in a way that survives a second reading. The joke may never add a fact — it may only rearrange what the headline already says.
 
 No puns, no exclamation marks, no rhetorical questions, no "imagine if".
 
@@ -203,7 +212,9 @@ export async function glossFeed(
             ORDER BY first_seen_at ASC LIMIT ?`
         : `SELECT id, title, source, community FROM feed_items
             WHERE kind = 'wire' AND gloss = ''
-            ORDER BY first_seen_at ASC LIMIT ?`,
+            -- Newest first. Oldest-first was a queue that served yesterday's
+            -- backlog while the afternoon's news waited behind it.
+            ORDER BY first_seen_at DESC LIMIT ?`,
     )
     .bind(limit)
     .all();

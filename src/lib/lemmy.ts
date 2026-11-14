@@ -184,9 +184,13 @@ export async function fetchLemmyCandidates(): Promise<LemmyPost[]> {
  * every fifteen minutes, and lets the ranking sort it out. Duplicate links are
  * collapsed here; duplicate *stories* are clustered later, in the feed.
  */
-export async function fetchLemmyFeed(limit = 18): Promise<LemmyPost[]> {
+export async function fetchLemmyFeed(limit = 24): Promise<LemmyPost[]> {
+  // TopDay returns the same ranked page all day: the feed was refreshing every
+  // fifteen minutes and seeing a news cycle that had not moved. The firehose
+  // reads New, so every post enters the feed once and the page can be recent.
+  // The clock keeps its TopDay reading; that is a different question.
   const results = await Promise.all(
-    FEED_COMMUNITIES.map((community) => fetchCommunity(community, limit)),
+    FEED_COMMUNITIES.map((community) => fetchCommunity({ ...community, sort: "New" }, limit)),
   );
   const byUrl = new Map<string, LemmyPost>();
   for (const post of results.flat()) {

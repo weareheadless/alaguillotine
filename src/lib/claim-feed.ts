@@ -156,7 +156,7 @@ function insert(db: LedgerDb, r: Record<string, unknown>): Promise<boolean> {
   // only day SQLite could invent is a fabricated fact on a news card.
   const when = /^\d{4}-\d{2}-\d{2}$/.test(String(r.act_date ?? "")) ? String(r.act_date) : now;
   const gloss = labelFor(r);
-  const take = short(String(r.take ?? ""), 240);
+  const take = String(r.take ?? "").trim();
   const write = db
     .prepare(
       `INSERT OR IGNORE INTO feed_items
@@ -314,7 +314,7 @@ export async function publishClaimsToFeed(
   for (const r of rows) {
     const claimId = String(r.id ?? "");
     if (!claimId) continue;
-    const take = short(String(r.take ?? ""), 240);
+    const take = String(r.take ?? "").trim();
     try {
       await db
         .prepare(

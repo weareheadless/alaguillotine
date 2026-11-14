@@ -38,6 +38,18 @@ export async function POST(request: Request) {
   const params = new URL(request.url).searchParams;
   // ?rewrite=12 re-writes takes that already exist, for a voice pass, without
   // pulling the wire or touching anything else.
+  // ?gloss=40 is the catch-up path: take the newest unwritten wire items and
+  // write their takes without pulling the wire again. The cron does the same
+  // work in smaller batches after each pull.
+  const catchUp = Number(params.get("gloss") ?? 0);
+  if (catchUp > 0) {
+    const glossed = await glossFeed(db, env, Math.min(60, catchUp));
+    return Response.json(
+      { ok: true, catchUp: true, glossed },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const rewrite = Number(params.get("rewrite") ?? 0);
   if (rewrite > 0) {
     const glossed = await glossFeed(db, env, Math.min(20, rewrite), { rewrite: true });
@@ -48,6 +60,6 @@ export async function POST(request: Request) {
   }
 
   const result = await refreshFeed(db);
-  const glossed = await glossFeed(db, env, 12);
+  const glossed = await glossFeed(db, env, 30);
   return Response.json({ ok: true, ...result, glossed });
 }

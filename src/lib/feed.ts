@@ -117,17 +117,18 @@ export async function readFeedPage(
        ), lanes AS (
          SELECT *, ROW_NUMBER() OVER (
            PARTITION BY CASE WHEN kind IN ('record', 'charge') THEN 1 ELSE 0 END
-           -- The record lane is chronological: a claim filed this morning is
-           -- the newest thing in the record, whatever the act's date and
-           -- whatever weight it carries. Heat still ranks the wire.
+           -- Both lanes are chronological now. The wire used to be ranked by
+           -- heat, which pinned this morning's most-upvoted post to the top
+           -- through the afternoon's news: a feed that refreshes and never
+           -- moves. Recency leads; heat breaks ties.
            ORDER BY CASE WHEN kind IN ('record', 'charge') THEN first_seen_at END DESC,
-                    heat DESC, first_seen_at DESC, id
+                    first_seen_at DESC, heat DESC, id
          ) - 1 AS position FROM candidates
        )
        SELECT * FROM lanes
        ORDER BY CASE WHEN kind IN ('record', 'charge') THEN position * 4 + 3
          ELSE CAST(position / 3 AS INTEGER) * 4 + position % 3 END,
-         heat DESC, id LIMIT ? OFFSET ?`,
+         first_seen_at DESC, id LIMIT ? OFFSET ?`,
     )
     .bind(limit, offset)
     .all();
