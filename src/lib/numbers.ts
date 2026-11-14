@@ -81,6 +81,12 @@ export interface PersonNumber {
   capacity?: string;
   /** 1 when that role was a public office or an official assignment. */
   inOffice?: boolean;
+  /** pending | accepted | rejected | legacy */
+  reviewStatus?: string;
+  /** recorded | attributed | projected | estimate */
+  qualifier?: string;
+  /** person | firm | fund | state */
+  whose?: string;
 }
 
 type Result = { results?: Array<Record<string, unknown>> };
@@ -137,6 +143,9 @@ function numberFromRow(r: Record<string, unknown>): PersonNumber {
     declared: String(r.declared ?? ""),
     capacity: String(r.capacity ?? ""),
     inOffice: Number(r.in_office ?? 0) === 1,
+    reviewStatus: String(r.review_status ?? "legacy"),
+    qualifier: String(r.qualifier ?? ""),
+    whose: String(r.whose ?? ""),
   };
 }
 
@@ -157,8 +166,9 @@ export async function readNumbersFor(db: NumbersDb, slug: string): Promise<Perso
       .prepare(
         `SELECT kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
                 act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared,
-                capacity, in_office
-           FROM person_numbers WHERE slug = ?`,
+                capacity, in_office, review_status, qualifier, whose
+           FROM person_numbers
+          WHERE slug = ? AND review_status IN ('accepted', 'legacy')`,
       )
       .bind(slug)
       .all();
@@ -176,8 +186,9 @@ export async function readAllNumbers(
       .prepare(
         `SELECT slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
                 act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared,
-                capacity, in_office
-           FROM person_numbers`,
+                capacity, in_office, review_status, qualifier, whose
+           FROM person_numbers
+          WHERE review_status IN ('accepted', 'legacy')`,
       )
       .bind()
       .all();
@@ -501,8 +512,8 @@ export async function writeNumbers(
           `INSERT INTO person_numbers
              (slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
               checked_at, act_date, direction, instrument, counterparty, declared,
-              capacity, in_office)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              capacity, in_office, review_status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
            ON CONFLICT(slug, kind, label) DO UPDATE SET
              display = excluded.display,
              value = excluded.value,

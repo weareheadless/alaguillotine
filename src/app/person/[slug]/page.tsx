@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getLedgerFor, type LedgerEntry } from "@/lib/archive-store";
+import { getLedgerFor, getPositionsFor, type LedgerEntry } from "@/lib/archive-store";
 import { getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor, type NumberKind, type PersonNumber } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
@@ -77,6 +77,12 @@ const DECLARED: Record<string, string> = {
  * beside the 2018 policy it was arranged around rather than in a separate box
  * labelled "numbers".
  */
+/** A date as a fraction of the year, so a band can be placed on an axis. */
+function yearFrac(iso: string): number {
+  const [y, m] = iso.split("-").map(Number);
+  return (y || 0) + (((m || 1) - 1) / 12);
+}
+
 function stampOf(at: string | null, year: number): string {
   if (!at) return year ? String(year) : "undated";
   return new Date(`${at}T00:00:00Z`).toUTCString().slice(5, 16);
@@ -88,6 +94,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   if (!person) notFound();
 
   const ledger = await getLedgerFor(person.name);
+  const positions = await getPositionsFor(slug);
   const db = await getDb();
   const numbers = db ? await readNumbersFor(db, slug) : [];
   const chopped = (person.timesChopped ?? 0) > 0;
@@ -132,6 +139,22 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
     .filter(Boolean)
     .sort();
   const fromOffice = numbers.filter((n) => n.inOffice).length;
+  const spanStart = positions.length
+    ? Math.floor(Math.min(...positions.map((p) => yearFrac(p.fromDate))))
+    : 0;
+  const thisYear = new Date().getUTCFullYear();
+  const spanEnd = positions.length
+    ? Math.max(
+        thisYear,
+        ...positions.map((p) => Number((p.toDate ?? String(thisYear)).slice(0, 4))),
+      )
+    : 0;
+  // The scale runs to the end of the last year, so an event in November of it
+  // still has somewhere to sit. The ticks stop at the year itself.
+  const scaleEnd = spanEnd + 1;
+  const step = spanEnd - spanStart > 8 ? 3 : 1;
+  const ticks: number[] = [];
+  for (let y = spanStart; y <= spanEnd; y += step) ticks.push(y);
   const moneySpan = moneyYears.length
     ? `${moneyYears[0]}–${moneyYears[moneyYears.length - 1]}`
     : "";
@@ -232,6 +255,71 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
       </div>
 
       <PromiseAd variant="panel" />
+
+      {positions.length > 0 ? (
+        <section className="mt-8 border border-chop-border bg-white/[0.02] p-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted">
+              positions on the clock
+            </p>
+            <p className="font-mono text-[9px] tabular-nums text-chop-muted">
+              {spanStart}–{spanEnd}
+            </p>
+          </div>
+          <ul className="mt-2.5 space-y-2">
+            {positions.map((p) => {
+              const from = yearFrac(p.fromDate);
+              const to = p.toDate ? yearFrac(p.toDate) : yearFrac(new Date().toISOString().slice(0, 10));
+              const left = ((from - spanStart) / Math.max(1, scaleEnd - spanStart)) * 100;
+              const width = Math.max(1.5, ((to - from) / Math.max(1, scaleEnd - spanStart)) * 100);
+              return (
+                <li key={p.id}>
+                  <div className="flex items-baseline justify-between gap-2 font-mono text-[10px]">
+                    <span className="truncate text-sheetWhite/85">
+                      {p.role}
+                      <span className="text-chop-muted"> · {p.org}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums text-chop-muted">
+                      {p.fromDate.slice(0, 4)}–{p.toDate ? p.toDate.slice(0, 4) : "now"}
+                    </span>
+                  </div>
+                  <div className="mt-1 h-[6px] w-full bg-white/5">
+                    <div
+                      className={`h-full ${
+                        p.kind === "firm"
+                          ? "bg-sheetWhite/25"
+                          : p.kind === "fund"
+                            ? "bg-hypeNeon/45"
+                            : "bg-hypeNeon/70"
+                      }`}
+                      style={{
+                        marginLeft: `${Math.max(0, Math.min(100, left))}%`,
+                        width: `${Math.min(100 - Math.max(0, left), width)}%`,
+                      }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="relative mt-1.5 h-3">
+            {ticks.map((y) => (
+              <span
+                key={y}
+                style={{ left: `${((y - spanStart) / Math.max(1, scaleEnd - spanStart)) * 100}%` }}
+                className="absolute -translate-x-1/2 tabular-nums font-mono text-[8px] text-chop-muted"
+              >
+                {y}
+              </span>
+            ))}
+          </div>
+          <p className="mt-1 font-mono text-[9px] leading-relaxed text-chop-muted">
+            Bands are terms, not conduct. A role known only by its year is drawn at the year,
+            not at a date the source never gave. Whether a payment falls inside a band is
+            arithmetic; what it means is the claim.
+          </p>
+        </section>
+      ) : null}
 
       <h2 className="mt-10 border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
         the record

@@ -462,6 +462,54 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
 }
 
 /**
+ * What the person was, and when.
+ *
+ * The terms are stored with a precision flag, so a role known only by its year
+ * is not drawn as if it began on the first of January. The page draws them as
+ * bands above the record; the overlap with a payment is then visible without
+ * anyone having to say "conflict of interest" out loud.
+ */
+export interface PositionRow {
+  id: string;
+  role: string;
+  org: string;
+  kind: string;
+  fromDate: string;
+  toDate: string | null;
+  precision: string;
+  sourceUrl: string;
+  note: string;
+}
+
+export async function getPositionsFor(slug: string): Promise<PositionRow[]> {
+  const d = await db();
+  if (!d) return [];
+  try {
+    const rows = await d
+      .prepare(
+        `SELECT id, role, org, kind, from_date, to_date, date_precision, source_url, note
+           FROM positions WHERE slug = ? ORDER BY from_date`,
+      )
+      .bind(slug)
+      .all();
+    return (rows.results ?? []).map((r) => ({
+      id: String(r.id ?? ""),
+      role: String(r.role ?? ""),
+      org: String(r.org ?? ""),
+      kind: String(r.kind ?? "state"),
+      fromDate: String(r.from_date ?? ""),
+      toDate: r.to_date == null ? null : String(r.to_date),
+      precision: String(r.date_precision ?? "day"),
+      sourceUrl: String(r.source_url ?? ""),
+      note: String(r.note ?? ""),
+    }));
+  } catch {
+    // Table not migrated yet.
+    return [];
+  }
+}
+
+/**
  * The record, summarised for the page and the queue.
  *
  * The number the line shows is now computed here: the harm of the acts inside
