@@ -86,9 +86,10 @@ export async function writeTakesFor(
   db: D1,
   env: TakeEnv,
   limit = 10,
-  opts: { rewrite?: boolean } = {},
+  opts: { rewrite?: boolean | "stale" } = {},
 ): Promise<TakeReport> {
   const rewrite = Boolean(opts.rewrite);
+  const stale = opts.rewrite === "stale";
   const key = env.SITE_AGENT_LLM_API_KEY;
   if (!key) return { sought: 0, written: 0, rejected: 0, failures: [], rejections: [] };
 
@@ -207,7 +208,7 @@ export async function writeTakesFor(
         raw.length <= 240 ? raw : `${raw.slice(0, 239).replace(/\s+\S*$/, "")}…`;
       // The voice is the point, and the punchiest lines are the shortest.
       // Forty-five characters is enough to be a sentence, not a label.
-      if (!takeIsAnalysis(take, claim.act, 45)) {
+      if (!takeIsAnalysis(take, claim.act, 45, false)) {
         rejected += 1;
         rejections.push(`${take.length}: ${take.slice(0, 50)}`);
         continue;

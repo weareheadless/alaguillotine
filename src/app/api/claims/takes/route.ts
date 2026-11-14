@@ -38,7 +38,11 @@ export async function POST(request: Request) {
   const limit = Math.min(60, Math.max(1, Number(params.get("limit") ?? 10)));
   // ?rewrite=1 re-writes takes that already exist, for a voice pass. It never
   // leaves a claim with no take: a failed rewrite keeps what was there.
-  const rewrite = params.get("rewrite") === "1";
+  // ?rewrite=1 re-reads every take; ?rewrite=stale re-reads only those still
+  // carrying a line from before the voice pass, so a rewrite does not churn
+  // the ones already written in the right register.
+  const mode = params.get("rewrite");
+  const rewrite = mode === "1" ? true : mode === "stale" ? ("stale" as const) : false;
   const report = await writeTakesFor(db, context.env ?? {}, limit, { rewrite });
 
   let published = 0;

@@ -92,10 +92,18 @@ const CONSEQUENCE = /\b(cost|costs|pays|paid|bill|bills|prices|floor|ceiling|tax
  * reasoning. Overlap is measured on content words, so "Musk buys X" and "X
  * bought by Musk" score as the same sentence — because to a reader they are.
  */
-export function takeIsAnalysis(take: string, title: string, minLength = 60): boolean {
+export function takeIsAnalysis(
+  take: string,
+  title: string,
+  minLength = 60,
+  requireReason = true,
+): boolean {
   const t = take.replace(/\s+/g, " ").trim();
   if (t.length < minLength || t.length > 260) return false;
-  if (!ANALYSIS_MARK.test(t) && !CONSEQUENCE.test(t)) return false;
+  // A claim's take reasons by consequence as often as by conditional, and the
+  // word list cannot see the joke. There the overlap test does the work;
+  // wire takes were written to a briefing, so they keep the stricter test.
+  if (requireReason && !ANALYSIS_MARK.test(t) && !CONSEQUENCE.test(t)) return false;
   const content = (value: string) =>
     new Set(
       value
