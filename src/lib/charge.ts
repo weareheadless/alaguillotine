@@ -47,6 +47,8 @@ function isReceipt(n: PersonNumber): boolean {
   if (TOLL_KINDS.has(n.kind) || n.kind === "wealth") return false;
   if (n.kind === "fines" || n.kind === "donations") return false;
   if (n.whose === "campaign" || n.whose === "state") return false;
+  // An approved abatement is a ceiling, not a payment.
+  if (n.qualifier === "approved") return false;
   return true;
 }
 

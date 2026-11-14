@@ -25,6 +25,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.1.11",
+    "unpdf": "^1.9.1",
     "wrangler": "^4.158.0"
   },
   "devDependencies": {

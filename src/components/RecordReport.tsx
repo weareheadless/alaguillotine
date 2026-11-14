@@ -109,7 +109,11 @@ export function RecordReport({
   // most of the entries use and says how many it left out.
   const backed = flows.filter((n) => RECEIPT_GRADES.has(String(n.grade ?? "")));
   const chartCurrency = dominantCurrency(backed.map((n) => n.unit)) ?? "USD";
-  const charted = backed.filter((n) => moneyOf(n.value, n.unit)?.currency === chartCurrency);
+  // An approved abatement is a ceiling the state granted, not cash received.
+  // It is listed with its qualifier and kept off the money axis.
+  const charted = backed.filter(
+    (n) => moneyOf(n.value, n.unit)?.currency === chartCurrency && n.qualifier !== "approved",
+  );
   const otherCurrency = backed.length - charted.length;
   const money = (v: number): string => formatMoney(v, chartCurrency);
   const wealthCurrency = dominantCurrency(wealth.map((n) => n.unit)) ?? "USD";
@@ -649,7 +653,11 @@ export function RecordReport({
                             key={`f-${n.kind}-${n.label}-${i}`}
                             className="flex flex-wrap items-baseline gap-x-2"
                           >
-                            <span className="font-mono text-[13px] font-black tabular-nums text-spiteCrimson">
+                            <span
+                              className={`font-mono text-[13px] font-black tabular-nums ${
+                                n.qualifier === "approved" ? "text-chop-muted" : "text-spiteCrimson"
+                              }`}
+                            >
                               {n.display}
                             </span>
                             <span className="text-[12px] leading-snug text-sheetWhite/85">
@@ -660,6 +668,7 @@ export function RecordReport({
                             </span>
                             <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-chop-muted">
                               {n.instrument || n.kind}
+                              {n.qualifier === "approved" ? " · approved ceiling, not cash" : ""}
                               {n.capacity ? ` · as ${n.capacity}` : ""}
                               {n.grade ? ` · ${n.grade}` : ""}
                             </span>

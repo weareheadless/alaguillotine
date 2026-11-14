@@ -96,6 +96,25 @@ export default {
       return;
     }
 
+    // State and local subsidy registers, monthly: fifty websites, one shape.
+    // Nothing here calls a model, so it runs on the first of the month at 05:00
+    // and leaves the rest of the schedule alone.
+    if (event.cron === "0 5 1 * *") {
+      context.waitUntil(
+        invokeApp(
+          "/api/subsidies/ingest",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/subsidies/ingest returned HTTP ${response.status}.`);
+          }
+        }),
+      );
+      return;
+    }
+
     // The register read: no search, no model, so it gets its own quiet slot.
     // Without this branch the expression is deployed and does nothing but the
     // clock refresh, which is the failure mode where a schedule looks alive.
