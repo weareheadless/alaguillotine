@@ -37,6 +37,34 @@ const GRADE_CHIP: Record<string, string> = {
   D: "border-spiteCrimson/60 text-spiteCrimson",
 };
 
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * A year with eighteen claims is a wall. Past six, split it by month so the
+ * page reads as a sequence rather than a dump; below that, a month heading is
+ * just noise on a year that has three items in it.
+ */
+function groupClaims(claims: LedgerEntry[]): Array<{ label: string; items: LedgerEntry[] }> {
+  const sorted = [...claims].sort((a, b) =>
+    (b.actDate ?? "").localeCompare(a.actDate ?? ""),
+  );
+  if (sorted.length <= 6) return [{ label: "", items: sorted }];
+
+  const map = new Map<string, LedgerEntry[]>();
+  for (const e of sorted) {
+    const key = e.actDate ? e.actDate.slice(0, 7) : "undated";
+    const list = map.get(key);
+    if (list) list.push(e);
+    else map.set(key, [e]);
+  }
+  return [...map.entries()].map(([key, items]) => {
+    if (key === "undated") return { label: "no date", items };
+    const month = Number(key.slice(5, 7));
+    return { label: `${MONTHS[month - 1] ?? key} ${key.slice(0, 4)}`, items };
+  });
+}
+
 const money = (n: number): string => {
   if (n >= 1e12) return `$${(n / 1e12).toFixed(n >= 1e13 ? 0 : 1)}T`;
   if (n >= 1e9) return `$${(n / 1e9).toFixed(n >= 1e10 ? 0 : 2)}B`;
@@ -369,7 +397,15 @@ export function RecordReport({
 
                     {claims.length > 0 ? (
                       <ul className="mt-2 space-y-2">
-                        {claims.map((e) => (
+                        {groupClaims(claims).map((group) => (
+                          <li key={group.label || "all"} className="list-none">
+                            {group.label ? (
+                              <p className="mb-1 font-mono text-[8.5px] uppercase tracking-[0.2em] text-chop-muted/80">
+                                {group.label} · {group.items.length}
+                              </p>
+                            ) : null}
+                            <ul className="space-y-2">
+                              {group.items.map((e) => (
                           <li key={e.id || e.act} className="border-l border-chop-border pl-2.5">
                             <div className="flex flex-wrap items-baseline gap-x-2 font-mono text-[8.5px] uppercase tracking-[0.15em] text-chop-muted">
                               {e.grade ? (
@@ -418,6 +454,9 @@ export function RecordReport({
                                 </a>
                               ))}
                             </div>
+                          </li>
+                              ))}
+                            </ul>
                           </li>
                         ))}
                       </ul>
