@@ -126,20 +126,6 @@ async function post<T>(url: string, body: unknown, key: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function postAda<T>(url: string, body: unknown, key: string): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "X-Ada-Key": key,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(120_000),
-  });
-  if (!res.ok) throw new Error(`${url} -> ${res.status} ${(await res.text()).slice(0, 200)}`);
-  return (await res.json()) as T;
-}
-
 export interface HatePass {
   level: number;
   composite: number;
@@ -164,7 +150,7 @@ export interface HatePass {
       source: number;
       raw?: string;
     };
-    judge: "ada" | "fallback";
+    judge: string;
   };
 }
 
@@ -425,55 +411,29 @@ Hard rules:
     })),
   };
 
-  // Ada is the judge. The Worker gathers the reporting; she decides who is in
-  // the line and what they score. If the VPS is unreachable, fall back to the
-  // shared constitution so the queue still updates.
-  let judge: "ada" | "fallback" = "fallback";
-  let parsed: {
+  // The judge is the chat model, directly. Ada's VPS bridge used to sit in
+  // front of it, and every pass waited two minutes on an endpoint that was
+  // answering 403 before falling back to this same call. A dependency that is
+  // down more often than up is not a feature; Ada keeps the voice work, where
+  // a failure costs a sentence, not the queue.
+  const chat = await post<{ choices?: Array<{ message?: { content?: string } }> }>(
+    `${config.chatBase}/chat/completions`,
+    {
+      model: config.chatModel,
+      temperature: 0.6,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SYSTEM },
+        { role: "user", content: JSON.stringify(passPayload) },
+      ],
+    },
+    config.chatKey,
+  );
+  const parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {
     items?: Array<Record<string, unknown>>;
     figures?: Array<Record<string, unknown>>;
-    discoveries?: Array<Record<string, unknown>>;
-  } | null = null;
+  };
 
-  if (config.adaBase && config.adaKey) {
-    try {
-      const ada = await postAda<{
-        items?: Array<Record<string, unknown>>;
-        figures?: Array<Record<string, unknown>>;
-        discoveries?: Array<Record<string, unknown>>;
-      }>(`${config.adaBase}/judge`, passPayload, config.adaKey);
-      if (Array.isArray(ada.items) && ada.items.length && Array.isArray(ada.figures)) {
-        parsed = ada;
-        judge = "ada";
-      }
-    } catch (error) {
-      console.error(
-        "ada_judge_failed",
-        error instanceof Error ? error.message : "unknown",
-      );
-    }
-  }
-
-  if (!parsed) {
-    const chat = await post<{ choices?: Array<{ message?: { content?: string } }> }>(
-      `${config.chatBase}/chat/completions`,
-      {
-        model: config.chatModel,
-        temperature: 0.6,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: JSON.stringify(passPayload) },
-        ],
-      },
-      config.chatKey,
-    );
-    parsed = JSON.parse(chat.choices?.[0]?.message?.content || "{}") as {
-      items?: Array<Record<string, unknown>>;
-      figures?: Array<Record<string, unknown>>;
-      discoveries?: Array<Record<string, unknown>>;
-    };
-  }
   const valid = new Set(HATE_DIMENSIONS.map((d) => d.key));
 
   const items = (parsed.items ?? []).flatMap((item, i) => {
@@ -592,7 +552,7 @@ Hard rules:
       discovered: discovered.length,
       found: found.length,
       discovery: discoveredStats,
-      judge,
+      judge: "chat",
     },
   };
 }
