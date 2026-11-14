@@ -96,6 +96,25 @@ export default {
       return;
     }
 
+    // The register read: no search, no model, so it gets its own quiet slot.
+    // Without this branch the expression is deployed and does nothing but the
+    // clock refresh, which is the failure mode where a schedule looks alive.
+    if (event.cron === "15 6 * * *") {
+      context.waitUntil(
+        invokeApp(
+          "/api/sanctions/ingest",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/sanctions/ingest returned HTTP ${response.status}.`);
+          }
+        }),
+      );
+      return;
+    }
+
     const twelveHour = event.cron === "30 */12 * * *";
     const midnight = new Date(event.scheduledTime).getUTCHours() === 0;
     const paths = twelveHour
