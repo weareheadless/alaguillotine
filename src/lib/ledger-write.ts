@@ -1,4 +1,5 @@
 import type { LedgerEntry } from "./backfill";
+import { dateFromText } from "./claim-dating";
 import { slugify } from "./slug";
 
 /**
@@ -94,11 +95,15 @@ export async function writeLedgerEntries(
     if (known.some((act) => sameAct(act, e.act))) continue;
     known.push(e.act);
     added += 1;
+    // The date lives in the sentence more often than in the year field.
+    const actDate = dateFromText(e.act);
     await db
       .prepare(
-        `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution, review_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-         ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources, attribution = excluded.attribution`,
+        `INSERT INTO ledger_entries (id, person, role, act, place, year, category, confidence, sources, case_id, created_at, attribution, review_status, act_date, date_precision)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+         ON CONFLICT(id) DO UPDATE SET act = excluded.act, confidence = excluded.confidence, sources = excluded.sources, attribution = excluded.attribution,
+           act_date = COALESCE(ledger_entries.act_date, excluded.act_date),
+           date_precision = CASE WHEN ledger_entries.act_date IS NULL THEN excluded.date_precision ELSE ledger_entries.date_precision END`,
       )
       .bind(
         actKey(e.person, e.act),
@@ -113,6 +118,8 @@ export async function writeLedgerEntries(
         e.caseId,
         new Date().toISOString(),
         e.attribution ?? 1,
+        actDate,
+        actDate ? "day" : "year",
       )
       .run();
   }

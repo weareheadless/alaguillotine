@@ -3,6 +3,7 @@ import { getDb, readClock } from "@/lib/clock-store";
 import { dispatchDescription, lastDispatchAt, listDispatches, saveDispatch, normaliseEditorial } from "@/lib/posts-store";
 import { listArchive } from "@/lib/archive-store";
 import { normaliseCategory } from "@/lib/dispatch-style";
+import { isAdminAuthed } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,9 @@ export async function POST(request: Request) {
     env?: RefreshEnv;
   };
   const secret = context.env?.CRON_SECRET;
-  if (!secret || (request.headers.get("authorization") ?? "") !== `Bearer ${secret}`) {
+  const cron =
+    Boolean(secret) && (request.headers.get("authorization") ?? "") === `Bearer ${secret}`;
+  if (!cron && !(await isAdminAuthed(request))) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
