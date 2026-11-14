@@ -15,6 +15,7 @@ import { slugify } from "./slug";
 export type NumberKind =
   | "wealth"
   | "public_money"
+  | "fees"
   | "tax"
   | "deaths"
   | "displacement"
@@ -30,6 +31,7 @@ export const NUMBER_KINDS: Array<{ key: NumberKind; label: string; rank: number 
   { key: "wealth", label: "wealth", rank: 1 },
   { key: "public_money", label: "public money", rank: 2 },
   { key: "tax", label: "tax", rank: 3 },
+  { key: "fees", label: "fees received", rank: 3.5 },
   { key: "deaths", label: "deaths attributed", rank: 4 },
   { key: "displacement", label: "displaced", rank: 5 },
   { key: "fines", label: "fines & settlements", rank: 6 },
@@ -44,6 +46,14 @@ export const NUMBER_KINDS: Array<{ key: NumberKind; label: string; rank: number 
 const KIND_RANK = new Map(NUMBER_KINDS.map((k) => [k.key, k.rank]));
 const KIND_SET = new Set(NUMBER_KINDS.map((k) => k.key));
 
+/**
+ * One movement, not one score.
+ *
+ * A figure with no direction, no counterparty and no instrument is a fact about
+ * a balance sheet. The same figure as a movement — this much, from this party,
+ * through this instrument, on this date, disclosed or not — is a fact about how
+ * the money works. The second is what belongs beside the conduct.
+ */
 export interface PersonNumber {
   kind: NumberKind;
   label: string;
@@ -54,6 +64,19 @@ export interface PersonNumber {
   sourceUrl: string;
   evidenceQuote: string;
   confidence: number;
+  /** When the movement happened, when the source gives a date. */
+  actDate?: string | null;
+  /** "in" money toward the subject, "out" money away from them. */
+  direction?: string;
+  /** fee, equity, lease, contract, donation, penalty, subsidy, gift, loan, payout */
+  instrument?: string;
+  /** Who paid, or who was paid. Named as the source names them. */
+  counterparty?: string;
+  /** A/B/C/D — how well the movement is established. */
+  grade?: string;
+  gradeBasis?: string;
+  /** disclosed | exempt | no_filing | withheld | unknown */
+  declared?: string;
 }
 
 type Result = { results?: Array<Record<string, unknown>> };
@@ -101,21 +124,33 @@ function numberFromRow(r: Record<string, unknown>): PersonNumber {
     sourceUrl: String(r.source_url ?? ""),
     evidenceQuote: String(r.evidence_quote ?? ""),
     confidence: Number(r.confidence ?? 0),
+    actDate: r.act_date == null ? null : String(r.act_date),
+    direction: String(r.direction ?? ""),
+    instrument: String(r.instrument ?? ""),
+    counterparty: String(r.counterparty ?? ""),
+    grade: String(r.evidence_grade ?? ""),
+    gradeBasis: String(r.grade_basis ?? ""),
+    declared: String(r.declared ?? ""),
   };
 }
 
+// Newest movement first. A flow with no date falls back to its year, and a
+// figure with neither falls to the end: the sequence is the point, so a row
+// that cannot be placed in time cannot lead it.
 const sortNumbers = (rows: PersonNumber[]) =>
   rows.sort(
     (a, b) =>
-      (KIND_RANK.get(a.kind) ?? 99) - (KIND_RANK.get(b.kind) ?? 99) ||
-      (b.year ?? 0) - (a.year ?? 0),
+      (b.actDate ?? "").localeCompare(a.actDate ?? "") ||
+      (b.year ?? 0) - (a.year ?? 0) ||
+      (KIND_RANK.get(a.kind) ?? 99) - (KIND_RANK.get(b.kind) ?? 99),
   );
 
 export async function readNumbersFor(db: NumbersDb, slug: string): Promise<PersonNumber[]> {
   try {
     const rows = await db
       .prepare(
-        `SELECT kind, label, display, value, unit, year, source_url, evidence_quote, confidence
+        `SELECT kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
+                act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared
            FROM person_numbers WHERE slug = ?`,
       )
       .bind(slug)
@@ -132,7 +167,8 @@ export async function readAllNumbers(
   try {
     const rows = await db
       .prepare(
-        `SELECT slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence
+        `SELECT slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
+                act_date, direction, instrument, counterparty, evidence_grade, grade_basis, declared
            FROM person_numbers`,
       )
       .bind()
@@ -225,24 +261,27 @@ const SYSTEM = `You are Ada, extracting hard numbers from the public record for 
 
 You will receive search results about ONE person. Return only the numbers that indict: what the harm cost, what was taken, what was avoided, what was handed over. A number that is neutral context is not a number for this site.
 
-KEEP: deaths, injuries, displacement, strikes, sieges; public money captured (contracts, bailouts, subsidies to the subject or their organisation, slush funds, lobbying, foreign payments); tax avoided, evaded, deferred, cut or a conspicuously low effective rate; fines, penalties, settlements, fraud, corruption; political donations, PAC money, gifts; layoffs, emissions, profits from harm; personal wealth, assets, property, hidden money.
+KEEP: deaths, injuries, displacement, strikes, sieges; public money captured (contracts, bailouts, subsidies to the subject or their organisation, slush funds, lobbying, foreign payments); money from a government the subject was negotiating with, regulating or setting policy for — fees, commitments, leases and purchases count even when the service was real, because the question is the arrangement, not the invoice; tax avoided, evaded, deferred, cut or a conspicuously low effective rate; fines, penalties, settlements, fraud, corruption; political donations, PAC money, gifts; layoffs, emissions, profits from harm; personal wealth, assets, property, hidden money.
 
-DROP: aid pledged or delivered, charity, disaster relief; salaries, pensions, official budgets, routine government spending; election results, vote margins, seat counts, approval ratings; inflation, GDP, growth, exchange rates; company valuations, share prices, acquisitions, sales, revenue forecasts; proposed taxes or policies that did not happen; capital requirements, fees for services, assets under management; routine contracts that are not capture. If a number is neutral, omit it.
+DROP: aid pledged or delivered, charity, disaster relief; salaries, pensions, official budgets, routine government spending; election results, vote margins, seat counts, approval ratings; inflation, GDP, growth, exchange rates; company valuations, share prices, acquisitions, sales, revenue forecasts; proposed taxes or policies that did not happen; capital requirements, fees for services from ordinary clients, assets under management; routine contracts that are not capture. If a number is neutral, omit it.
 
 RULES — hard:
 1. Every number must appear in the supplied text. Do not calculate, estimate, extrapolate or infer. If the text does not state it, omit it.
-2. One row per kind. If the results give several numbers of the same kind, choose the most recent or the largest documented one, and give its year.
+2. One row per MOVEMENT. Two payments from the same party in different years are two rows, not one; a figure describing a holding and a figure describing its sale are two rows. Choose a label that tells them apart ("PIF commitment", "PIF fees"). Do not add a running total and do not calculate one: if the text does not state it, it is not a row.
 3. display is the number as a reader would say it: "$4.2B", "12,000", "$1.1B a year", "38%". Max 24 chars.
 4. label is the thing being counted, max 32 chars: "net worth", "Pentagon contracts", "tax avoided", "deaths attributed".
 5. source_url must be copied from the supplied results. Never invent a URL.
 6. evidence_quote must be a verbatim phrase from that result's summary, max 200 chars.
 7. confidence 0-100: 90+ official record or court filing; 70s multiple independent reports; 60s a single credible report. Below 60 do not include.
 8. Never include a number about a victim, witness, critic or private person.
+8a. When the text says who paid or was paid, put them in counterparty. When it names the instrument (fee, equity, lease, contract, donation, penalty, subsidy, gift, loan, settlement), put it in instrument. direction is "in" when the money moved toward the subject or a company they control, "out" when it moved away.
+8b. act_date is the date of the movement, ISO, only when the results give a day or month. Leave it empty rather than guessing it from the publication date.
+8c. declared: "disclosed" if the movement appears in a filing or disclosure the subject made, "exempt" if the role carries no disclosure duty, "no_filing" if reporting says none was made, "withheld" if it was refused, otherwise "unknown".
 9. The number must be about the subject or an organisation the subject controls. Say so in the label when it is the organisation.
 10. harm must be true. If the number is neutral context, do not return it at all — the site only keeps what indicts.
 
 Return JSON only:
-{"numbers":[{"kind":"wealth|public_money|tax|deaths|displacement|fines|donations|layoffs|emissions|workers|profit|other","label":"","display":"","value":0,"unit":"","year":0,"source_url":"https://...","evidence_quote":"","confidence":0,"harm":true}]}`;
+{"numbers":[{"kind":"wealth|public_money|fees|tax|deaths|displacement|fines|donations|layoffs|emissions|workers|profit|other","label":"","display":"","value":0,"unit":"","year":0,"act_date":"","direction":"in|out","instrument":"","counterparty":"","declared":"disclosed|exempt|no_filing|withheld|unknown","source_url":"https://...","evidence_quote":"","confidence":0,"harm":true}]}`;
 
 interface SearchResult {
   title: string;
@@ -390,6 +429,9 @@ export async function researchNumbersCase(
 
       const value = Number(row.value);
       const year = Number(row.year);
+      const actDate = String(row.act_date ?? "").trim().slice(0, 10);
+      const direction = String(row.direction ?? "").trim().toLowerCase();
+      const declared = String(row.declared ?? "").trim().toLowerCase();
       found.push({
         kind,
         label,
@@ -400,25 +442,29 @@ export async function researchNumbersCase(
         sourceUrl,
         evidenceQuote: quote,
         confidence: Math.min(100, Math.round(confidence)),
+        actDate: /^\d{4}-\d{2}-\d{2}$/.test(actDate) ? actDate : null,
+        direction: direction === "in" || direction === "out" ? direction : "",
+        instrument: String(row.instrument ?? "").trim().slice(0, 32),
+        counterparty: String(row.counterparty ?? "").trim().slice(0, 80),
+        declared: ["disclosed", "exempt", "no_filing", "withheld", "unknown"].includes(declared)
+          ? declared
+          : "",
       });
     }
   }
 
-  // One figure per kind on the table. The record can hold several death
-  // tolls; the line needs the one that best carries the charge.
-  const byKind = new Map<string, PersonNumber>();
+  // A movement is a row. This used to collapse every figure of a kind into one,
+  // which turned a person's money into a scoreboard — a net worth, a fine, a
+  // donation — and threw away the sequence, which is the part that shows how
+  // it works. Rows are already unique on (kind, label); identical movements
+  // seen twice keep the one with the better evidence.
+  const byMovement = new Map<string, PersonNumber>();
   for (const n of found) {
-    const key = n.kind === "other" ? `other:${n.label.toLowerCase()}` : n.kind;
-    const prev = byKind.get(key);
-    if (
-      !prev ||
-      n.confidence > prev.confidence ||
-      (n.confidence === prev.confidence && (n.year ?? 0) > (prev.year ?? 0))
-    ) {
-      byKind.set(key, n);
-    }
+    const key = `${n.kind}|${n.label.toLowerCase()}|${n.actDate ?? ""}`;
+    const prev = byMovement.get(key);
+    if (!prev || n.confidence > prev.confidence) byMovement.set(key, n);
   }
-  return sortNumbers([...byKind.values()]);
+  return sortNumbers([...byMovement.values()]);
 }
 
 export async function writeNumbers(
@@ -443,8 +489,9 @@ export async function writeNumbers(
       await db
         .prepare(
           `INSERT INTO person_numbers
-             (slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence, checked_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             (slug, kind, label, display, value, unit, year, source_url, evidence_quote, confidence,
+              checked_at, act_date, direction, instrument, counterparty, declared)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(slug, kind, label) DO UPDATE SET
              display = excluded.display,
              value = excluded.value,
@@ -453,7 +500,12 @@ export async function writeNumbers(
              source_url = excluded.source_url,
              evidence_quote = excluded.evidence_quote,
              confidence = excluded.confidence,
-             checked_at = excluded.checked_at`,
+             checked_at = excluded.checked_at,
+             act_date = excluded.act_date,
+             direction = excluded.direction,
+             instrument = excluded.instrument,
+             counterparty = excluded.counterparty,
+             declared = excluded.declared`,
         )
         .bind(
           slug,
@@ -467,6 +519,11 @@ export async function writeNumbers(
           n.evidenceQuote,
           n.confidence,
           now,
+          n.actDate ?? null,
+          n.direction ?? "",
+          n.instrument ?? "",
+          n.counterparty ?? "",
+          n.declared ?? "",
         )
         .run();
       written += 1;

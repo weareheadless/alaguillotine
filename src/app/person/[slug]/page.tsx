@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getLedgerFor } from "@/lib/archive-store";
+import { getLedgerFor, type LedgerEntry } from "@/lib/archive-store";
 import { getDb, getPersonBySlug } from "@/lib/hate-store";
-import { readNumbersFor } from "@/lib/numbers";
+import { readNumbersFor, type NumberKind, type PersonNumber } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
 import { PromiseAd } from "@/components/PromiseAd";
 
@@ -46,6 +46,31 @@ export async function generateMetadata({
  * record lives: every charge with its place, year, confidence and sources, and
  * whether the blade has already fallen.
  */
+const GRADE_CHIP: Record<string, string> = {
+  A: "border-hypeNeon/60 text-hypeNeon",
+  B: "border-sheetWhite/40 text-sheetWhite/80",
+  C: "border-chop-border text-chop-muted",
+  D: "border-spiteCrimson/60 text-spiteCrimson",
+};
+
+const DECLARED: Record<string, string> = {
+  disclosed: "disclosed",
+  exempt: "no disclosure duty",
+  no_filing: "no filing made",
+  withheld: "refused",
+};
+
+/**
+ * The date a reader can place an item by: the reviewer's date when there is
+ * one, otherwise the year alone. The page sorts on it, so a 2018 bailout sits
+ * beside the 2018 policy it was arranged around rather than in a separate box
+ * labelled "numbers".
+ */
+function stampOf(at: string | null, year: number): string {
+  if (!at) return year ? String(year) : "undated";
+  return new Date(`${at}T00:00:00Z`).toUTCString().slice(5, 16);
+}
+
 export default async function PersonPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const person = await getPersonBySlug(slug);
@@ -56,6 +81,39 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   const numbers = db ? await readNumbersFor(db, slug) : [];
   const chopped = (person.timesChopped ?? 0) > 0;
   const crosses = Math.min(person.timesChopped ?? 0, 40);
+
+  // Conduct and money on one clock. They were two lists, and two lists cannot
+  // show that the fee, the bailout and the policy belong to the same years.
+  const timeline: Array<
+    | { type: "money"; at: string | null; year: number; n: PersonNumber }
+    | { type: "conduct"; at: string | null; year: number; e: LedgerEntry }
+  > = [
+    ...numbers.map((n) => ({ type: "money" as const, at: n.actDate ?? null, year: n.year ?? 0, n })),
+    ...ledger.map((e) => ({ type: "conduct" as const, at: e.actDate, year: e.year, e })),
+  ].sort((a, b) => (b.at ?? "").localeCompare(a.at ?? "") || b.year - a.year);
+
+  const moneyKinds = new Set<string>(numbers.map((n) => n.kind));
+  const missing = (
+    [
+      ["tax", "a tax figure"],
+      ["wealth", "a stated net worth"],
+      ["fees", "fees received"],
+      ["public_money", "public money"],
+      ["fines", "fines or settlements"],
+      ["donations", "political money"],
+    ] as Array<[NumberKind, string]>
+  )
+    .filter(([k]) => !moneyKinds.has(k))
+    .map(([, label]) => label);
+  const absence = [
+    missing.length ? `Not on this record: ${missing.join(", ")}.` : "",
+    numbers.some((n) => n.declared === "disclosed")
+      ? ""
+      : "No flow here is marked as disclosed.",
+    "Absence is not innocence — it is what the record does not contain.",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-24 pt-12">
@@ -144,87 +202,118 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
 
       <PromiseAd variant="panel" />
 
-      {numbers.length > 0 && (
-        <section className="mt-8">
-          <h2 className="border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
-            the receipts
-          </h2>
-          <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
-            a charge, not a biography
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {numbers.map((n) => (
-              <a
-                key={`${n.kind}-${n.label}`}
-                href={safeHref(n.sourceUrl)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group border border-chop-border bg-white/[0.02] p-3 transition-colors hover:border-spiteCrimson"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-mono text-2xl font-black tabular-nums text-spiteCrimson">
-                    {n.display}
-                  </span>
-                  {n.year ? (
-                    <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted">
-                      {n.year}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-sheetWhite/80">
-                  {n.label}
-                </div>
-                <p className="mt-2 font-mono text-[10px] leading-snug text-chop-muted">
-                  {n.evidenceQuote}
-                </p>
-                <span className="mt-2 inline-block font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted underline decoration-chop-border underline-offset-2 group-hover:text-sheetWhite">
-                  source ↗
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
-
       <h2 className="mt-10 border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
         the record
       </h2>
+      <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] text-chop-muted">
+        conduct and money, in the order it happened
+      </p>
 
-      {ledger.length === 0 ? (
+      {timeline.length === 0 ? (
         <p className="mt-4 font-mono text-[11px] leading-relaxed text-chop-muted">
           No ledger entries yet. The charge above comes from the current reporting;
           the deeper record is still being researched.
         </p>
       ) : (
         <ol className="mt-4 divide-y divide-chop-border">
-          {ledger.map((entry, i) => (
-            <li key={i} className="py-4">
-              <div className="flex items-baseline gap-3 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                <span className="tabular-nums text-spiteCrimson">{Math.round(entry.confidence)}</span>
-                <span>{entry.category}</span>
-                <span>·</span>
-                <span>{entry.place}</span>
-                <span>·</span>
-                <span>{entry.year}</span>
-              </div>
-              <p className="mt-1.5 text-[14px] leading-snug text-sheetWhite">{entry.act}</p>
-              <div className="mt-1 flex flex-wrap gap-3">
-                {entry.sources.slice(0, 3).map((url) => (
-                  <a
-                    key={url}
-                    href={safeHref(url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
-                  >
-                    source ↗
-                  </a>
-                ))}
-              </div>
-            </li>
-          ))}
+          {timeline.map((item, i) =>
+            item.type === "money" ? (
+              <li key={`m-${item.n.kind}-${item.n.label}-${i}`} className="py-4">
+                <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                  <span className="text-sheetWhite/70">{stampOf(item.at, item.year)}</span>
+                  <span className="border border-hypeNeon/50 px-1 text-hypeNeon">money</span>
+                  {item.n.grade ? (
+                    <span className={`border px-1 ${GRADE_CHIP[item.n.grade] ?? GRADE_CHIP.C}`}>
+                      {item.n.grade}
+                    </span>
+                  ) : null}
+                  <span>{item.n.direction === "out" ? "paid out" : "came in"}</span>
+                  {item.n.instrument ? (
+                    <>
+                      <span>·</span>
+                      <span>{item.n.instrument}</span>
+                    </>
+                  ) : null}
+                  {item.n.declared && DECLARED[item.n.declared] ? (
+                    <>
+                      <span>·</span>
+                      <span className="text-spiteCrimson/80">{DECLARED[item.n.declared]}</span>
+                    </>
+                  ) : null}
+                </div>
+                <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-mono text-[19px] font-black tabular-nums text-spiteCrimson">
+                    {item.n.display}
+                  </span>
+                  <span className="text-[13px] leading-snug text-sheetWhite/85">
+                    {item.n.counterparty || item.n.label}
+                  </span>
+                  {item.n.counterparty ? (
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-chop-muted">
+                      {item.n.label}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="mt-1 text-[12px] leading-snug text-chop-muted">{item.n.evidenceQuote}</p>
+                <a
+                  href={safeHref(item.n.sourceUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-block font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+                >
+                  source ↗
+                </a>
+              </li>
+            ) : (
+              <li key={`c-${item.e.id || i}`} className="py-4">
+                <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                  <span className="text-sheetWhite/70">{stampOf(item.at, item.year)}</span>
+                  {item.e.grade ? (
+                    <span className={`border px-1 ${GRADE_CHIP[item.e.grade] ?? GRADE_CHIP.C}`}>
+                      {item.e.grade}
+                    </span>
+                  ) : null}
+                  <span>{item.e.category}</span>
+                  {item.e.place ? (
+                    <>
+                      <span>·</span>
+                      <span>{item.e.place}</span>
+                    </>
+                  ) : null}
+                </div>
+                <p className="mt-1.5 text-[14px] leading-snug text-sheetWhite">{item.e.act}</p>
+                <div className="mt-1 flex flex-wrap gap-3">
+                  {item.e.id ? (
+                    <Link
+                      href={`/archive/claim/${encodeURIComponent(item.e.id)}`}
+                      className="font-mono text-[9px] uppercase tracking-[0.15em] text-spiteCrimson/90 underline decoration-chop-border underline-offset-2 hover:text-spiteCrimson"
+                    >
+                      evidence ↗
+                    </Link>
+                  ) : null}
+                  {item.e.sources.slice(0, 3).map((url) => (
+                    <a
+                      key={url}
+                      href={safeHref(url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-[9px] uppercase tracking-[0.15em] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+                    >
+                      source ↗
+                    </a>
+                  ))}
+                </div>
+              </li>
+            ),
+          )}
         </ol>
       )}
+
+      {timeline.length > 0 ? (
+        <p className="mt-6 border-t border-chop-border pt-3 font-mono text-[10px] leading-relaxed text-chop-muted">
+          {absence}
+        </p>
+      ) : null}
 
       {person.items.length > 0 && (
         <>

@@ -355,12 +355,17 @@ export async function archiveCount(): Promise<number> {
 }
 
 export interface LedgerEntry {
+  id: string;
   act: string;
   place: string;
   year: number;
   category: string;
   confidence: number;
   sources: string[];
+  /** ISO date when a reviewer established one, else null. */
+  actDate: string | null;
+  /** A/B/C/D. */
+  grade: string;
 }
 
 /**
@@ -423,7 +428,8 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
     : "lower(person) = lower(?)";
   const rows = await d
     .prepare(
-      `SELECT act, place, year, category, confidence, sources, attribution FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
+      `SELECT id, act, place, year, category, confidence, sources, attribution, act_date, evidence_grade
+         FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
     .bind(name, ...(first && last ? [`%${first}%`, `%${last}%`] : []))
     .all();
@@ -435,12 +441,15 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
       sources = [];
     }
     return {
+      id: String(r.id ?? ""),
       act: String(r.act ?? ""),
       place: String(r.place ?? ""),
       year: Number(r.year ?? 0),
       category: String(r.category ?? ""),
       confidence: Number(r.confidence ?? 0),
       sources,
+      actDate: r.act_date == null ? null : String(r.act_date),
+      grade: String(r.evidence_grade ?? ""),
     };
   });
 }
