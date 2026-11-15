@@ -63,10 +63,11 @@ export default async function CoveragePage() {
         </h1>
         <p className="mt-4 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
           A site that accuses people has to publish its own denominator. There is
-          no single one: a member of the US House and a Member of the European
-          Parliament belong to different populations, with different documents and
-          different gaps. Each is declared first, then counted against, and the
-          numbers are never added together. Three per body, kept apart on purpose.{" "}
+          no single one: a member of the US House, a Member of the European
+          Parliament and an MP in the UK House of Commons belong to different
+          populations, with different documents and different gaps. Each is
+          declared first, then counted against, and the numbers are never added
+          together. Three per body, kept apart on purpose.{" "}
           <span className="text-sheetWhite">Read</span>: a document naming them has
           been read and a passage stored, usually a vote.{" "}
           <span className="text-sheetWhite">Documented</span>: the passage is about

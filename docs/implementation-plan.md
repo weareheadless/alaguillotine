@@ -282,7 +282,7 @@ The gap between the second and third is the whole truth about the register as it
 stands: it can show what members did, and on almost none of them can it yet show
 something that was wrong.
 
-### The denominator was one country
+### The denominator was one body
 
 The three numbers above were, without saying so, a statement about the US House.
 The page read `universes[0]`, the committee rules had no body, and a ratio
@@ -300,6 +300,7 @@ sums them.
 |---|---|---|---|---|---|
 | US House, 119th Congress | US | 435 (433 listed) | 433 | 92 | 1 |
 | European Parliament, 10th term | — (27 member states) | 720 | 706 | 14 | 0 |
+| UK House of Commons, 59th Parliament | UK | 650 | 584 | 584 | 0 |
 
 The Parliament is declared from its own open-data `meps/show-current` list:
 720 current MEPs, 27 member states, 9 political groups, identified by the
@@ -330,6 +331,24 @@ A register document now counts toward `accused` only when its stance is
 `admits` one. Treating every register document as an accusation had made all 14
 declarants "accused" for filing paperwork. That was the same overclaim as the
 old single coverage number, in a different place.
+
+### The third body: the Commons register
+
+The UK House of Commons publishes the Register of Members' Financial Interests
+as an official CSV ZIP (one file per category) plus an interests API and a
+Members API. No PDF parsing and no name matching: the CSV carries the MNIS id,
+category, dates and named fields, and the roster is 650 current MPs from the
+Members API. One document per member, 4,070 interests across 586 members; the
+66 MPs with no live interest stay `listed`. The claim is "registered an
+interest", with the category in `mechanism` and the member's own summary in the
+act. Stance is `records`, so the Commons contributes 0 `accused`: a shareholding
+or a donation is a disclosure, not a finding.
+
+The bulk path matters. The JSON API caps at 20 interests per page, which would
+be 204 calls for the current register; the CSV ZIP is one request and a small
+ZIP/CSV reader. The connector still joins by MNIS id and replaces a member's
+claims when a new register is published, so an interest that expires stops
+being a live claim.
 
 # P2 — two connectors end to end (7–8 days)
 

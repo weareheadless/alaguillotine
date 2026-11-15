@@ -96,6 +96,7 @@ R2 (`text_ref`); D1 keeps the metadata.
 | OFAC / EU sanctions | sanction | free |
 | Roll calls (Clerk, Senate) | roll_call | free |
 | Roll calls (European Parliament RCV XML) | roll_call | free, published |
+| Register of Members' Financial Interests (UK Commons) | register | free, official CSV/API |
 | Press RSS (allow-list) | press | free |
 | Field investigations, OSINT | report | free, manual |
 
@@ -132,7 +133,10 @@ lead prints the body, the rule and both citations.
 Adding a body is a declaration and a connector, not a code path. The European
 Parliament is `ep-10`, enumerated from its own open-data list, with the
 Parliament's person id as the external id; its roll-call XML is the second
-document class read against a second population.
+document class read against a second population. The UK Commons is
+`uk-commons-59`, enumerated from the Members API and joined to the register by
+MNIS id; its bulk CSV ZIP is one document per member, because that is how the
+register itself is organised.
 
 ### 2. Extraction → claims
 
