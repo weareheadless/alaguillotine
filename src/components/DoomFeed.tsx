@@ -216,6 +216,7 @@ export function DoomFeed({ initial, total, fresh, read, discarded }: {
         <p>Community reporting, Ada’s commentary, receipts and dispatches. No personalised ranking. {read} wire items collected; {discarded} have no published commentary yet—not necessarily rejected.</p>
         <p>Three wire posts, then one record entry while both are available. Within each lane: severity × 10 + min(community score, 200) + 200 / (1 + hours since collection). Record cards are in the order they entered the record, newest first. Related headlines are grouped automatically; grouping can be imperfect.</p>
         <p>The wire is news for one day. After that it is kept for thirty days, dated, below the line that says so — the feed scrolls back, the top of it stays today.</p>
+        <p>A link leads the page only when five people have voted for it or a second community carried the same story. Below that it is still listed, with its points showing, because one vote is the poster’s own and recency alone is not news.</p>
         <p>No fake reactions, manufactured notifications or generated news photos. External source images may make requests to their host.</p>
       </details>
     </header>

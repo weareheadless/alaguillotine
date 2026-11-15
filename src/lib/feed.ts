@@ -114,6 +114,18 @@ export function toFeedItem(row: Row): FeedItem {
  */
 export const ARCHIVE_DAYS = 30;
 
+/**
+ * What it takes for a link to make the news.
+ *
+ * The wire reads communities by New, which means everything posted in the last
+ * hours arrives, including a link with one point — the poster's own vote — and
+ * no second community carrying it. Recency-first then put that at the top of
+ * the page, above reporting fifty people had voted for. A wire item leads only
+ * if it has five points or a second community ran the same story; anything
+ * less is kept and listed below, with its numbers showing.
+ */
+export const STANDING_SCORE = 5;
+
 /** What the feed presents as news: the wire inside its day, plus the record. */
 const FRESH = `cluster = id
   AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'
@@ -171,6 +183,11 @@ export async function readFeedPage(
              -- through the afternoon's news: a feed that refreshes and never
              -- moves. Recency leads; heat breaks ties.
              ORDER BY CASE WHEN kind IN ('record', 'charge') THEN first_seen_at END DESC,
+                      -- Standing first. A record card is a sourced receipt and
+                      -- a voted story is reporting; an unvoted link is neither.
+                      CASE WHEN kind IN ('record', 'charge') THEN 0
+                           WHEN score >= ${STANDING_SCORE} OR cluster_size >= 2 THEN 0
+                           ELSE 1 END,
                       first_seen_at DESC, heat DESC, id
            ) - 1 AS position FROM candidates
          )
