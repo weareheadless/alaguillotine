@@ -40,6 +40,7 @@ export interface ArchiveRow {
   currency: string;
   confidence: number;
   status: string;
+  finding: string;
   documentId: string;
   documentKind: string;
   issuer: string;
@@ -62,6 +63,7 @@ export interface ArchiveFacets {
   documents: number;
   people: number;
   passages: number;
+  findings: number;
   bodies: FacetCount[];
   categories: FacetCount[];
   statuses: FacetCount[];
@@ -103,6 +105,7 @@ export function statusLabel(status: string): string {
 }
 
 const KIND_WHERE: Record<string, string> = {
+  finding: "c.finding != 'none' AND cd.quote != ''",
   trade: "d.kind = 'ptr'",
   declaration: "d.kind = 'register'",
   vote: "d.kind = 'roll_call'",
@@ -135,6 +138,7 @@ function toRow(raw: Record<string, unknown>): ArchiveRow {
     currency: text("currency"),
     confidence: Number(raw.confidence ?? 0),
     status: text("status"),
+    finding: text("finding") || "none",
     documentId: text("document_id"),
     documentKind: text("document_kind"),
     issuer: text("issuer"),
@@ -265,15 +269,19 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
          (SELECT COUNT(*) FROM claims) AS claims,
          (SELECT COUNT(*) FROM documents) AS documents,
          (SELECT COUNT(*) FROM entities WHERE kind = 'person') AS people,
-         (SELECT COUNT(*) FROM claim_documents WHERE quote != '') AS passages`,
+         (SELECT COUNT(*) FROM claim_documents WHERE quote != '') AS passages,
+         (SELECT COUNT(*) FROM claims c WHERE c.finding != 'none'
+            AND EXISTS (SELECT 1 FROM claim_documents cd
+                         WHERE cd.claim_id = c.id AND cd.quote != '')) AS findings`,
     )
-    .first<{ claims: number; documents: number; people: number; passages: number }>();
+    .first<{ claims: number; documents: number; people: number; passages: number; findings: number }>();
 
   const facets: ArchiveFacets = {
     claims: Number(totals?.claims ?? 0),
     documents: Number(totals?.documents ?? 0),
     people: Number(totals?.people ?? 0),
     passages: Number(totals?.passages ?? 0),
+    findings: Number(totals?.findings ?? 0),
     bodies: (bodyRows.results ?? []).map((row) => ({
       key: String(row.key ?? ""),
       label: bodyLabel(String(row.key ?? "")),

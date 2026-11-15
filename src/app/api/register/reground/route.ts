@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { getDb } from "@/lib/clock-store";
+import { getDb, type D1 } from "@/lib/clock-store";
 import { isAdminAuthed } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -110,6 +110,58 @@ function findPassage(text: string, act: string, person: string): Match | null {
   return best;
 }
 
+/**
+ * Look for each legacy claim's sentence in a document's stored text.
+ *
+ * Shared by the fetch pass and the stored pass so a second run cannot use a
+ * different matching rule than the first. A match marks the claim `matched`,
+ * not `recorded`: the sentence was located, nobody has read it against the
+ * claim, and it still cannot accuse anyone.
+ */
+async function groundDocument(
+  db: D1,
+  documentId: string,
+  text: string,
+  now: string,
+): Promise<{ claimsSeen: number; matched: number }> {
+  const claims = await db
+    .prepare(
+      `SELECT c.id, c.act, e.name
+         FROM claim_documents cd
+         JOIN claims c ON c.id = cd.claim_id
+         JOIN entities e ON e.id = c.entity_id
+        WHERE cd.document_id = ? AND c.status = 'legacy' AND c.legacy_id IS NOT NULL`,
+    )
+    .bind(documentId)
+    .all();
+
+  let claimsSeen = 0;
+  let matched = 0;
+  for (const claim of claims.results ?? []) {
+    claimsSeen += 1;
+    const hit = findPassage(text, String(claim.act ?? ""), String(claim.name ?? ""));
+    if (!hit) continue;
+    matched += 1;
+    await db
+      .prepare(
+        `UPDATE claims
+            SET status = 'matched', confidence = 0.5,
+                confidence_basis = 'passage located mechanically; not yet reviewed',
+                updated_at = ?
+          WHERE id = ? AND status = 'legacy'`,
+      )
+      .bind(now, String(claim.id))
+      .run();
+    await db
+      .prepare(
+        "UPDATE claim_documents SET quote = ?, locator = ? WHERE claim_id = ? AND document_id = ?",
+      )
+      .bind(hit.quote, hit.locator, String(claim.id), documentId)
+      .run();
+  }
+  return { claimsSeen, matched };
+}
+
 export async function POST(request: Request) {
   const context = (await getCloudflareContext({ async: true })) as { env?: Env };
   const secret = context.env?.CRON_SECRET;
@@ -122,8 +174,58 @@ export async function POST(request: Request) {
   const db = await getDb();
   if (!db) return Response.json({ error: "D1 unavailable" }, { status: 500 });
 
-  const limit = Math.max(1, Math.min(40, Number(new URL(request.url).searchParams.get("limit") ?? 20) || 20));
+  const params = new URL(request.url).searchParams;
+  const limit = Math.max(1, Math.min(40, Number(params.get("limit") ?? 20) || 20));
   const started = new Date().toISOString();
+
+  // A stored pass re-uses text already fetched. The first pass could only
+  // ground claims from documents it fetched itself; a document fetched later
+  // still has claims waiting under it, and re-fetching to reach them would be
+  // both slow and rude to the publisher.
+  if (params.get("mode") === "stored") {
+    const pool = await db
+      .prepare(
+        `SELECT d.id, d.text_excerpt, COUNT(cd.claim_id) AS uses
+           FROM documents d
+           JOIN claim_documents cd ON cd.document_id = d.id
+           JOIN claims c ON c.id = cd.claim_id AND c.status = 'legacy'
+          WHERE d.kind = 'press' AND length(d.text_excerpt) > 40
+            AND d.reground_at = ''
+          GROUP BY d.id
+          ORDER BY uses DESC, d.id
+          LIMIT ?`,
+      )
+      .bind(limit)
+      .all();
+
+    let seen = 0;
+    let hit = 0;
+    for (const row of pool.results ?? []) {
+      const result = await groundDocument(db, String(row.id ?? ""), String(row.text_excerpt ?? ""), started);
+      await db
+        .prepare("UPDATE documents SET reground_at = ? WHERE id = ?")
+        .bind(started, String(row.id ?? ""))
+        .run();
+      seen += result.claimsSeen;
+      hit += result.matched;
+    }
+
+    try {
+      await db
+        .prepare(
+          "INSERT INTO register_runs (job, started_at, finished_at, rows, error) VALUES ('reground-stored', ?, ?, ?, ?)",
+        )
+        .bind(started, new Date().toISOString(), hit, null)
+        .run();
+    } catch {
+      /* logging never blocks the pass */
+    }
+
+    return Response.json(
+      { ok: true, mode: "stored", documents: (pool.results ?? []).length, claimsSeen: seen, matched: hit },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   // Most-cited first: one fetch of a heavily used source can ground many claims.
   const rows = await db
@@ -198,40 +300,9 @@ export async function POST(request: Request) {
     // Those documents wait for their connector.
     if (doc.kind !== "press") return;
 
-    // Ground the claims filed from this document.
-    const claims = await db
-      .prepare(
-        `SELECT c.id, c.act, e.name
-           FROM claim_documents cd
-           JOIN claims c ON c.id = cd.claim_id
-           JOIN entities e ON e.id = c.entity_id
-          WHERE cd.document_id = ? AND c.status = 'legacy' AND c.legacy_id IS NOT NULL`,
-      )
-      .bind(doc.id)
-      .all();
-
-    for (const claim of claims.results ?? []) {
-      claimsSeen += 1;
-      const hit = findPassage(text, String(claim.act ?? ""), String(claim.name ?? ""));
-      if (!hit) continue;
-      matched += 1;
-      await db
-        .prepare(
-          `UPDATE claims
-              SET status = 'matched', confidence = 0.5,
-                  confidence_basis = 'passage located mechanically; not yet reviewed',
-                  updated_at = ?
-            WHERE id = ? AND status = 'legacy'`,
-        )
-        .bind(now, String(claim.id))
-        .run();
-      await db
-        .prepare(
-          "UPDATE claim_documents SET quote = ?, locator = ? WHERE claim_id = ? AND document_id = ?",
-        )
-        .bind(hit.quote, hit.locator, String(claim.id), doc.id)
-        .run();
-    }
+    const grounded = await groundDocument(db, doc.id, text, now);
+    claimsSeen += grounded.claimsSeen;
+    matched += grounded.matched;
   };
 
   // Four at a time: enough to finish inside a request, gentle on the sources.

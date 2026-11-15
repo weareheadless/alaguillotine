@@ -48,6 +48,7 @@ export async function recomputeUniverseStatus(db: D1, universeId: string): Promi
             JOIN claim_documents cd ON cd.claim_id = c.id
             JOIN documents d ON d.id = cd.document_id
            WHERE ${GROUNDED}
+             AND c.finding != 'none'
              AND (d.kind = 'press'
                   OR (d.kind = 'register' AND cd.stance IN ('reports', 'finds', 'alleges'))))`,
     )

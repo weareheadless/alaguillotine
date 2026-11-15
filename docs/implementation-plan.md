@@ -407,6 +407,61 @@ and documents, and the dashboard learns to filter it. It does not get its own
 explainer page. Press, person pages, weight and reports all have to arrive as
 query and row, not as another surface.
 
+### Press, bounded: the first feed pass
+
+Press is the only class that can name people no roster contains, and it is the
+class most able to turn the register into a rumour mill. The first pass is
+deliberately small: six published feeds (BBC, Guardian, Sky, NPR, ProPublica,
+Al Jazeera), read as feeds, no scraping and no model call.
+
+An item is considered only if its text names one of 1,887 tracked people by full
+name or alias. The claim is one sentence containing that name, stored verbatim.
+The first run was too permissive: 17 claims, many of them passing mentions
+("Kruger made a concession that ... Andy Burnham"). Requiring the name in the
+first six words and an action verb after it cut the same feeds to 4 claims, all
+subject-shaped: a secretary approving a gasfield, a chancellor announcing cuts,
+a president firing an inspector general. A missed sentence costs nothing.
+
+The test day produced **3 documents and 4 claims, 0 of them allegations**. That
+is the honest size of one day's press when the gate is a named person doing
+something. The connector writes `reported` by default and `alleged` only when
+the sentence carries an allegation, and `finding` is set explicitly; it cannot
+write `found`. Citations stay bounded and the outlet is the issuer.
+
+### Findings are a field, not a source class
+
+The register had been treating any grounded claim on a press document as an
+accusation. That is the same overclaim in a new place. `claims.finding` now
+carries `none | alleged | found | admitted`, and `accused` requires it. The
+backfill immediately caught its own error: 40 European Parliament conflict
+declarations have an `admits` stance, which the first rule promoted to
+`admitted` findings. A declaration admits an interest, not a wrong. Migration
+`0045` reset them. Today the register has 15 `alleged` claims, all from the old
+press archive, and none has a passage, so the documented-findings count is
+**0** — stated on the dashboard rather than papered over.
+
+### The old press archive cannot be rescued mechanically
+
+The stored pass searched 645 press documents that already had text and a legacy
+claim under them. It located **5 new passages**. The old archive is paraphrase;
+the sentence the claim was made from is usually not in the article in a form a
+strict match will accept. Re-running the loose matcher would ground hundreds of
+claims and prove nothing, which is the failure this register was built to stop.
+The remaining 1,378 legacy claims stay labelled and score nothing; the path
+forward is new documents, not rescue.
+
+### The money layer finished its first queue
+
+The PTR parser drained its backlog: **859 of 983** filings now parsed, 10,880
+transactions, 124 unread (AES-encrypted or refused rather than half-read). The
+queue was 325 parsed when this phase started. Every re-parse replaces its
+filing's rows, so a better parser cannot leave old trades pointing at claims
+that no longer exist.
+
+The audit grew from 46,000 to 54,000 claims and began returning 500s: sixteen
+D1 scans in parallel were fine until they were not. The checks now run in
+sequence. An invariant you cannot read is not an invariant.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.

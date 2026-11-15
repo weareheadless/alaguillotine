@@ -32,6 +32,7 @@ const num = (n: number): string => n.toLocaleString("en-US");
 
 const KINDS = [
   { key: "", label: "Latest" },
+  { key: "finding", label: "Findings" },
   { key: "trade", label: "Trades" },
   { key: "declaration", label: "Declarations" },
   { key: "report", label: "Reports" },
@@ -132,6 +133,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             ["claims", facets.claims],
+            ["findings", facets.findings],
             ["documents", facets.documents],
             ["people", facets.people],
             ["passages", facets.passages],
@@ -270,8 +272,9 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
         {rows.length === 0 ? (
           <div className="mt-8 border border-chop-border p-6">
             <p className="font-mono text-[12px] text-chop-muted">
-              Nothing matches those filters. The register only holds what a
-              document states; an empty result is not an absence of the act.
+              {kind === "finding"
+                ? "No feed has yet produced a passage that reports a misdeed. Unverified accusations from the old archive are in Reports, without a passage, and score nothing."
+                : "Nothing matches those filters. The register only holds what a document states; an empty result is not an absence of the act."}
             </p>
             <Link href="/archive" className="mt-3 inline-block font-mono text-[10px] uppercase tracking-[0.16em] text-hypeNeon hover:underline">
               back to the latest →
@@ -294,6 +297,11 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
                     <span className={`${STATUS_TONE[row.status] ?? "text-chop-muted"}`}>
                       {statusLabel(row.status)}
                     </span>
+                    {row.finding !== "none" ? (
+                      <span className="border border-spiteCrimson/60 px-1.5 py-0.5 text-spiteCrimson">
+                        finding
+                      </span>
+                    ) : null}
                     <span className="ml-auto tabular-nums">{day(row.date)}</span>
                   </div>
 
@@ -380,10 +388,13 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
 
         <p className="mt-10 border-t border-chop-border pt-4 font-mono text-[10px] leading-relaxed text-chop-muted">
           A claim is not a verdict. &ldquo;Recorded&rdquo; means the document states
-          the act; &ldquo;alleged&rdquo; means the passage reports it without an
+          the act; &ldquo;alleged&rdquo; means the passage reports a misdeed without an
           official finding; &ldquo;unverified&rdquo; means it was carried in from the
-          old archive and has no passage yet. The passage is always the proof, and
-          the document is one click away.
+          old archive and has no passage yet. A <span className="text-spiteCrimson">finding</span>{" "}
+          is the narrower thing: a passage that reports a misdeed, or one a court,
+          regulator or admission established. Everything else is an act, not
+          wrongdoing. The passage is always the proof, and the document is one
+          click away.
         </p>
       </main>
     </div>

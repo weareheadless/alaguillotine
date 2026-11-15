@@ -97,6 +97,7 @@ R2 (`text_ref`); D1 keeps the metadata.
 | Roll calls (Clerk, Senate) | roll_call | free |
 | Roll calls (European Parliament RCV XML) | roll_call | free, published |
 | Register of Members' Financial Interests (UK Commons) | register | free, official CSV/API |
+| Press (six published feeds) | press | free, RSS, gazetteer-gated |
 | Press RSS (allow-list) | press | free |
 | Field investigations, OSINT | report | free, manual |
 
@@ -121,7 +122,11 @@ Parliament together would describe a body that does not exist.
 
 A register document is not automatically an accusation. `accused` is set by a
 passage that reports, finds or alleges a misdeed; a document that records a
-filing or admits one is `documented`, not `accused`. The European Parliament's
+filing or admits one is `documented`, not `accused`. The distinction is a field
+on the claim (`finding`: `none | alleged | found | admitted`), not a property
+of the source class. A press document says where the passage was published; the
+passage says whether it is about a misdeed. Declaring a conflict is not
+admitting one. The European Parliament's
 conflict declarations are the test case: 40 filings about declared conflicts,
 none of them a finding.
 
