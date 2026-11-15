@@ -271,8 +271,9 @@ export async function POST(request: Request) {
     db
       .prepare(
         `INSERT OR REPLACE INTO universes
-           (id, name, description, definition, source_url, declared_at, expected)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (id, name, description, definition, source_url, declared_at, expected,
+            country, body, body_key)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'US', 'House of Representatives', 'US-House')`,
       )
       .bind(
         "house-119",
