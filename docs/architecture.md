@@ -56,6 +56,17 @@ The causes are structural, not bugs:
    specificity, with the working attached. The reader is the judge; the site
    never labels a crime on its own authority.
 
+### Three numbers, never confused
+
+| Number | Question it answers | Where it comes from |
+|---|---|---|
+| **confidence** | is the claim true, and how well sourced | stance, independent origins, specificity |
+| **weight** | how bad is the act | category base × grade × documented magnitude |
+| **standing** | who do we look at first | documented wealth and public money, never a charge |
+
+Confidence is about evidence, weight is about harm, standing is about attention.
+A rich person has standing and no automatic weight. A thin claim has neither.
+
 ## Pipeline
 
 ```
