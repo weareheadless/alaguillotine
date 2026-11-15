@@ -37,6 +37,35 @@ is the stalest `done` row.
 4. **No population is declared**, so the gap between "who is covered" and "who
    exists" cannot be measured at all.
 
+## Where sources sit, and why government APIs are only one class
+
+| Class | Examples | What it is good for |
+|---|---|---|
+| Finding | ICC warrant, judgment, verdict, inquiry, regulator | the act, and the characterisation, without us minting it |
+| Record | roll call, contract, gazette, sanctions listing, company filing | what the state cannot unsay |
+| Admission | the actor's own statement, order, press release | the act, in their words |
+| Report | named journalism, field investigation, testimony, OSINT | what no register contains |
+| Allegation | an accusation with nothing behind it | finding out where to look |
+
+Government registers are the strongest class for the acts they record and the
+weakest for the acts they omit, which are usually the ones that matter. They are
+one part of the story: what the state wrote down. The rest is what it didn't.
+
+## Confidence is arithmetic
+
+`src/lib/confidence.ts` turns a set of artifacts into a grade the reader can
+check: the stance sets the base, independence adds a capped bonus, an undated
+act is capped at C, and a passage that does not name the person is not a weak
+claim but no claim at all. The components are stored in
+`ledger_entries.confidence_basis` and shown with the claim, because "82%
+confident" without the working is a horoscope.
+
+Two rules carry most of the weight. **Independence:** a story citing another
+story is one origin, tracked through `documents.derived_from`, because a wire
+item reprinted twelve times is still one artifact. **No borrowed authority:** an
+admission documents the act and tells you nothing about intent, and a state's
+inquiry into itself is a deduction rather than a finding.
+
 ## Under the register
 
 A name enters by exactly three routes, and each has a document at the end of it:
