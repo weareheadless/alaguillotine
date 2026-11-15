@@ -137,8 +137,8 @@ entity_ids(scheme, value, entity_id)              -- bioguide, cik, lei, fec
 documents(id, kind, issuer, title, number, url, published_at, fetched_at,
           content_hash, text_ref, derived_from, provenance, self_serving)
 claims(id, entity_id, act, category, mechanism, beneficiary, act_date,
-       date_precision, confidence, confidence_basis, status, claim_key,
-       supersedes, created_at)
+       date_precision, amount, currency, confidence, confidence_basis, status,
+       claim_key, supersedes, created_at)
 claim_documents(claim_id, document_id, quote, locator, stance)
 claim_entities(claim_id, entity_id, role)         -- payer, beneficiary, owner
 entity_edges(id, from_entity, to_entity, kind, since, amount, currency,
@@ -245,6 +245,48 @@ alleged, with its source and grade, and does not move the blade.
 
 **P4 — reports (3 days).** Saved queries and snapshots; the dispatch pipeline
 writes from a report instead of from raw search results.
+
+## Weights: harm, magnitude, standing
+
+The current weights are indefensible as they stand: genocide 1.0, war 0.9,
+repression 0.8, arms 0.7, climate and impunity 0.6, labour and extraction 0.5,
+**finance 0.4**. Under those numbers no financier can outrank a commander, no
+matter what the filings say. That is a political position hidden in a constant.
+
+But "a billionaire is extraction by default" cannot replace it, because it breaks
+the law the rest of the system rests on: no claim without a document. Wealth is
+an outcome. Inheritance, a product people bought, a monopoly, a fraud and a
+currency collapse all end in the same balance sheet, and calling the balance
+sheet the proof makes every citation on the site decoration. It also hands the
+other side the only argument it needs: *they say being rich is a crime.*
+
+So the weight changes in three ways, and only one of them is about the actor.
+
+**1. Magnitude, per act.** Each claim carries `amount` and `currency`, taken from
+the document. The weight of an act rises with what moved, on a log scale, so a
+$10B transfer outranks a $50k fine without anyone deciding that money is evil:
+
+```
+magnitude = 0.6 + 0.4 × min(1, log10(1 + amount / 1e6) / 5)     -- pivot $1M, cap $100B
+weight    = category_base × grade × magnitude
+```
+
+**2. Flatter category bases.** With magnitude doing the work, the bases can stop
+carrying a partisan ranking: genocide 1.0, war 0.85, repression 0.8, arms 0.75,
+extraction 0.7, finance 0.7, impunity 0.65, climate 0.6, migration 0.65, labour
+0.6, media 0.5. A documented $20B subsidy now beats a documented $2M arms deal,
+which is the point.
+
+**3. Wealth as standing, not as proof.** The sourced numbers already in
+`person_numbers` (holdings, public money received, tax paid) are displayed on the
+record and decide **attention**: who gets connectors first, who gets a first-look
+dossier. They never create a claim and never enter the score. A reader can see
+$400B and draw their own conclusion; that is the reader being the judge, which is
+the whole design.
+
+What this buys: a financier can top the blade on documented transfers of public
+money, because the documents describe the transfers. Being rich adds nothing to
+the score, so the site cannot be dismissed for asserting that it is a crime.
 
 ## Non-goals
 
