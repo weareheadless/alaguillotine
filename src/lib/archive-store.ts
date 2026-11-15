@@ -881,11 +881,15 @@ export async function chargeStats(): Promise<ChargeStats> {
   if (!d) return { total: 0, last24h: 0 };
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   try {
+    // The record is findings now: a claim counts only when a passage states it.
     const row = await d
       .prepare(
         `SELECT COUNT(*) AS total,
-                SUM(CASE WHEN act_date >= ? THEN 1 ELSE 0 END) AS recent
-           FROM ledger_entries`,
+                SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS recent
+           FROM claims
+          WHERE finding != 'none'
+            AND EXISTS (SELECT 1 FROM claim_documents cd
+                         WHERE cd.claim_id = claims.id AND cd.quote != '')`,
       )
       .bind(since)
       .first<{ total?: number; recent?: number }>();
