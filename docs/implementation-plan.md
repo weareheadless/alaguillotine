@@ -385,6 +385,28 @@ A gift is not a finding, and the page says so in the same place it says a trade
 is not one. The rule is the argument; the two citations are the evidence; the
 reader is the judge.
 
+### The surface: one dashboard, not a set of essays
+
+The register had three public pages: coverage, leads, and the old archive. Each
+explained a different part of the same database, and a reader had to hold three
+mental models to ask one question. That is backwards. The archive is the
+product; coverage and leads are attributes of it.
+
+`/archive` is now the dashboard, labelled "The Record". It opens on the latest
+acts with a stored passage — votes and unverified rows have their own tabs,
+because a vote is a fact about the chamber and an unquoted row is not yet
+evidence. Search is a GET form; body, kind, topic and year are links; every row
+expands to the passage and the document. The header publishes claims, documents,
+people and passages, so the same page that answers a query also states how much
+there is to query. Coverage is those counts plus the body filter; a lead is a
+seat and a claim read together, not a separate archive. `/coverage` and `/leads`
+redirect, and the nav carries one link where it carried three.
+
+That also sets the rule for everything that follows: new data lands in claims
+and documents, and the dashboard learns to filter it. It does not get its own
+explainer page. Press, person pages, weight and reports all have to arrive as
+query and row, not as another surface.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.

@@ -254,6 +254,21 @@ for each source: stance, provenance, issuer, URL, quote. A report is a saved
 query plus a row snapshot, so an article cannot silently drift from the data it
 was written on.
 
+### The reader's surface
+
+There is one dashboard (`/archive`, labelled "The Record"), not a page per
+concept. It opens on the latest acts with a stored passage — votes and
+unverified rows excluded, because neither is a finding — and every row expands
+to the passage and the document under it. Search, body, kind, topic and year are
+filters on the same query, and the counts in the header are the register's own:
+claims, documents, people, passages.
+
+Coverage and leads stopped being destinations. Coverage was a page explaining
+the register's completeness; its counts now sit in the dashboard header and its
+bodies are filter chips. Leads were a join of a seat and a disclosure; the
+dashboard queries the two claims and leaves the join to the reader. Both old
+URLs redirect, so no link rots, but there is one place to look.
+
 ## The loop: a name arrives from the paper
 
 This is the part that keeps the archive from becoming a directory of officialdom.
