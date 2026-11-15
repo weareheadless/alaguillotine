@@ -73,6 +73,24 @@ export default {
       );
       return;
     }
+    // The findings pass keeps its own quarter-hour offset. One archive search
+    // per run: the grid is every outlet crossed with every finding word, and
+    // the cursor walks it. No roster decides who can appear.
+    if (event.cron === "7,22,37,52 * * * *") {
+      context.waitUntil(
+        invokeApp(
+          "/api/findings/refresh",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/findings/refresh returned HTTP ${response.status}.`);
+          }
+        }),
+      );
+      return;
+    }
     // The blade keeps its own time: sentence at the reading, drop at the
     // hour. No model call, so a slot no longer depends on a visitor.
     if (event.cron === "*/15 * * * *") {

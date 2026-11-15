@@ -222,7 +222,11 @@ export default async function FindingsPage({ searchParams }: { searchParams: Pro
                   </span>
                   <span className="text-chop-muted">{row.issuer} reports</span>
                   <span className="ml-auto tabular-nums text-chop-muted">
-                    {row.dateKind === "act" ? row.date : `reported ${row.date}`}
+                    {row.dateKind === "act"
+                      ? row.datePrecision === "year"
+                        ? row.date.slice(0, 4)
+                        : row.date
+                      : `reported ${row.date}`}
                   </span>
                 </div>
 
@@ -261,7 +265,9 @@ export default async function FindingsPage({ searchParams }: { searchParams: Pro
                     >
                       {row.title || row.issuer} ↗
                     </a>
-                    <span>{Math.round(row.confidence * 100)}% confidence</span>
+                    <span>
+                      {row.stance === "reports" ? "reported, not a verdict" : row.stance}
+                    </span>
                   </div>
                 </details>
               </li>

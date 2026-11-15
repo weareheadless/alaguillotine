@@ -336,7 +336,7 @@ const CRIMES = [
   "arms trafficking", "sanctions evasion", "illicit enrichment",
   "abuse of office", "abuse of power", "conflict of interest",
   "war crimes", "genocide", "torture", "deportation", "persecution",
-  "bribery", "graft", "corruption", "embezzlement", "extortion",
+  "bribery", "bribes", "accepting bribes", "graft", "corruption", "embezzlement", "extortion",
   "kickbacks", "nepotism", "racketeering", "conspiracy", "perjury",
   "espionage", "treason", "insurrection", "sedition", "kidnapping",
   "murder", "manslaughter", "homicide", "assault", "rape", "molestation",
@@ -377,17 +377,37 @@ function offenseOf(sentence: string, from: number, allowTo: boolean): string {
   // not an offence.
   if (/^the former\b/i.test(captured) || /\bTribunal\b/i.test(captured)) captured = "";
 
+  if (/^(?:the\s+)?(?:former|government|company|state|city|county|department|ministry|court)\b/i.test(captured)) {
+    captured = "";
+  }
+
   const crime = crimeIn(sentence);
   let value = "";
   if (captured && crimeIn(captured)) value = captured;
   else if (crime) value = crime;
-  else value = "";
+  else if (
+    captured &&
+    captured.split(/\s+/).length <= 4 &&
+    !/\b(?:was|were|is|are|has|had|will|would)\b/i.test(captured)
+  ) {
+    value = captured;
+  } else {
+    value = "";
+  }
   value = value.split(/[—–]/)[0];
   value = value.split(/[,;]/)[0];
   value = value.split(
     /\s+(?:and|but)\s+(?:was|were|is|are|has|had|will|would|faces?|received?|got)\b/i,
   )[0];
   value = value.replace(/\s+in\s+\d{4}\b.*$/, "");
+  value = value.replace(
+    /\s+on\s+(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b.*$/i,
+    "",
+  );
+  if (/^(?:his|her|their|its)\s+/i.test(value)) {
+    const crime = crimeIn(value);
+    if (crime) value = crime;
+  }
   return value.replace(/\s+/g, " ").trim().slice(0, 90);
 }
 
@@ -443,7 +463,7 @@ export function extractFindings(article: string, title = ""): Finding[] {
   const sentences = article
     .split(/(?<=[.!?])\s+(?=[A-Z“"'(])/u)
     .map(cleanSentence)
-    .filter((sentence) => sentence.length >= 45 && sentence.length <= 700);
+    .filter((sentence) => sentence.length >= 30 && sentence.length <= 700);
 
   const known = articleNames(`${title}\n${article}`);
   const findings: Finding[] = [];
@@ -476,7 +496,11 @@ export function extractFindings(article: string, title = ""): Finding[] {
 
     const offense = offenseOf(sentence, hit.from, hit.verb.startsWith("plea"));
     const { label, finding, prep } = labelFor(hit.verb);
-    const act = offense ? `${label} ${prep} ${offense}` : label;
+    let act = offense ? `${label} ${prep} ${offense}` : label;
+    if (!offense && hit.verb.startsWith("sentenc")) {
+      const consequence = /\bto\s+([^,;.]{3,70})/i.exec(sentence.slice(hit.from));
+      if (consequence) act = `${label} to ${consequence[1].trim()}`;
+    }
 
     const row: Finding = {
       name,

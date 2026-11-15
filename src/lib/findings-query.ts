@@ -16,6 +16,7 @@ export interface FindingRow {
   category: string;
   date: string;
   dateKind: "act" | "reported";
+  datePrecision: string;
   finding: string;
   status: string;
   confidence: number;
@@ -102,7 +103,7 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
   const rows = await db
     .prepare(
       `SELECT c.id AS claim_id, c.entity_id, c.act, c.category, c.act_date,
-              c.finding, c.status, c.confidence,
+              c.finding, c.status, c.confidence, c.date_precision,
               e.name, e.country, e.affiliation,
               d.issuer, d.title, d.url, d.published_at, cd.quote, cd.stance
          ${from} ${clause}
@@ -186,6 +187,7 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
       category: String(raw.category ?? ""),
       date: String(raw.act_date || raw.published_at || ""),
       dateKind: raw.act_date ? "act" : "reported",
+      datePrecision: String(raw.date_precision ?? ""),
       finding: String(raw.finding ?? ""),
       status: String(raw.status ?? ""),
       confidence: Number(raw.confidence ?? 0),
