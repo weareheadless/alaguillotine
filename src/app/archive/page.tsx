@@ -25,6 +25,8 @@ type Params = {
   category?: string;
   status?: string;
   year?: string;
+  entity?: string;
+  sort?: string;
   page?: string | number;
 };
 
@@ -79,6 +81,8 @@ function day(value: string): string {
 export default async function ArchivePage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
   const q = (params.q ?? "").trim();
+  const entity = (params.entity ?? "").trim();
+  const sort = (params.sort ?? "").trim();
   const body = (params.body ?? "").trim();
   const kind = (params.kind ?? "").trim();
   const category = (params.category ?? "").trim();
@@ -86,7 +90,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
   const year = (params.year ?? "").trim();
   const page = Math.max(1, Number(params.page) || 1);
 
-  const query: ArchiveQuery = { q, body, kind, category, status, year, page };
+  const query: ArchiveQuery = { q, entity, body, kind, category, status, year, sort, page };
   const result = await readArchive(query);
 
   if (!result) {
@@ -102,17 +106,19 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
     );
   }
 
-  const { rows, total, pages, facets } = result;
+  const { rows, total, pages, facets, person } = result;
   const base: Params = {
     q: q || undefined,
+    entity: entity || undefined,
+    sort: sort || undefined,
     body: body || undefined,
     kind: kind || undefined,
     category: category || undefined,
     status: status || undefined,
     year: year || undefined,
   };
-  const filtered = Boolean(q || body || kind || category || status || year);
-  const latest = !filtered;
+  const filtered = Boolean(q || entity || body || kind || category || status || year);
+  const latest = !filtered && !sort;
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
@@ -130,7 +136,38 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
           a year.
         </p>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {person ? (
+          <div className="mt-5 border border-chop-border bg-chop-card/40 p-4">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 className="text-2xl font-black uppercase tracking-tight text-sheetWhite">
+                {person.name}
+              </h2>
+              <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-chop-muted">
+                {[person.affiliation, person.country, bodyLabel(person.bodyKey)]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+              <Link
+                href="/archive"
+                className="ml-auto font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted underline-offset-2 hover:text-sheetWhite hover:underline"
+              >
+                ← everyone
+              </Link>
+            </div>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[9px] uppercase tracking-[0.16em] text-chop-muted">
+              <span className="text-sheetWhite">{num(person.claims)} claims</span>
+              <span>·</span>
+              <span>{num(person.passages)} passages</span>
+              <span>·</span>
+              <span className={person.findings ? "text-spiteCrimson" : ""}>
+                {num(person.findings)} findings
+              </span>
+              <span>·</span>
+              <span>{num(person.documents)} documents</span>
+            </div>
+          </div>
+        ) : (
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {[
             ["claims", facets.claims],
             ["findings", facets.findings],
@@ -148,11 +185,13 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
             </div>
           ))}
         </div>
+        )}
 
         <form action="/archive" method="get" className="mt-6 flex flex-wrap gap-2">
           {body ? <input type="hidden" name="body" value={body} /> : null}
           {kind ? <input type="hidden" name="kind" value={kind} /> : null}
           {category ? <input type="hidden" name="category" value={category} /> : null}
+          {sort ? <input type="hidden" name="sort" value={sort} /> : null}
           <input
             type="search"
             name="q"
@@ -249,7 +288,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
 
         <div className="mt-8 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-chop-border pb-3">
           <h2 className="text-lg font-black uppercase tracking-tight text-sheetWhite">
-            {latest ? "Latest" : "Results"}
+            {person ? "Their record" : latest ? "Latest" : "Results"}
           </h2>
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-chop-muted">
             {num(total)} {total === 1 ? "claim" : "claims"}
@@ -261,12 +300,33 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
             </span>
           ) : (
             <Link
-              href="/archive"
+              href={entity ? href({}, { entity, sort }) : "/archive"}
               className="ml-auto font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted underline-offset-2 hover:text-sheetWhite hover:underline"
             >
               clear filters
             </Link>
           )}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted">
+          <span className="text-chop-muted/60">sort</span>
+          {[
+            { key: "", label: "newest" },
+            { key: "confidence", label: "confidence" },
+            { key: "amount", label: "largest amount" },
+          ].map((option) => (
+            <Link
+              key={option.key || "date"}
+              href={href(base, { sort: option.key || undefined, page: undefined })}
+              className={
+                sort === option.key
+                  ? "border-b border-spiteCrimson pb-0.5 text-spiteCrimson"
+                  : "hover:text-sheetWhite"
+              }
+            >
+              {option.label}
+            </Link>
+          ))}
         </div>
 
         {rows.length === 0 ? (
@@ -307,7 +367,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
 
                   <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     <Link
-                      href={href({}, { q: row.name })}
+                      href={href({}, { entity: row.entityId })}
                       className="text-[15px] font-bold leading-tight text-sheetWhite underline-offset-2 hover:underline"
                     >
                       {row.name}

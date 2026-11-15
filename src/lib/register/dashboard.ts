@@ -16,11 +16,13 @@ import { getDb } from "@/lib/clock-store";
 
 export interface ArchiveQuery {
   q?: string;
+  entity?: string;
   body?: string;
   kind?: string;
   category?: string;
   status?: string;
   year?: string;
+  sort?: string;
   page?: number;
 }
 
@@ -69,7 +71,21 @@ export interface ArchiveFacets {
   statuses: FacetCount[];
 }
 
+export interface PersonSummary {
+  id: string;
+  name: string;
+  affiliation: string;
+  country: string;
+  role: string;
+  bodyKey: string;
+  claims: number;
+  passages: number;
+  findings: number;
+  documents: number;
+}
+
 export interface ArchiveResult {
+  person: PersonSummary | null;
   rows: ArchiveRow[];
   total: number;
   page: number;
@@ -151,6 +167,56 @@ function toRow(raw: Record<string, unknown>): ArchiveRow {
   };
 }
 
+async function readPerson(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  id: string,
+): Promise<PersonSummary | null> {
+  const row = await db
+    .prepare(
+      `SELECT e.id, e.name, e.affiliation, e.country, e.role,
+              COALESCE(u.body_key, '') AS body_key
+         FROM entities e
+         LEFT JOIN universes u ON u.id = (
+           SELECT universe_id FROM universe_members WHERE entity_id = e.id LIMIT 1
+         )
+        WHERE e.id = ? OR e.slug = ?
+        LIMIT 1`,
+    )
+    .bind(id, id)
+    .first<Record<string, unknown>>();
+  if (!row) return null;
+
+  const tally = await db
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM claims WHERE entity_id = ?) AS claims,
+         (SELECT COUNT(*) FROM claims c WHERE c.entity_id = ?
+            AND EXISTS (SELECT 1 FROM claim_documents cd
+                         WHERE cd.claim_id = c.id AND cd.quote != '')) AS passages,
+         (SELECT COUNT(*) FROM claims c WHERE c.entity_id = ? AND c.finding != 'none'
+            AND EXISTS (SELECT 1 FROM claim_documents cd
+                         WHERE cd.claim_id = c.id AND cd.quote != '')) AS findings,
+         (SELECT COUNT(DISTINCT cd.document_id) FROM claims c
+            JOIN claim_documents cd ON cd.claim_id = c.id
+           WHERE c.entity_id = ?) AS documents`,
+    )
+    .bind(id, id, id, id)
+    .first<Record<string, unknown>>();
+
+  return {
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    affiliation: String(row.affiliation ?? ""),
+    country: String(row.country ?? ""),
+    role: String(row.role ?? ""),
+    bodyKey: String(row.body_key ?? ""),
+    claims: Number(tally?.claims ?? 0),
+    passages: Number(tally?.passages ?? 0),
+    findings: Number(tally?.findings ?? 0),
+    documents: Number(tally?.documents ?? 0),
+  };
+}
+
 export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | null> {
   const db = await getDb();
   if (!db) return null;
@@ -158,6 +224,8 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
   const per = 25;
   const page = Math.max(1, Number(query.page) || 1);
   const q = (query.q ?? "").trim();
+  const entity = (query.entity ?? "").trim();
+  const sort = (query.sort ?? "").trim();
   const body = (query.body ?? "").trim();
   const kind = (query.kind ?? "").trim();
   const category = (query.category ?? "").trim();
@@ -167,7 +235,10 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
   const where: string[] = [];
   const binds: Array<string | number> = [];
 
-  if (q) {
+  if (entity) {
+    where.push("c.entity_id = ?");
+    binds.push(entity);
+  } else if (q) {
     where.push("(lower(e.name) LIKE ? OR lower(c.act) LIKE ?)");
     const like = `%${q.toLowerCase()}%`;
     binds.push(like, like);
@@ -233,7 +304,13 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
            ${from} ${clause}
        )
        SELECT * FROM ranked WHERE rn = 1
-        ORDER BY COALESCE(act_date, published_at, '') DESC, claim_id
+        ORDER BY ${
+          sort === "confidence"
+            ? "confidence DESC, COALESCE(act_date, published_at, '') DESC"
+            : sort === "amount"
+              ? "COALESCE(amount, 0) DESC, COALESCE(act_date, published_at, '') DESC"
+              : "COALESCE(act_date, published_at, '') DESC"
+        }, claim_id
         LIMIT ? OFFSET ?`,
     )
     .bind(...binds, per, (page - 1) * per)
@@ -300,6 +377,7 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
   };
 
   return {
+    person: entity ? await readPerson(db, entity) : null,
     rows: (rows.results ?? []).map((raw) => toRow(raw as Record<string, unknown>)),
     total,
     page,

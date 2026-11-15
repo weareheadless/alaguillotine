@@ -274,6 +274,11 @@ bodies are filter chips. Leads were a join of a seat and a disclosure; the
 dashboard queries the two claims and leaves the join to the reader. Both old
 URLs redirect, so no link rots, but there is one place to look.
 
+A name is a filter, not a page: `?entity=<id>` narrows the same query, and the
+header becomes that person's claims, passages, findings and documents. Sort is
+newest, confidence or largest amount. There is no invented harm score; the
+reader chooses the order, and the passage does not change with it.
+
 ## The loop: a name arrives from the paper
 
 This is the part that keeps the archive from becoming a directory of officialdom.

@@ -407,6 +407,13 @@ and documents, and the dashboard learns to filter it. It does not get its own
 explainer page. Press, person pages, weight and reports all have to arrive as
 query and row, not as another surface.
 
+A name is now a filter (`?entity=<id>`), not a route: the same query, one
+predicate, with the header showing that person's claims, passages, findings and
+documents. The list can be ordered by newest, confidence or largest disclosed
+amount. No harm score is computed yet, deliberately: the weights are an
+editorial decision and a half-built one would rank people on a number the
+register cannot defend.
+
 ### Press, bounded: the first feed pass
 
 Press is the only class that can name people no roster contains, and it is the
