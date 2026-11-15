@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, type D1 } from "@/lib/clock-store";
 import { isAdminAuthed } from "@/lib/admin-auth";
 import { extractPdfText } from "@/lib/register/pdf";
-import { parsePtr, transactionAct } from "@/lib/register/ptr";
+import { parsePtrWithStats, transactionAct } from "@/lib/register/ptr";
 import { unzip } from "@/lib/register/zip";
 
 export const dynamic = "force-dynamic";
@@ -210,7 +210,14 @@ async function runParse(db: D1, limit: number) {
          FROM documents d
          JOIN ptr_filings f ON f.document_id = d.id
         WHERE d.kind = 'ptr' AND d.parsed_at = ''
-        ORDER BY f.filing_date DESC
+        -- A filing whose rows point at claims that do not exist is a repair,
+        -- not a new read; it goes first so the queue cannot bury it.
+        ORDER BY CASE WHEN EXISTS (
+                   SELECT 1 FROM ptr_transactions t
+                    WHERE t.document_id = d.id AND t.claim_id != ''
+                      AND NOT EXISTS (SELECT 1 FROM claims c WHERE c.id = t.claim_id)
+                 ) THEN 0 ELSE 1 END,
+                 f.filing_date DESC
         LIMIT ?`,
     )
     .bind(limit)
@@ -227,7 +234,15 @@ async function runParse(db: D1, limit: number) {
   }));
 
   const now = new Date().toISOString();
-  const tally = { documents: docs.length, parsed: 0, unread: 0, transactions: 0, claimed: 0, noEntity: 0 };
+  const tally = {
+    documents: docs.length,
+    parsed: 0,
+    unread: 0,
+    transactions: 0,
+    claimed: 0,
+    noEntity: 0,
+    rejectedRows: 0,
+  };
 
   for (const doc of docs) {
     let bytes = new Uint8Array(0);
@@ -244,7 +259,8 @@ async function runParse(db: D1, limit: number) {
     }
 
     const text = bytes.length ? await extractPdfText(bytes) : null;
-    const rows = text ? parsePtr(text, { name: doc.filer, stateDst: doc.stateDst }) : [];
+    const parsed = text ? parsePtrWithStats(text, { name: doc.filer, stateDst: doc.stateDst }) : { rows: [], rejected: 0 };
+    const rows = parsed.rows;
 
     if (!text) {
       // Refused, encrypted with something stronger than RC4, or not text at all.
@@ -265,7 +281,28 @@ async function runParse(db: D1, limit: number) {
       .bind(text, await hashOf(bytes), now, now, status, doc.id)
       .run();
 
-    const writes: ReturnType<D1["prepare"]>[] = [];
+    // A re-parse replaces this filing's rows. Merging would leave transactions
+    // from an older, worse parse pointing at claims nobody re-created.
+    const previous = await db
+      .prepare("SELECT claim_id FROM ptr_transactions WHERE document_id = ? AND claim_id != ''")
+      .bind(doc.id)
+      .all();
+    const keep = new Set(rows.map((_, index) => `claim:ptr:${doc.docId}:${index}`));
+    const stale = (previous.results ?? [])
+      .map((row) => String(row.claim_id ?? ""))
+      .filter((id) => id && !keep.has(id));
+
+    const writes: ReturnType<D1["prepare"]>[] = [
+      db.prepare("DELETE FROM ptr_transactions WHERE document_id = ?").bind(doc.id),
+    ];
+    for (const claimId of stale) {
+      writes.push(
+        db.prepare("DELETE FROM claim_documents WHERE claim_id = ?").bind(claimId),
+        db.prepare("DELETE FROM claim_entities WHERE claim_id = ?").bind(claimId),
+        db.prepare("DELETE FROM claims WHERE id = ? AND status = 'recorded'").bind(claimId),
+      );
+    }
+
     rows.forEach((row, index) => {
       const transactionId = `ptr:${doc.docId}:${index}`;
       const claimId = `claim:ptr:${doc.docId}:${index}`;
@@ -301,7 +338,10 @@ async function runParse(db: D1, limit: number) {
 
       const act = transactionAct(row, { docId: doc.docId, filed: humanDate(doc.filed) });
       const basis = `House PTR ${doc.docId}, filed ${humanDate(doc.filed)}: ${row.type} ${row.amountLabel} on ${row.date}`;
-      const claimKey = `${doc.entity.toLowerCase()}|${act.replace(/\s+/g, " ").trim().toLowerCase()}|${row.date}`;
+      // A trade's natural key is the filing row, not entity + act + date. Two
+      // identical trades in one report are two facts, and the earlier key
+      // collapsed them into one claim that two transactions then pointed at.
+      const claimKey = `${doc.entity.toLowerCase()}|${act.replace(/\s+/g, " ").trim().toLowerCase()}|${row.date}|ptr:${doc.docId}:${index}`;
 
       writes.push(
         db
@@ -348,6 +388,7 @@ async function runParse(db: D1, limit: number) {
     await batchWrite(db, writes);
     tally.parsed += 1;
     tally.transactions += rows.length;
+    tally.rejectedRows += parsed.rejected;
     if (!doc.entity) tally.noEntity += 1;
   }
 

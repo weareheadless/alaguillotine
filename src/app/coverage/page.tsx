@@ -65,18 +65,21 @@ export default async function CoveragePage() {
         <p className="mt-4 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
           A site that accuses people has to publish its own denominator. The
           population is declared first — every voting seat in the House, taken
-          from the Clerk&rsquo;s roster — and then counted against. Two ratios,
-          kept apart on purpose: a member we have <span className="text-sheetWhite">read</span>{" "}
-          appears in a document with a passage stored, usually a vote; a member we
-          have <span className="text-sheetWhite">covered</span> has a stored
-          passage about conduct, from something other than a roll call — a trade
-          in a filing counts, a vote does not. A vote is a fact about the
-          chamber. It is not evidence of anything on its own.
+          from the Clerk&rsquo;s roster — and then counted against. Three numbers,
+          kept apart on purpose. <span className="text-sheetWhite">Read</span>:
+          a document naming them has been read and a passage stored, usually a
+          vote. <span className="text-sheetWhite">Documented</span>: the passage
+          is about an act, not a vote — a trade, a filing, a story.{" "}
+          <span className="text-sheetWhite">Accused</span>: the passage is about
+          a misdeed, from journalism or a register, not from their own paperwork.
+          A vote is a fact about the chamber. A portfolio is a fact about a
+          portfolio. Neither is evidence of wrongdoing on its own, which is why
+          only the last number answers the question the site exists to ask.
         </p>
 
         {house ? (
           <>
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="border border-chop-border p-4">
                 <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
                   seats declared
@@ -99,15 +102,26 @@ export default async function CoveragePage() {
                   {pct(house.read, house.listed)} of those listed
                 </div>
               </div>
-              <div className="border border-spiteCrimson/50 p-4">
+              <div className="border border-chop-border p-4">
                 <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-                  covered
+                  documented
                 </div>
-                <div className="mt-1 text-3xl font-black tabular-nums text-spiteCrimson">
-                  {num(house.covered)}
+                <div className="mt-1 text-3xl font-black tabular-nums text-sheetWhite">
+                  {num(house.documented)}
                 </div>
                 <div className="mt-1 font-mono text-[10px] text-chop-muted">
-                  {pct(house.covered, house.listed)} with a passage about conduct
+                  {pct(house.documented, house.listed)} with a passage about an act
+                </div>
+              </div>
+              <div className="border border-spiteCrimson/50 p-4">
+                <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
+                  accused
+                </div>
+                <div className="mt-1 text-3xl font-black tabular-nums text-spiteCrimson">
+                  {num(house.accused)}
+                </div>
+                <div className="mt-1 font-mono text-[10px] text-chop-muted">
+                  {pct(house.accused, house.listed)} with a passage about a misdeed
                 </div>
               </div>
             </div>
@@ -126,7 +140,8 @@ export default async function CoveragePage() {
                     <th className="py-2 pr-4 font-normal">party</th>
                     <th className="py-2 pr-4 text-right font-normal">listed</th>
                     <th className="py-2 pr-4 text-right font-normal">read</th>
-                    <th className="py-2 text-right font-normal">covered</th>
+                    <th className="py-2 pr-4 text-right font-normal">documented</th>
+                    <th className="py-2 text-right font-normal">accused</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -140,8 +155,11 @@ export default async function CoveragePage() {
                         {num(row.read)}{" "}
                         <span className="text-chop-muted">({pct(row.read, row.listed)})</span>
                       </td>
+                      <td className="py-2 pr-4 text-right tabular-nums text-sheetWhite/80">
+                        {num(row.documented)}
+                      </td>
                       <td className="py-2 text-right tabular-nums text-spiteCrimson">
-                        {num(row.covered)}
+                        {num(row.accused)}
                       </td>
                     </tr>
                   ))}
@@ -150,7 +168,8 @@ export default async function CoveragePage() {
             </div>
             <p className="mt-3 font-mono text-[10px] leading-relaxed text-chop-muted">
               The same measure applied to both parties. A gap here is a gap in
-              what has been read, not a finding about anyone.
+              what has been read, not a finding about anyone — and a party with
+              more trade filings is a party with more paperwork, nothing more.
             </p>
           </>
         ) : (

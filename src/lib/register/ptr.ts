@@ -78,9 +78,26 @@ export interface PtrFiler {
 const normalise = (line: string): string =>
   line.replace(/\u0000/g, " ").replace(/\s+/g, " ").trim();
 
+/** An asset cell that has swallowed page furniture is not an asset name. */
+function plausibleAsset(value: string): boolean {
+  if (value.length < 3 || value.length > 160) return false;
+  return !/( F S :| S O :|\$|Owner:| L :|>|CERTIFY|Digitally Signed)/i.test(value);
+}
+
 export function parsePtr(text: string, filer: PtrFiler = {}): PtrTransaction[] {
+  return parsePtrWithStats(text, filer).rows;
+}
+
+export interface PtrParseResult {
+  rows: PtrTransaction[];
+  /** Blocks whose asset cell was page furniture rather than a name. */
+  rejected: number;
+}
+
+export function parsePtrWithStats(text: string, filer: PtrFiler = {}): PtrParseResult {
   const lines = text.split("\n");
   const rows: PtrTransaction[] = [];
+  let rejected = 0;
 
   // Lines that belong to the transaction being built, in document order.
   let buffer: Array<{ at: number; text: string }> = [];
@@ -174,7 +191,7 @@ export function parsePtr(text: string, filer: PtrFiler = {}): PtrTransaction[] {
           const { asset, ticker } = splitTicker(
             buffer.map((entry) => entry.text).join(" ").replace(/\s+/g, " ").trim(),
           );
-          if (asset) {
+          if (asset && plausibleAsset(asset)) {
             rows.push({
               owner,
               asset,
@@ -193,6 +210,8 @@ export function parsePtr(text: string, filer: PtrFiler = {}): PtrTransaction[] {
                 .join("\n"),
               line: first.at,
             });
+          } else if (asset) {
+            rejected += 1;
           }
         }
         buffer = [];
@@ -209,7 +228,7 @@ export function parsePtr(text: string, filer: PtrFiler = {}): PtrTransaction[] {
     if (!chrome(value)) buffer.push({ at: i, text: value });
   }
 
-  return rows;
+  return { rows, rejected };
 }
 
 /** The sentence a stored trade produces. No adjective, no inference. */

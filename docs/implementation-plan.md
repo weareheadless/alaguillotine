@@ -249,6 +249,39 @@ A trade is a fact about a portfolio. It is not a finding of wrongdoing, and a
 member with forty of them has forty facts, not forty crimes. The filing says
 what happened; what it means next to a committee seat is the reader's call.
 
+## Corrections after the first honest reading
+
+The review of the first full pass found more than it found data. Four defects,
+all of the same kind: a number that was true enough to publish and wrong enough
+to mislead.
+
+| Defect | Measure | Fix |
+|---|---|---|
+| Press quotes were stored whitespace-collapsed | 125 of 284 matched claims could not be found in their own document | `register/passage.ts` maps a normalised match back to a byte range; 71 rewritten, 15 demoted |
+| "Passages" were sometimes page furniture | 15 claims quoted a byline or reading time | furniture patterns rejected; claim drops to `alleged` with no passage |
+| The audit could not see any of it | `matched` was excluded from the quoted check | `matched` added, plus `furniturePassages` and `tradesPointingAtMissingClaims` |
+| Trades deduplicated into each other | 137 transactions pointed at claims that did not exist | natural key is the filing row; a re-parse replaces the document's rows |
+
+The trade defects were two: `claim_key = entity|act|date` collapsed two identical
+trades in one report into one claim, and a re-parse that produced fewer rows left
+the old ones behind. Both are the same error in miniature — a natural key that
+was not natural, and a write that merged instead of replacing.
+
+### Coverage, in three numbers
+
+One number invited the wrong reading. A trade filing made 90 members "covered"
+without a single new finding, so the view now reports three cumulative counts:
+
+| | now |
+|---|---|
+| read — a document naming them has a stored passage | 433 / 433 |
+| documented — the passage is about an act, not a vote | 92 / 433 (21%) |
+| accused — the passage is about a misdeed, from journalism or a register | 1 / 433 (0.2%) |
+
+The gap between the second and third is the whole truth about the register as it
+stands: it can show what members did, and on almost none of them can it yet show
+something that was wrong.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.

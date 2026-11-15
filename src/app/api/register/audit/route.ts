@@ -24,7 +24,10 @@ type Env = { CRON_SECRET?: string };
  * hidden, and that no `recorded`, `reported` or `found` claim is in the count.
  */
 
-const VERIFIED = "('recorded','reported','found','admitted')";
+// `matched` belongs here. It was left out of this list, which is why the audit
+// reported zero violations while 125 matched claims had passages that could not
+// be found in their own document.
+const VERIFIED = "('recorded','matched','reported','found','admitted')";
 
 export async function GET(request: Request) {
   const context = (await getCloudflareContext({ async: true })) as { env?: Env };
@@ -59,6 +62,8 @@ export async function GET(request: Request) {
     votesWithoutMember,
     membersWithoutId,
     orphans,
+    furniture,
+    danglingTrades,
   ] = await Promise.all([
     count("SELECT COUNT(*) AS n FROM claims"),
     db
@@ -115,6 +120,22 @@ export async function GET(request: Request) {
         WHERE NOT EXISTS (SELECT 1 FROM claims c WHERE c.id = cd.claim_id)
            OR NOT EXISTS (SELECT 1 FROM documents d WHERE d.id = cd.document_id)`,
     ),
+    // A byline, a reading time or a login prompt stored as the passage.
+    count(
+      `SELECT COUNT(*) AS n FROM claims c
+          JOIN claim_documents cd ON cd.claim_id = c.id
+        WHERE c.status IN ${VERIFIED}
+          AND (cd.quote LIKE 'Credit:%' OR cd.quote LIKE 'Published %'
+               OR cd.quote LIKE 'Updated %' OR cd.quote LIKE 'By %'
+               OR cd.quote LIKE 'Log in%' OR cd.quote LIKE 'Sign in%'
+               OR cd.quote LIKE '% min read%')`,
+    ),
+    // A trade whose claim was deleted is a row pointing at nothing.
+    count(
+      `SELECT COUNT(*) AS n FROM ptr_transactions t
+        WHERE t.claim_id != ''
+          AND NOT EXISTS (SELECT 1 FROM claims c WHERE c.id = t.claim_id)`,
+    ),
   ]);
 
   const violations = {
@@ -126,6 +147,8 @@ export async function GET(request: Request) {
     rollCallsWithClaimsButNoStructure: votesWithoutMember,
     peopleWithRecordedClaimsButNoId: membersWithoutId,
     orphanedClaimDocuments: orphans,
+    furniturePassages: furniture,
+    tradesPointingAtMissingClaims: danglingTrades,
   };
 
   const failing = Object.entries(violations).filter(([, value]) => value > 0);

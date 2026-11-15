@@ -21,7 +21,7 @@ import { getDb } from "@/lib/clock-store";
  * anyone.
  */
 
-const GROUNDED = `c.status NOT IN ('legacy', 'refuted')`;
+const GROUNDED = `c.status NOT IN ('legacy', 'refuted', 'alleged')`;
 
 export interface UniverseCoverage {
   id: string;
@@ -30,7 +30,8 @@ export interface UniverseCoverage {
   expected: number;
   listed: number;
   read: number;
-  covered: number;
+  documented: number;
+  accused: number;
   declaredAt: string;
   sourceUrl: string;
 }
@@ -39,7 +40,8 @@ export interface PartyCoverage {
   party: string;
   listed: number;
   read: number;
-  covered: number;
+  documented: number;
+  accused: number;
 }
 
 export interface CoverageReport {
@@ -72,42 +74,37 @@ export async function readCoverage(): Promise<CoverageReport | null> {
 
   const universes = await db
     .prepare(
-      `SELECT u.id, u.name, u.description, u.expected, u.declared_at, u.source_url,
-              COUNT(m.entity_id) AS listed,
-              SUM(CASE WHEN m.status = 'covered' THEN 1 ELSE 0 END) AS covered
-         FROM universes u
-         LEFT JOIN universe_members m ON m.universe_id = u.id
-        GROUP BY u.id
-        ORDER BY u.declared_at DESC`,
+      `SELECT c.*, u.description, u.source_url
+         FROM coverage c
+         JOIN universes u ON u.id = c.universe_id
+        ORDER BY c.declared_at DESC`,
     )
     .all();
-
-  const read = await db
-    .prepare(
-      `SELECT m.universe_id AS id, COUNT(DISTINCT m.entity_id) AS n
-         FROM universe_members m
-         JOIN claims c ON c.entity_id = m.entity_id
-         JOIN claim_documents cd ON cd.claim_id = c.id
-         JOIN documents d ON d.id = cd.document_id
-        WHERE cd.quote != '' AND ${GROUNDED}
-        GROUP BY m.universe_id`,
-    )
-    .all();
-  const readBy = new Map(
-    (read.results ?? []).map((r) => [String(r.id), Number(r.n ?? 0)]),
-  );
 
   const parties = await db
     .prepare(
       `SELECT coalesce(nullif(e.affiliation, ''), 'unknown') AS party,
               COUNT(*) AS listed,
-              SUM(CASE WHEN m.status = 'covered' THEN 1 ELSE 0 END) AS covered,
               SUM(CASE WHEN EXISTS (
                     SELECT 1 FROM claims c
                       JOIN claim_documents cd ON cd.claim_id = c.id
                       JOIN documents d ON d.id = cd.document_id
                      WHERE c.entity_id = e.id AND cd.quote != '' AND ${GROUNDED})
-                  THEN 1 ELSE 0 END) AS read
+                  THEN 1 ELSE 0 END) AS read,
+              SUM(CASE WHEN EXISTS (
+                    SELECT 1 FROM claims c
+                      JOIN claim_documents cd ON cd.claim_id = c.id
+                      JOIN documents d ON d.id = cd.document_id
+                     WHERE c.entity_id = e.id AND cd.quote != '' AND ${GROUNDED}
+                       AND d.kind != 'roll_call')
+                  THEN 1 ELSE 0 END) AS documented,
+              SUM(CASE WHEN EXISTS (
+                    SELECT 1 FROM claims c
+                      JOIN claim_documents cd ON cd.claim_id = c.id
+                      JOIN documents d ON d.id = cd.document_id
+                     WHERE c.entity_id = e.id AND cd.quote != '' AND ${GROUNDED}
+                       AND d.kind IN ('press', 'register'))
+                  THEN 1 ELSE 0 END) AS accused
          FROM universe_members m
          JOIN entities e ON e.id = m.entity_id
         GROUP BY party
@@ -142,13 +139,14 @@ export async function readCoverage(): Promise<CoverageReport | null> {
 
   return {
     universes: (universes.results ?? []).map((row) => ({
-      id: String(row.id ?? ""),
+      id: String(row.universe_id ?? ""),
       name: String(row.name ?? ""),
       description: String(row.description ?? ""),
       expected: Number(row.expected ?? 0),
       listed: Number(row.listed ?? 0),
-      read: readBy.get(String(row.id)) ?? 0,
-      covered: Number(row.covered ?? 0),
+      read: Number(row.read ?? 0),
+      documented: Number(row.documented ?? 0),
+      accused: Number(row.accused ?? 0),
       declaredAt: String(row.declared_at ?? ""),
       sourceUrl: String(row.source_url ?? ""),
     })),
@@ -156,7 +154,8 @@ export async function readCoverage(): Promise<CoverageReport | null> {
       party: String(row.party ?? "unknown"),
       listed: Number(row.listed ?? 0),
       read: Number(row.read ?? 0),
-      covered: Number(row.covered ?? 0),
+      documented: Number(row.documented ?? 0),
+      accused: Number(row.accused ?? 0),
     })),
     record: record
       ? {
