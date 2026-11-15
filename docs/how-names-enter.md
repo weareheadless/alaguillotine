@@ -106,6 +106,34 @@ produce a claim, a score, or a place in the line. If the register finds no
 document, the honest output is *"proposed, nothing on file"* — which is a result
 the site can publish, and a better one than a rank built on a hunch.
 
+### What counts as a document
+
+Not only what an institution files. A state that commits the act writes most of
+the paperwork, and the people who are never indicted tend to have the best
+lawyers, so an archive of filings alone would record the careful and miss the
+catastrophic. The artifact can be any of these, provided it is named, dated and
+pointed at:
+
+| Stance | Artifact | What it establishes |
+|---|---|---|
+| `admits` | the actor's own statement, release, order, filing | the act, as they describe it |
+| `finds` | judgment, verdict, arrest warrant, indictment, inquiry, regulator | the act and, where the finding says so, the characterisation |
+| `records` | contract, gazette, vote, sanctions listing, company filing | the act, as a register entry |
+| `reports` | named journalism, field investigation, witness testimony, OSINT | the act, attributed and graded |
+| `alleges` | an accusation with no artifact | nothing. A lead, never a claim |
+
+The admission row is the one that does the most work in the hard cases. A
+spokesperson announcing the strike has documented the strike; what they deny is
+the characterisation, and the characterisation is its own row, sourced to
+whoever made the finding. A denial that concedes the act ("we did not target
+civilians") is a document of the act.
+
+Where no finding exists, the claim carries the act and the category it belongs
+to — arms, war, repression — with the characterisation marked alleged and
+attributed to its source. What it never does is borrow a crime label from the
+archive's own opinion. And repetition is not evidence: a second outlet quoting
+the first is one artifact, not two.
+
 ### The international case
 
 Most of the events the wire carries happen where no roster exists. There the
