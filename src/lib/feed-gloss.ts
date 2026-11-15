@@ -182,9 +182,12 @@ export async function glossFeed(
   db: D1,
   env: GlossEnv,
   limit = 12,
-  opts: { rewrite?: boolean } = {},
+  opts: { rewrite?: boolean; windowDays?: number } = {},
 ): Promise<number> {
   const rewrite = Boolean(opts.rewrite);
+  // Two days normally: the budget belongs to today's news. An explicit
+  // backfill opens the window to the archive's own depth.
+  const window = Math.max(1, Math.min(30, opts.windowDays ?? 2));
   const key = env.SITE_AGENT_LLM_API_KEY;
   glossDiagnostics.key = Boolean(key);
   if (!key) return 0;
@@ -221,12 +224,13 @@ export async function glossFeed(
             ORDER BY first_seen_at ASC LIMIT ?`
         : `SELECT id, title, source, community FROM feed_items
             WHERE kind = 'wire' AND gloss = ''
-              -- The feed expires the wire after a day; spending a model call on
-              -- an item that will be deleted is waste.
-              AND published_at >= datetime('now', '-1 day')
-            -- Newest first. Oldest-first was a queue that served yesterday's
-            -- backlog while the afternoon's news waited behind it.
-            ORDER BY first_seen_at DESC LIMIT ?`,
+              -- The wire stays, so a missed take is worth another pass while it
+              -- is still inside the window. Outside it, an item with no take is
+              -- simply not shown in the archive.
+              AND published_at >= datetime('now', '-${window} days')
+            -- By the story's own date, not by when we collected it: a backfill
+            -- run must not push yesterday's news ahead of this afternoon's.
+            ORDER BY published_at DESC LIMIT ?`,
     )
     .bind(limit)
     .all();

@@ -19,6 +19,8 @@ export async function GET(request: Request) {
     Math.min(24, Number(url.searchParams.get("limit") ?? 12) || 12),
   );
   const page = await readFeedPage(db, offset, limit);
+  // `fresh` is where today's cards stop and the kept wire begins; the reader
+  // draws its line there rather than guessing from a timestamp.
   return Response.json(page, {
     headers: { "cache-control": "public, max-age=30" },
   });

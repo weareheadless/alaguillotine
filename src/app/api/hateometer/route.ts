@@ -2,6 +2,7 @@ import { chargeStats, ledgerSummaryFor, readLedgerSummaries } from "@/lib/archiv
 import { slugify } from "@/lib/slug";
 import { emptyHate, itemMentions, type HateState } from "@/lib/hateometer";
 import { coverageBySlug } from "@/lib/coverage";
+import { feedCounts } from "@/lib/feed";
 import { readAllNumbers } from "@/lib/numbers";
 import {
   ensureSentence,
@@ -123,18 +124,15 @@ export async function GET() {
 async function feedCount(db: Awaited<ReturnType<typeof getDb>>) {
   if (!db) return { count: 0, newestAt: null as string | null };
   try {
+    // Today's cards and the kept month, because that is what the feed page
+    // will actually scroll through. The freshness claim lives in the age shown
+    // next to it, not in hiding the archive.
+    const counts = await feedCounts(db as Parameters<typeof feedCounts>[0]);
     const row = await db
-      .prepare(
-        `SELECT COUNT(*) AS n, MAX(published_at) AS newest
-           FROM feed_items
-          WHERE cluster = id
-            AND (kind != 'wire'
-                 OR (gloss != '' AND gloss NOT LIKE '∅%'
-                     AND published_at >= datetime('now', '-1 day')))`,
-      )
-      .first<{ n?: number; newest?: string | null }>();
+      .prepare("SELECT MAX(published_at) AS newest FROM feed_items WHERE cluster = id")
+      .first<{ newest?: string | null }>();
     return {
-      count: Number(row?.n ?? 0),
+      count: counts.fresh + counts.archive,
       newestAt: row?.newest ? String(row.newest) : null,
     };
   } catch {

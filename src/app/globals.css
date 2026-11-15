@@ -1167,6 +1167,9 @@ body::after {
 .doom-checkpoint p { color: #a1a1aa; line-height: 1.8; font-size: .85rem; max-width: 55ch; }
 .doom-checkpoint strong { color: #f4f4f5; }
 .doom-checkpoint a { display: block; margin-top: 20px; font-size: .65rem; color: #fda4af; }
+.doom-archive { margin: 34px 0 10px; padding: 22px 0 18px; border-top: 2px solid #3f3f46; }
+.doom-archive span { display: block; font: 700 .6rem/1 monospace; letter-spacing: .24em; text-transform: uppercase; color: #f4f4f5; }
+.doom-archive p { margin: 10px 0 0; max-width: 52ch; font: .7rem/1.7 monospace; color: #a1a1aa; }
 .doom-load { text-align: center; padding: 40px 0; font-size: .8rem; color: #a1a1aa; }
 .doom-load button, .doom-load a { display: inline-block; border: 1px solid #52525b; padding: 12px 20px; margin-top: 12px; cursor: pointer; color: #f4f4f5; }
 .doom-load button:disabled { opacity: .6; cursor: wait; }

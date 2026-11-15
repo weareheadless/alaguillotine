@@ -27,7 +27,7 @@ export default async function FeedPage() {
   const db = await getDb();
   const [page, stats] = db
     ? await Promise.all([readFeedPage(db, 0, 12), feedStats(db)])
-    : [{ items: [], total: 0 }, EMPTY];
+    : [{ items: [], total: 0, fresh: 0 }, EMPTY];
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
@@ -46,6 +46,7 @@ export default async function FeedPage() {
           <DoomFeed
             initial={page.items}
             total={page.total}
+            fresh={page.fresh}
             read={stats.wire}
             discarded={stats.discarded}
           />

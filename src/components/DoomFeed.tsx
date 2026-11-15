@@ -35,6 +35,35 @@ function SourceLink({ item, children }: { item: FeedItem; children: React.ReactN
   ) : <Link href={item.url} className="doom-source">{children} →</Link>;
 }
 
+/**
+ * The day a story ran, short. UTC, because the server and the reader have
+ * different clocks and a date that changes between them breaks the render.
+ */
+function postedAt(iso: string): string {
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return "";
+  return new Date(at).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * The line between today's wire and the kept wire.
+ *
+ * The feed's promise is that nothing in it is stale, and keeping thirty days
+ * would break that promise if the page did not say where the news stops. The
+ * line is the promise: above it, today; below it, the record of the last
+ * month, dated, in the order it happened.
+ */
+function ArchiveDivider() {
+  return <div className="doom-archive" role="separator" aria-label="Older than a day">
+    <span>Older than a day</span>
+    <p>Kept for the record, dated, in the order it happened. The wire above is today's.</p>
+  </div>;
+}
+
 function Card({ item, index }: { item: FeedItem; index: number }) {
   const style = dispatchStyle(item.category);
   const receipt = item.kind === "record" && item.source === "receipt";
@@ -56,7 +85,8 @@ function Card({ item, index }: { item: FeedItem; index: number }) {
         <div><strong>{claim ? "The record" : dispatch ? "Ada Guillotine" : receipt ? "The public record" : item.source || "The wire"}</strong>
           <span>{claim
             ? `${item.community} · ${awaiting ? "filed, awaiting review" : "claim on the record"}`
-            : dispatch ? "Dispatch" : receipt ? "Sourced receipt" : "Community reporting · not independently verified"}</span></div>
+            : dispatch ? "Dispatch" : receipt ? "Sourced receipt" : "Community reporting · not independently verified"}
+          {postedAt(item.publishedAt) && <> · <time dateTime={item.publishedAt}>{postedAt(item.publishedAt)}</time></>}</span></div>
         <span className="doom-category">{style.label}</span>
       </header>
       {image && <div className="doom-image">
@@ -112,10 +142,13 @@ function FundCard() {
   </aside>;
 }
 
-export function DoomFeed({ initial, total, read, discarded }: {
-  initial: FeedItem[]; total: number; read: number; discarded: number;
+export function DoomFeed({ initial, total, fresh, read, discarded }: {
+  initial: FeedItem[]; total: number; fresh: number; read: number; discarded: number;
 }) {
   const [items, setItems] = useState(initial);
+  // Where today's cards end. The server sends it with every page, because new
+  // items land between loads and the line has to move with them.
+  const [line, setLine] = useState(fresh);
   const [done, setDone] = useState(initial.length >= total);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -133,8 +166,9 @@ export function DoomFeed({ initial, total, read, discarded }: {
     try {
       const res = await fetch(`/api/feed?offset=${offset.current}&limit=12`);
       if (!res.ok) throw new Error("Feed unavailable");
-      const data = await res.json() as { items: FeedItem[]; total: number };
+      const data = await res.json() as { items: FeedItem[]; total: number; fresh?: number };
       if (!Array.isArray(data.items)) throw new Error("Invalid feed");
+      if (typeof data.fresh === "number") setLine(data.fresh);
       const fresh = data.items.filter(item => !ids.current.has(item.id));
       fresh.forEach(item => ids.current.add(item.id));
       offset.current += data.items.length;
@@ -145,13 +179,32 @@ export function DoomFeed({ initial, total, read, discarded }: {
   }, [done]);
 
   useEffect(() => {
+    if (done || error) return;
     const node = sentinel.current;
-    if (!node || done || error) return;
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0]?.isIntersecting) void loadMore();
-    }, { rootMargin: "500px 0px" });
-    observer.observe(node);
-    return () => observer.disconnect();
+    const observer = node
+      ? new IntersectionObserver(entries => {
+          if (entries[0]?.isIntersecting) void loadMore();
+        }, { rootMargin: "600px 0px" })
+      : null;
+    observer?.observe(node as Element);
+    // A sentinel alone misses any scroll that lands past it in one jump — a
+    // page-down, a restored scroll position, a keyboard End, a phone that
+    // rubber-bands. The distance check is the same rule without the assumption
+    // that every pixel was seen, and the timer is what catches a reader who
+    // arrives already at the bottom.
+    const onScroll = () => {
+      const seen = window.scrollY + window.innerHeight;
+      const end = document.documentElement.scrollHeight;
+      if (end - seen < 1200) void loadMore();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const timer = window.setInterval(onScroll, 1200);
+    onScroll();
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.clearInterval(timer);
+    };
   }, [loadMore, done, error, items.length]);
 
   return <main className="doom-feed">
@@ -162,11 +215,13 @@ export function DoomFeed({ initial, total, read, discarded }: {
       <details><summary>What’s in your feed?</summary>
         <p>Community reporting, Ada’s commentary, receipts and dispatches. No personalised ranking. {read} wire items collected; {discarded} have no published commentary yet—not necessarily rejected.</p>
         <p>Three wire posts, then one record entry while both are available. Within each lane: severity × 10 + min(community score, 200) + 200 / (1 + hours since collection). Record cards are in the order they entered the record, newest first. Related headlines are grouped automatically; grouping can be imperfect.</p>
+        <p>The wire is news for one day. After that it is kept for thirty days, dated, below the line that says so — the feed scrolls back, the top of it stays today.</p>
         <p>No fake reactions, manufactured notifications or generated news photos. External source images may make requests to their host.</p>
       </details>
     </header>
     <div className="doom-stream">
       {items.map((item, index) => <div key={item.id}>
+        {index === line && line < total && <ArchiveDivider />}
         <Card item={item} index={index} />
         {(index + 1) % 9 === 0 && <FundCard />}
         {index === 11 && <SessionCheckpoint startedAt={startedAt.current} />}
@@ -174,7 +229,7 @@ export function DoomFeed({ initial, total, read, discarded }: {
     </div>
     <div ref={sentinel} className="doom-load" aria-live="polite">
       {error ? <><p>The next posts didn’t load.</p><button onClick={() => void loadMore()}>Try again</button></> :
-        done ? <><p>You’re caught up with the published feed.</p><Link href="/next-in-line">Explore the record →</Link></> :
+        done ? <><p>That’s thirty days back. The wire keeps no further than that.</p><Link href="/next-in-line">Explore the record →</Link></> :
           <button onClick={() => void loadMore()} disabled={busy}>{busy ? "Loading the next posts…" : "More from the wire ↓"}</button>}
     </div>
   </main>;

@@ -105,12 +105,16 @@ function communitySite(actorId: string | undefined, source: Source): string {
   return `c/${name}@${new URL(source.instance).hostname}`;
 }
 
-async function fetchCommunity({ instance, name, sort = "TopDay" }: Source, limit = 12): Promise<LemmyPost[]> {
+async function fetchCommunity(
+  { instance, name, sort = "TopDay" }: Source,
+  limit = 12,
+  page = 1,
+): Promise<LemmyPost[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
     const res = await fetch(
-      `${instance}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=${sort}&limit=${limit}`,
+      `${instance}/api/v3/post/list?community_name=${encodeURIComponent(name)}&sort=${sort}&limit=${limit}&page=${page}`,
       { signal: controller.signal, headers: { accept: "application/json" } },
     );
     if (!res.ok) return [];
@@ -149,9 +153,36 @@ async function fetchCommunity({ instance, name, sort = "TopDay" }: Source, limit
   }
 }
 
+/**
+ * Older pages of the same firehose.
+ *
+ * The feed keeps thirty days now, so it needs something to keep. New sort only
+ * returns the first page of each community; walking back a few pages is how the
+ * archive gets history without inventing any.
+ */
+export async function fetchLemmyHistory(
+  pages = 3,
+  limit = 24,
+): Promise<LemmyPost[]> {
+  const requests: Array<Promise<LemmyPost[]>> = [];
+  for (let page = 2; page <= pages + 1; page += 1) {
+    for (const community of FEED_COMMUNITIES) {
+      requests.push(fetchCommunity({ ...community, sort: "New" }, limit, page));
+    }
+  }
+  const byUrl = new Map<string, LemmyPost>();
+  for (const post of (await Promise.all(requests)).flat()) {
+    const prev = byUrl.get(post.url);
+    if (!prev || post.authority > prev.authority) byUrl.set(post.url, post);
+  }
+  return [...byUrl.values()];
+}
+
 /** Everything the communities are talking about today, highest ranked first. */
 export async function fetchLemmyCandidates(): Promise<LemmyPost[]> {
-  const results = await Promise.all(COMMUNITIES.map(fetchCommunity));
+  const results = await Promise.all(
+    COMMUNITIES.map((community) => fetchCommunity(community)),
+  );
   const byUrl = new Map<string, LemmyPost>();
 
   for (const post of results.flat()) {

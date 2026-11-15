@@ -1,5 +1,5 @@
 import type { D1 } from "./clock-store";
-import { fetchLemmyFeed } from "./lemmy";
+import { fetchLemmyFeed, fetchLemmyHistory } from "./lemmy";
 
 /**
  * THE FEED — the doom scroll.
@@ -104,45 +104,103 @@ export function toFeedItem(row: Row): FeedItem {
   };
 }
 
+/**
+ * How long the wire is kept.
+ *
+ * The feed used to delete anything older than a day, which made the one rule
+ * it is proudest of — nothing here is stale — also the reason it could not
+ * scroll: sixty cards and the bottom. The item is still news for a day. After
+ * that it is kept, dated, below a line that says so, for thirty days.
+ */
+export const ARCHIVE_DAYS = 30;
+
+/** What the feed presents as news: the wire inside its day, plus the record. */
+const FRESH = `cluster = id
+  AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'
+                          AND published_at >= datetime('now', '-1 day')))`;
+
+/** What it keeps behind the line: wire with a take, older than a day. */
+const ARCHIVED = `cluster = id AND kind = 'wire'
+  AND gloss != '' AND gloss NOT LIKE '∅%'
+  AND published_at < datetime('now', '-1 day')
+  AND published_at >= datetime('now', '-${ARCHIVE_DAYS} days')`;
+
+export interface FeedCounts {
+  /** Cards above the line: today's wire and the record. */
+  fresh: number;
+  /** Cards below it: wire kept from the last thirty days. */
+  archive: number;
+}
+
+export async function feedCounts(db: D1): Promise<FeedCounts> {
+  const row = await db
+    .prepare(
+      `SELECT
+        (SELECT COUNT(*) FROM feed_items WHERE ${FRESH}) AS fresh,
+        (SELECT COUNT(*) FROM feed_items WHERE ${ARCHIVED}) AS archive`,
+    )
+    .first<{ fresh?: number; archive?: number }>();
+  return {
+    fresh: Number(row?.fresh ?? 0),
+    archive: Number(row?.archive ?? 0),
+  };
+}
+
 export async function readFeedPage(
   db: D1,
   offset = 0,
   limit = 12,
-): Promise<{ items: FeedItem[]; total: number }> {
+): Promise<{ items: FeedItem[]; total: number; fresh: number }> {
+  const counts = await feedCounts(db);
+  const total = counts.fresh + counts.archive;
+
+  const items: FeedItem[] = [];
+
+  // ─── Above the line ──────────────────────────────────────────────────────
   // One row per story: duplicates point at their cluster's representative.
-  const rows = await db
-    .prepare(
-      `WITH candidates AS (
-        ${SELECT} WHERE cluster = id
-          AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%'
-                                  AND published_at >= datetime('now', '-1 day')))
-       ), lanes AS (
-         SELECT *, ROW_NUMBER() OVER (
-           PARTITION BY CASE WHEN kind IN ('record', 'charge') THEN 1 ELSE 0 END
-           -- Both lanes are chronological now. The wire used to be ranked by
-           -- heat, which pinned this morning's most-upvoted post to the top
-           -- through the afternoon's news: a feed that refreshes and never
-           -- moves. Recency leads; heat breaks ties.
-           ORDER BY CASE WHEN kind IN ('record', 'charge') THEN first_seen_at END DESC,
-                    first_seen_at DESC, heat DESC, id
-         ) - 1 AS position FROM candidates
-       )
-       SELECT * FROM lanes
-       ORDER BY CASE WHEN kind IN ('record', 'charge') THEN position * 4 + 3
-         ELSE CAST(position / 3 AS INTEGER) * 4 + position % 3 END,
-         first_seen_at DESC, id LIMIT ? OFFSET ?`,
-    )
-    .bind(limit, offset)
-    .all();
-  const count = await db
-    .prepare(
-      "SELECT COUNT(*) AS n FROM feed_items WHERE cluster = id AND (kind != 'wire' OR (gloss != '' AND gloss NOT LIKE '∅%' AND published_at >= datetime('now', '-1 day')))",
-    )
-    .first<{ n?: number }>();
-  return {
-    items: (rows.results ?? []).map((r) => toFeedItem(r as Row)),
-    total: Number(count?.n ?? 0),
-  };
+  if (offset < counts.fresh) {
+    const rows = await db
+      .prepare(
+        `WITH candidates AS (
+          ${SELECT} WHERE ${FRESH}
+         ), lanes AS (
+           SELECT *, ROW_NUMBER() OVER (
+             PARTITION BY CASE WHEN kind IN ('record', 'charge') THEN 1 ELSE 0 END
+             -- Both lanes are chronological now. The wire used to be ranked by
+             -- heat, which pinned this morning's most-upvoted post to the top
+             -- through the afternoon's news: a feed that refreshes and never
+             -- moves. Recency leads; heat breaks ties.
+             ORDER BY CASE WHEN kind IN ('record', 'charge') THEN first_seen_at END DESC,
+                      first_seen_at DESC, heat DESC, id
+           ) - 1 AS position FROM candidates
+         )
+         SELECT * FROM lanes
+         ORDER BY CASE WHEN kind IN ('record', 'charge') THEN position * 4 + 3
+           ELSE CAST(position / 3 AS INTEGER) * 4 + position % 3 END,
+           first_seen_at DESC, id LIMIT ? OFFSET ?`,
+      )
+      .bind(Math.min(limit, counts.fresh - offset), offset)
+      .all();
+    items.push(...(rows.results ?? []).map((r) => toFeedItem(r as Row)));
+  }
+
+  // ─── Below the line ──────────────────────────────────────────────────────
+  // Ordered by when the story happened, not by when it was collected: a
+  // backfilled item must not jump above yesterday's actual chronology.
+  const wanted = limit - items.length;
+  if (wanted > 0 && counts.archive > 0) {
+    const rows = await db
+      .prepare(
+        `${SELECT} WHERE ${ARCHIVED}
+         ORDER BY published_at DESC, heat DESC, id
+         LIMIT ? OFFSET ?`,
+      )
+      .bind(wanted, Math.max(0, offset - counts.fresh))
+      .all();
+    items.push(...(rows.results ?? []).map((r) => toFeedItem(r as Row)));
+  }
+
+  return { items, total, fresh: counts.fresh };
 }
 
 export async function feedStats(db: D1): Promise<{
@@ -244,6 +302,69 @@ const CATEGORY_BY_KIND: Record<string, string> = {
   donations: "cost",
   other: "extraction",
 };
+
+export interface BackfillResult {
+  fetched: number;
+  added: number;
+}
+
+/**
+ * Walk back through the communities' older pages.
+ *
+ * The feed keeps thirty days but was only ever collecting one, so the archive
+ * starts empty. This reads the pages behind the firehose and files what falls
+ * inside the window and outside today, undated by us: the story keeps its own
+ * date, and the gloss pass is what makes it publishable. Nothing is invented,
+ * and nothing is re-dated to look current.
+ */
+export async function backfillWire(
+  db: D1,
+  days = 14,
+  pages = 3,
+): Promise<BackfillResult> {
+  const now = new Date().toISOString();
+  const floor = Date.now() - days * 86_400_000;
+  const ceiling = Date.now() - 86_400_000;
+  let added = 0;
+  let posts: Awaited<ReturnType<typeof fetchLemmyHistory>> = [];
+  try {
+    posts = await fetchLemmyHistory(pages);
+  } catch (error) {
+    console.error("feed_backfill_failed", error);
+    return { fetched: 0, added: 0 };
+  }
+  for (const post of posts) {
+    const stamped = post.date ? Date.parse(post.date) : NaN;
+    if (!Number.isFinite(stamped) || stamped < floor || stamped > ceiling) continue;
+    const id = await hashId(post.url);
+    const res = (await db
+      .prepare(
+        `INSERT OR IGNORE INTO feed_items
+          (id, kind, url, title, gloss, source, community, category, score, comments,
+           severity, cluster, cluster_size, published_at, first_seen_at)
+         VALUES (?, 'wire', ?, ?, '', ?, ?, 'wire', ?, ?, 0, ?, 1, ?, ?)`,
+      )
+      .bind(
+        id,
+        post.url,
+        post.title.slice(0, 220),
+        post.site,
+        post.topic,
+        post.score,
+        post.comments,
+        id,
+        post.date,
+        now,
+      )
+      .run()) as { meta?: { changes?: number } };
+    if ((res.meta?.changes ?? 0) > 0) added += 1;
+    if (post.image) {
+      await db.prepare("UPDATE feed_items SET image_url = ? WHERE id = ?")
+        .bind(post.image, id).run();
+    }
+  }
+  return { fetched: posts.length, added };
+}
 
 export interface RefreshResult {
   fetched: number;
@@ -426,20 +547,28 @@ export async function refreshFeed(db: D1): Promise<RefreshResult> {
     console.error("feed_cluster_failed", error);
   }
 
-  // ─── Expire the wire; the record stays ──────────────────────────────────
-  // One day, by the story's own date. The feed is news; the archive is the
-  // record. Keeping three days of wire made a page that looked busy and read
-  // like last week.
+  // ─── Retention, not expiry ──────────────────────────────────────────────
+  // The wire is news for a day and part of the record for longer. Nothing is
+  // deleted inside the archive window; past it, and past the row cap, the
+  // oldest wire goes so the table cannot grow without limit.
   try {
     const res = (await db
       .prepare(
         `DELETE FROM feed_items
          WHERE kind = 'wire'
            AND (published_at IS NULL OR published_at = ''
-                OR julianday(published_at) < julianday('now', '-1 day'))`,
+                OR julianday(published_at) < julianday('now', '-${ARCHIVE_DAYS} days'))`,
       )
       .run()) as { meta?: { changes?: number } };
-    result.pruned = res.meta?.changes ?? 0;
+    const capped = (await db
+      .prepare(
+        `DELETE FROM feed_items
+          WHERE kind = 'wire' AND id IN (
+            SELECT id FROM feed_items WHERE kind = 'wire'
+             ORDER BY published_at DESC LIMIT -1 OFFSET 12000)`,
+      )
+      .run()) as { meta?: { changes?: number } };
+    result.pruned = (res.meta?.changes ?? 0) + (capped.meta?.changes ?? 0);
   } catch (error) {
     console.error("feed_prune_failed", error);
   }
