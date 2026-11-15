@@ -85,6 +85,45 @@ flag being off.
 
 ---
 
+## Migration reality (measured on the legacy import)
+
+The old record has been carried into `claims` and `documents` (migrations 0033,
+0034). What it showed:
+
+- **6,082 claims imported, 0 lost.** 1,895 document rows created from the URLs
+  already stored; 6,893 claim-document links.
+- **The archive is 95% press.** 1,797 press URLs, 64 register URLs, 34 roll-call
+  documents. That is the imbalance the register is meant to correct, now counted.
+- **Re-grounding is possible but partial.** 262 documents fetched; 156 of the
+  claim links examined carried a passage matching the act under a strict test
+  (surname present, 40% content-word overlap, figures must match). About one in
+  five press claims can stand on its own sentence. The rest were paraphrase, or
+  the article did not say what the claim says.
+
+### A false verification, caught
+
+The first pass "matched" 3,591 claims in minutes, because House roll-call XML
+was being read as prose: the surname appears in the member list, the bill number
+appears in the header, and the extracted "quote" was the page header. That is
+exactly the failure mode the architecture forbids — a machine match presented as
+a passage. Fixed by three rules now in the code:
+
+1. sentence matching applies to `kind='press'` only; structured records wait for
+   their connector and their fields;
+2. a claim containing figures requires those figures in the passage;
+3. 40% content-word overlap and a 60–500 character sentence, not "shares a word".
+
+### What the legacy data is, and is not
+
+It is a usable index of *who* and *what was said*, with dates, categories and
+persons attached. It is not evidence: 5,926 of 6,082 claims still have no
+passage. The switch treats it accordingly — legacy rows are shown, labelled, and
+excluded from the score until re-grounded.
+
+Estimated completion of re-grounding: ~1,600 press documents left, 40 per call,
+about 40 minutes of calls. Expect roughly 300–400 grounded claims, and a much
+larger set that will need re-deriving from documents rather than rescuing.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.
@@ -155,6 +194,27 @@ audits on production after each deploy.
 Quotes are bounded (≤ 400 chars) and always attributed. The press connector reads
 RSS only — no scraping behind a paywall. Every claim page carries "a claim on the
 record, not a verdict".
+
+# The switch: what "proven accurate and insightful" means
+
+The site moves to the register when all six pass, not before:
+
+1. **Quote integrity.** 100% of new claims have a quote that verifies against the
+   stored document text; the audit returns zero violations.
+2. **Blind check.** 20 claims sampled at random, read against their documents by
+   a person: at least 18 supported. Run once per phase; a failure is a blocker.
+3. **Person pages.** For the ten most visible names, every claim in the top five
+   has a document, a stance and a quote; nothing unquoted is above the fold.
+4. **Coverage.** At least one declared universe with a published ratio, and the
+   number is not embarrassing (for Congress: 535 listed, ≥ 60% covered).
+5. **Score parity.** The register's weight and confidence reproduce the current
+   ranking closely enough that the difference can be explained row by row — and
+   the user signs off on the new order, because the weights are editorial.
+6. **Articles.** One dispatch written entirely from a saved query, with every
+   factual sentence mapped to a row id.
+
+During the overlap, both systems run. The pages read whichever view the flag
+says; the old tables are frozen, not deleted. Rollback is the flag.
 
 # Milestones
 
