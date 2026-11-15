@@ -126,9 +126,17 @@ conflict declarations are the test case: 40 filings about declared conflicts,
 none of them a finding.
 
 Committee jurisdiction is a rule about one body. "Armed Services oversees
-defence procurement" is a US House rule, and the mapping is stored with
-`body_key` so it can never be applied to another parliament by accident. Every
-lead prints the body, the rule and both citations.
+defence procurement" is a US House rule; "the Treasury Committee oversees banks"
+is a UK Commons rule. The mapping is stored with `body_key` so one can never be
+applied to another parliament by accident, and every lead prints the body, the
+rule and both citations.
+
+A rule is matched against a disclosed fact, not a hunch: an asset name from a
+periodic transaction report in the US, or the member's own register entry in the
+UK — the summary and the named fields that carry employer, payer and company.
+Sub-committees carry a `parent_code`, so a seat on the Treasury Sub-Committee on
+Financial Services Regulations inherits the Treasury rule instead of silently
+producing no leads.
 
 Adding a body is a declaration and a connector, not a code path. The European
 Parliament is `ep-10`, enumerated from its own open-data list, with the

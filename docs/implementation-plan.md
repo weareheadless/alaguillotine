@@ -350,6 +350,41 @@ ZIP/CSV reader. The connector still joins by MNIS id and replaces a member's
 claims when a new register is published, so an interest that expires stops
 being a live claim.
 
+### The seat behind the interest
+
+A disclosure alone is paperwork. The lead layer is the second fact: the
+committee seat. The Commons publishes it through the Committees API, 56 current
+select committees with a current membership list per committee, and each member
+carries the same MNIS id as the register. That join is exact — no name matching
+— and produced 523 seats across 336 MPs, with 44 chairs recorded from the role
+list. Migration `0041_committee_parents.sql` adds `parent_code`, because the API
+lists sub-committees as committees of their own: a seat on the Treasury
+Sub-Committee on Financial Services Regulations is still a financial-services
+seat, and the rule lookup follows the parent.
+
+The lead surface now has one rule book per body and prints them separately:
+`/leads` renders the US House and the UK Commons in their own sections, with
+their own totals never added together. The numbers after the first full pass are
+deliberately small:
+
+| body | seats | members seated | rules | disclosures read | members with leads | leads |
+|---|---|---|---|---|---|---|
+| US House | 2,475 | 427 | 12 | 2,686 trades | 20 | 99 |
+| UK Commons | 523 | 336 | 22 | 4,070 interests | 7 | 8 |
+
+81 of the 4,070 UK register entries name a company that some rule covers, but
+only 8 of those entries belong to a member seated on the committee that covers
+it. The rest of the funnel is honest non-coincidence: most entries are property,
+small holdings in companies no committee regulates, or family employment. The UK
+leads that survive are gifts and shareholdings that a reader can check twice —
+the Premier League and Warner Bros. for DCMS members, Google for a Foreign
+Affairs member, Randox for a Northern Ireland Affairs member — each with the
+committee roster and the register entry cited side by side.
+
+A gift is not a finding, and the page says so in the same place it says a trade
+is not one. The rule is the argument; the two citations are the evidence; the
+reader is the judge.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.

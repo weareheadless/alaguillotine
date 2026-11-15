@@ -1,7 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, type D1 } from "@/lib/clock-store";
 import { isAdminAuthed } from "@/lib/admin-auth";
-import { HOUSE_BODY, jurisdictionFor, matches } from "@/lib/register/sectors";
+import { HOUSE_BODY, UK_COMMONS_BODY } from "@/lib/register/sectors";
+import { readEntityLeads } from "@/lib/register/leads";
 
 export const dynamic = "force-dynamic";
 
@@ -205,17 +206,6 @@ export async function POST(request: Request) {
   });
 }
 
-interface TradeRow {
-  asset: string;
-  ticker: string;
-  txn_type: string;
-  txn_date: string;
-  amount_label: string;
-  doc_id: string;
-  url: string;
-  quote: string;
-}
-
 export async function GET(request: Request) {
   const context = (await getCloudflareContext({ async: true })) as { env?: Env };
   const secret = context.env?.CRON_SECRET;
@@ -228,8 +218,13 @@ export async function GET(request: Request) {
   const db = await getDb();
   if (!db) return Response.json({ error: "D1 unavailable" }, { status: 500 });
 
-  const who = (new URL(request.url).searchParams.get("entity") ?? "").trim();
+  const url = new URL(request.url);
+  const who = (url.searchParams.get("entity") ?? "").trim();
+  const body = (url.searchParams.get("body") ?? HOUSE_BODY).trim();
   if (!who) return Response.json({ error: "entity is required" }, { status: 400 });
+  if (body !== HOUSE_BODY && body !== UK_COMMONS_BODY) {
+    return Response.json({ error: `unknown body ${body}` }, { status: 400 });
+  }
 
   const entity = await db
     .prepare(
@@ -237,9 +232,10 @@ export async function GET(request: Request) {
          FROM entities
         WHERE id = ? OR slug = ? OR lower(name) = lower(?)
            OR json_extract(external_ids, '$.bioguide') = ?
+           OR json_extract(external_ids, '$.mnis') = ?
         LIMIT 2`,
     )
-    .bind(who, who, who, who)
+    .bind(who, who, who, who, who)
     .all();
 
   const rows = (entity.results ?? []) as unknown as Array<Record<string, unknown>>;
@@ -247,65 +243,13 @@ export async function GET(request: Request) {
   if (rows.length > 1) return Response.json({ error: "ambiguous entity" }, { status: 409 });
   const person = rows[0];
 
-  const assignments = await db
-    .prepare(
-      `SELECT committee_code, committee_name, subcommittee_code, subcommittee_name, leadership
-         FROM committee_assignments WHERE entity_id = ? AND body_key = ?
-        ORDER BY committee_name, subcommittee_name`,
-    )
-    .bind(person.id, HOUSE_BODY)
-    .all();
-
-  const codes = [
-    ...new Set(
-      (assignments.results ?? [])
-        .map((row) => String(row.committee_code ?? ""))
-        .filter((code) => jurisdictionFor(code, HOUSE_BODY)),
-    ),
-  ];
-
-  const trades = await db
-    .prepare(
-      `SELECT t.asset, t.ticker, t.txn_type, t.txn_date, t.amount_label,
-              f.doc_id, d.url, cd.quote
-         FROM ptr_transactions t
-         JOIN ptr_filings f ON f.document_id = t.document_id
-         JOIN documents d ON d.id = t.document_id
-         LEFT JOIN claims c ON c.id = t.claim_id
-         LEFT JOIN claim_documents cd ON cd.claim_id = c.id AND cd.document_id = t.document_id
-        WHERE t.entity_id = ?
-        ORDER BY t.txn_date DESC`,
-    )
-    .bind(person.id)
-    .all();
-
-  const leads: Array<Record<string, unknown>> = [];
-  for (const trade of (trades.results ?? []) as unknown as TradeRow[]) {
-    for (const code of codes) {
-      const jurisdiction = jurisdictionFor(code, HOUSE_BODY);
-      if (!jurisdiction) continue;
-      if (!matches(trade.asset, trade.ticker, jurisdiction)) continue;
-      leads.push({
-        committee: code,
-        committeeName:
-          (assignments.results ?? []).find((row) => row.committee_code === code)?.committee_name ??
-          code,
-        oversees: jurisdiction.oversees,
-        asset: trade.asset,
-        ticker: trade.ticker,
-        type: trade.txn_type,
-        date: trade.txn_date,
-        amount: trade.amount_label,
-        filing: trade.doc_id,
-        url: trade.url,
-        quote: trade.quote,
-      });
-    }
-  }
+  const report = await readEntityLeads(String(person.id), body);
+  if (!report) return Response.json({ error: "D1 unavailable" }, { status: 500 });
 
   return Response.json(
     {
       ok: true,
+      body,
       entity: {
         id: person.id,
         name: person.name,
@@ -313,9 +257,12 @@ export async function GET(request: Request) {
         state: person.state,
         district: person.district,
       },
-      assignments: assignments.results ?? [],
-      leads,
-      note: "A lead is two facts on the record — a committee seat and a disclosed trade — plus the published rule that the committee oversees that business. It is not a finding.",
+      assignments: report.assignments,
+      leads: report.leads,
+      note:
+        "A lead is two facts on the record — a committee seat and a disclosed " +
+        (body === UK_COMMONS_BODY ? "registered interest" : "trade") +
+        " — plus the published rule that the committee oversees that business. It is not a finding.",
     },
     { headers: { "Cache-Control": "no-store" } },
   );
