@@ -128,8 +128,8 @@ export async function POST(request: Request) {
   const description =
     `${meps.length} current Members of the European Parliament, 10th term, from the Parliament's ` +
     `open-data list on ${now.slice(0, 10)}. ${countries.size} member states represented, ` +
-    `${groups.size} political groups. Declaration only: documents read against this population ` +
-    `are counted above and never mixed with another body.`;
+    `${groups.size} political groups. The roster is the declaration; documents read ` +
+    `against this population are counted above and never mixed with another body.`;
 
   await db
     .prepare(

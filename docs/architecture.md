@@ -118,6 +118,12 @@ stable name rules are scoped by. Coverage is computed and published per
 universe, never summed across them: a ratio over the US House and the European
 Parliament together would describe a body that does not exist.
 
+A register document is not automatically an accusation. `accused` is set by a
+passage that reports, finds or alleges a misdeed; a document that records a
+filing or admits one is `documented`, not `accused`. The European Parliament's
+conflict declarations are the test case: 40 filings about declared conflicts,
+none of them a finding.
+
 Committee jurisdiction is a rule about one body. "Armed Services oversees
 defence procurement" is a US House rule, and the mapping is stored with
 `body_key` so it can never be applied to another parliament by accident. Every

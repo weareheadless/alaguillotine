@@ -47,7 +47,9 @@ export async function recomputeUniverseStatus(db: D1, universeId: string): Promi
           SELECT DISTINCT c.entity_id FROM claims c
             JOIN claim_documents cd ON cd.claim_id = c.id
             JOIN documents d ON d.id = cd.document_id
-           WHERE ${GROUNDED} AND d.kind IN ('press', 'register'))`,
+           WHERE ${GROUNDED}
+             AND (d.kind = 'press'
+                  OR (d.kind = 'register' AND cd.stance IN ('reports', 'finds', 'alleges'))))`,
     )
     .bind(universeId)
     .run();

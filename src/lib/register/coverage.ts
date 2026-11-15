@@ -127,7 +127,9 @@ export async function readCoverage(): Promise<CoverageReport | null> {
                       JOIN claim_documents cd ON cd.claim_id = c.id
                       JOIN documents d ON d.id = cd.document_id
                      WHERE c.entity_id = e.id AND cd.quote != '' AND ${GROUNDED}
-                       AND d.kind IN ('press', 'register'))
+                       AND (d.kind = 'press'
+                            OR (d.kind = 'register'
+                                AND cd.stance IN ('reports', 'finds', 'alleges'))))
                   THEN 1 ELSE 0 END) AS accused
          FROM universe_members m
          JOIN entities e ON e.id = m.entity_id

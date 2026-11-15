@@ -299,15 +299,16 @@ sums them.
 | body | country | declared | read | documented | accused |
 |---|---|---|---|---|---|
 | US House, 119th Congress | US | 435 (433 listed) | 433 | 92 | 1 |
-| European Parliament, 10th term | — (27 member states) | 720 | 705 | 0 | 0 |
+| European Parliament, 10th term | — (27 member states) | 720 | 706 | 14 | 0 |
 
 The Parliament is declared from its own open-data `meps/show-current` list:
 720 current MEPs, 27 member states, 9 political groups, identified by the
 Parliament's person id. Its roll-call connector reads the Parliament's daily XML
 (`PV-10-...-RCV_en.xml`), the same shape as the House Clerk file: one official
 document, one exact line per member per vote. 50 roll-call votes across three sitting days
-make 705 of 720 MEPs `read`. The 15 who remain are not missing identities; they
-did not appear in any of the 50 votes read, and the page says so.
+make 706 of 720 MEPs `read`. The 14 who remain are not missing identities; they
+did not appear in any of the 50 votes or the 40 declarations read, and the page
+says so.
 
 The roll-call document is a mechanical transcript of the official RCV XML, not
 the XML bytes. Every line is generated from a structured field
@@ -316,11 +317,19 @@ audit checks each claim against the stored transcript. It is the same treatment
 as text extracted from a PDF: the source is official, the transcript is what we
 can check.
 
-`documented` and `accused` are both zero for the Parliament, and that is the
-correct reading: a vote is a fact about the chamber, not a finding. The next
-connector that can move those numbers is the Parliament's register of
-declarations of financial interests (`meps-declarations`), which is the document
-class that can say something about conduct.
+The declarations connector reads the 40 positive conflict declarations out of
+about 10,000 routine forms (`filter-output=awareness-of-conflict`), not all of
+them. The claim is "filed a conflict-of-interest declaration", with the member's
+own description in `mechanism`; some Slovenian forms say "no conflict" in the
+description even though the awareness box is marked, and the register records
+both rather than resolving it for them. 40 declarations from 14 MEPs make
+`documented` 14. `accused` stays zero: filing a declaration is not a misdeed.
+
+A register document now counts toward `accused` only when its stance is
+`reports`, `finds` or `alleges` — not when it merely `records` a filing or
+`admits` one. Treating every register document as an accusation had made all 14
+declarants "accused" for filing paperwork. That was the same overclaim as the
+old single coverage number, in a different place.
 
 # P2 — two connectors end to end (7–8 days)
 

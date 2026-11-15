@@ -79,10 +79,14 @@ export function exactSpan(document: string, quote: string): Span | null {
 
   const literalAt = document.indexOf(needle);
   if (literalAt >= 0) {
+    // The stored quote must be the bytes in the document, not the caller's
+    // copy. A description with doubled whitespace normalises to a needle that
+    // still matches, and returning `quote` here stored the doubled space and
+    // made the claim fail its own substring check.
     return {
       start: literalAt,
       end: literalAt + needle.length,
-      exact: quote,
+      exact: document.slice(literalAt, literalAt + needle.length),
       verbatim: true,
     };
   }

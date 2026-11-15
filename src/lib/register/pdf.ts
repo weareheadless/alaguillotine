@@ -164,11 +164,20 @@ function parseObjects(raw: string, bytes: Uint8Array): Map<number, PdfObject> {
     else if (raw[dataStart] === "\n" || raw[dataStart] === "\r") dataStart += 1;
     const declaredEnd = raw.indexOf("endstream", dataStart);
     if (declaredEnd < 0) break;
-    // `/Length` is the exact byte count. Without it the two bytes of EOL before
-    // `endstream` come along, and the inflater rejects trailing data.
-    const length = Number(/\/Length\s+(\d+)/.exec(dict)?.[1] ?? 0);
-    const dataEnd =
+    // `/Length` is usually the exact byte count, but it may be an indirect
+    // reference (`/Length 39 0 R`) — Apache FOP writes those. Resolving it as
+    // if it were the length truncates the stream to a few bytes, so when it is
+    // a reference we fall back to the `endstream` boundary and trim the EOL.
+    const lengthText = /\/Length\s+(\d+)(\s+\d+\s+R)?/.exec(dict);
+    const indirect = Boolean(lengthText?.[2]);
+    const length = indirect ? 0 : Number(lengthText?.[1] ?? 0);
+    let dataEnd =
       length > 0 && dataStart + length <= declaredEnd ? dataStart + length : declaredEnd;
+    if (length === 0) {
+      while (dataEnd > dataStart && (bytes[dataEnd - 1] === 0x0a || bytes[dataEnd - 1] === 0x0d)) {
+        dataEnd -= 1;
+      }
+    }
     const stream = bytes.subarray(dataStart, dataEnd);
     objects.set(num, { dict, stream });
     const after = raw.indexOf("endobj", dataEnd);
@@ -536,6 +545,28 @@ interface PdfDocument {
   fonts: Map<number, FontInfo>;
 }
 
+/**
+ * The platform inflater, as a fallback.
+ *
+ * The hand-written inflater is deterministic and handles the Clerk's streams,
+ * but Apache FOP (used by the European Parliament) emits blocks it refuses.
+ * `DecompressionStream` reads those. Trying the platform second, not first,
+ * keeps the known-good path for the documents we already validated while
+ * refusing to call a readable file unreadable.
+ */
+async function inflateWithPlatform(data: Uint8Array): Promise<Uint8Array | null> {
+  for (const format of ["deflate", "deflate-raw"] as const) {
+    try {
+      const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream(format));
+      const out = await new Response(stream).arrayBuffer();
+      if (out.byteLength) return new Uint8Array(out);
+    } catch {
+      /* try the next framing */
+    }
+  }
+  return null;
+}
+
 async function objectStream(doc: PdfDocument, num: number): Promise<Uint8Array | null> {
   if (doc.cache.has(num)) return doc.cache.get(num) ?? null;
   const object = doc.objects.get(num);
@@ -547,7 +578,7 @@ async function objectStream(doc: PdfDocument, num: number): Promise<Uint8Array |
   if (doc.key && doc.key.length) {
     data = rc4(objectKey(doc.key, num, 0), data);
   }
-  const inflated = inflateZlib(data);
+  const inflated = inflateZlib(data) ?? (await inflateWithPlatform(data));
   // Uninflatable data is not text. Returning it would feed compressed bytes to
   // the text reader and produce plausible-looking nonsense.
   if (!inflated) {
