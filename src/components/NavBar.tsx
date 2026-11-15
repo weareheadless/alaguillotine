@@ -16,6 +16,7 @@ export function NavBar() {
   const links = [
     ...content.nav.filter((link) => FORUM_ENABLED || link.href !== "/forum"),
     { href: "/archive", label: "The Archive" },
+    { href: "/coverage", label: "Coverage" },
     { href: "/feed", label: "The Feed" },
   ];
 

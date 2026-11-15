@@ -199,6 +199,56 @@ only when all are zero:
 unreviewed) because they were filed before the register and must stay visible as
 such rather than being quietly upgraded.
 
+## The money layer: periodic transaction reports (built)
+
+The House publishes every member's trades as a PDF, indexed by a yearly ZIP.
+That is the whole of the public record of what members buy and sell, and it is
+the layer the register existed to carry.
+
+| | |
+|---|---|
+| PTR filings indexed (2025 / 2026) | 515 / 468 |
+| filings resolved to a member entity | 465 / 465 |
+| filings unresolved | 50 (2025, mostly members who have left) / 3 (2026) |
+| sampled filings validated against `pdftotext` | 25 |
+| PDFs read | 23 (2 are AES-encrypted and refused) |
+| transactions in the sample | 357 |
+| rows whose dates and both amount bounds appear in the independent text | 357 of 357 |
+| quotes that are byte-for-byte in the stored text | 357 of 357 |
+
+### What reading a PTR actually takes
+
+No PDF library fits in a Worker, and these files are not simple:
+
+1. **Encryption.** The standard security handler with an empty user password,
+   RC4 128-bit. Key derivation needs MD5, which WebCrypto does not provide, so
+   MD5 and RC4 are implemented in `register/pdf.ts`.
+2. **Fonts.** Identity-H CID fonts with no `/ToUnicode` map. The embedded
+   TrueType `cmap` has to be inverted from glyph id to character, or the text
+   comes out as plausible-looking nonsense.
+3. **Compression.** `DecompressionStream` rejected streams that
+   `zlib.inflateSync` reads without complaint. An amount of money cannot rest on
+   which inflater a platform shipped, so the reference inflate is in the module.
+4. **Layout.** There is no table markup. The parser anchors on a transaction
+   letter followed by two dates and cuts each block at its amount band, which may
+   be split over two lines. Assets are whatever the filing printed, including
+   multi-line names and `[GS]` type codes.
+
+Two of twenty-five sampled filings are encrypted with AES (V4), which this
+module refuses rather than half-reads; they are counted as unread and retried
+only if a decoder is added.
+
+### What a trade claim says, and does not say
+
+`Bought Broadcom Inc. — Common Stock — $1,001 - $15,000 — periodic transaction
+report 20035831, filed 6 Nov 2026.` `status = 'recorded'`, confidence 0.95,
+`amount` is the **lower** bound of the disclosed band (never a midpoint dressed
+up as a figure). The passage is the exact run of lines the row was read from.
+
+A trade is a fact about a portfolio. It is not a finding of wrongdoing, and a
+member with forty of them has forty facts, not forty crimes. The filing says
+what happened; what it means next to a committee seat is the reader's call.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.

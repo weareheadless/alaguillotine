@@ -142,6 +142,15 @@ in the document is not a quote. A recorded vote is a fact about the chamber, not
 a finding of wrongdoing; it carries no weight by itself. It is the spine that
 money attaches to.
 
+**The money layer is a PDF, and a PDF is not a document you can skim.** A
+periodic transaction report is encrypted with an empty password, sets its text in
+CID fonts with no Unicode map, and prints a table with no table markup. Reading
+it takes decryption, a font map and an inflater inside the connector, and the
+result is still only a row: owner, asset, type, date, disclosed band. The band is
+stored as a band. The claim says what the filing says — bought, sold, how much,
+when — and never that the trade was wrong. A trade is a fact about a portfolio;
+conflict is a question the reader asks with the committee list in hand.
+
 ### 3. Resolution → entities, edges
 
 Names to entities, once: exact match on alias, then on external id, then a
