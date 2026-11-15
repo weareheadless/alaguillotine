@@ -161,6 +161,25 @@ Three defects it exposed, all fixed:
    (`clerk.house.gov/EVS`, `roll_call_votes`), and the 14 are back in `press`.
    They had been skipped by the prose matcher, so no claim was affected.
 
+### The query surface (built)
+
+`GET /api/register/claims?entity=<bioguide|slug|name>` returns a person with
+every claim, the document under it, the stance it holds, the passage, and the
+basis for the confidence. Filters: `status`, `category`, `from`, `to`,
+`minConfidence`, `limit`, `offset`. It also returns the shape of the record —
+claims by status and by category — so a reader sees what is solid before reading.
+
+That is T2.6, and it is also the test of the whole design: if a claim cannot be
+read this way, it is not in the register yet. `legacy` rows come back labelled,
+not filtered out.
+
+Two readings from production:
+
+| Person | Record | What it means |
+|---|---|---|
+| Mike Rogers (R000575) | 29 claims: 16 recorded, 12 legacy, 1 matched; arms 14, finance 6, impunity 6 | a member page where the votes are exact and the press claims carry a flag |
+| Elon Musk | 218 claims: 37 matched, 181 legacy; finance 66, labour 30, arms 24 | the archive's shape, honestly labelled: mostly unsourced |
+
 ### The audit endpoint
 
 `GET /api/register/audit` returns every invariant with a count, and `ok` is true
