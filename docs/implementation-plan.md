@@ -124,6 +124,62 @@ Estimated completion of re-grounding: ~1,600 press documents left, 40 per call,
 about 40 minutes of calls. Expect roughly 300–400 grounded claims, and a much
 larger set that will need re-deriving from documents rather than rescuing.
 
+## The first connector: roll calls (built)
+
+The largest block in the archive is now grounded, and it took one file class
+rather than 1,600 press pages.
+
+| | |
+|---|---|
+| roll-call documents parsed | 20 (118th and 119th Congress) |
+| member votes extracted | 8,638 |
+| claims compared against the record | 4,415 |
+| `recorded` (passage is the exact fragment) | 4,415 |
+| `refuted` | 0 |
+| unparsed, ambiguous or mismatched | 0 |
+| members given a bioguide id | 406 |
+
+Every claim now stores the exact `<recorded-vote>` substring its vote was read
+from, verified by `instr(stored_text, quote) > 0`; every date is filled from the
+Clerk's `action-date`; every person who votes joins by number rather than name.
+Zero refutations is expected and is the caveat: the claim ids were already keyed
+by bioguide, so these claims were derived from these files in the first place.
+What the connector proves is provenance, not independent corroboration.
+
+Three defects it exposed, all fixed:
+
+1. **Reconstructed quotes.** The first version rebuilt the `<legislator>` tag
+   from parsed attributes. It read perfectly and failed verification for all
+   4,415 claims, because the original carries `unaccented-name` and `role`. A
+   quote has to be the bytes in the document.
+2. **The subrequest ceiling.** Writing one statement per D1 call hit the Workers
+   limit partway through a file and dropped the tail without an error: 99 of 232
+   claims written, alphabetically, with a 200 response. Writes now go through
+   `db.batch`, and the audit is what caught it.
+3. **A host rule too loose.** `url LIKE '%senate.gov%'` classified 14 Senate
+   press releases as roll calls. `kind` is now derived from the path
+   (`clerk.house.gov/EVS`, `roll_call_votes`), and the 14 are back in `press`.
+   They had been skipped by the prose matcher, so no claim was affected.
+
+### The audit endpoint
+
+`GET /api/register/audit` returns every invariant with a count, and `ok` is true
+only when all are zero:
+
+| Invariant | Now |
+|---|---|
+| claims without a document | 0 |
+| verified claims without a passage | 0 |
+| passages not found in stored text | 0 |
+| documents read without a hash | 0 |
+| roll-call documents with claims but no parsed structure | 0 |
+| people with recorded votes but no external id | 0 |
+| orphaned claim–document links | 0 |
+
+`legacy` rows are counted separately (1,383 without a passage, 284 matched but
+unreviewed) because they were filed before the register and must stay visible as
+such rather than being quietly upgraded.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.

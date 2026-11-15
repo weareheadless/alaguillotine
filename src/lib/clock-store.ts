@@ -16,7 +16,13 @@ type D1Statement = {
   run: () => Promise<unknown>
   all: <T = D1Result>() => Promise<T>
 }
-export type D1 = { prepare: (query: string) => D1Statement }
+export type D1 = {
+  prepare: (query: string) => D1Statement
+  // Several statements, one subrequest. A connector that writes 431 votes and
+  // 200 claims one call at a time runs into the Workers subrequest limit and
+  // loses the tail without an error, so writes go through batch.
+  batch?: (statements: D1Statement[]) => Promise<unknown>
+}
 
 export async function getDb(): Promise<D1 | null> {
   const context = (await getCloudflareContext({ async: true })) as unknown as {

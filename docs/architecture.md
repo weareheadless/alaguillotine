@@ -121,6 +121,27 @@ entities).
 This is what keeps the $0.50/day budget: we do not read the web, we read
 documents that name people we already track, plus the declared populations.
 
+**A structured record is a field, not a sentence.** A roll call, a PTR line, a
+docket entry, a contract award: the fact is a column with a value, and reading it
+as prose is how a machine invents a passage. The first re-grounding pass
+"verified" 3,591 vote claims because the surname sits in the member list and the
+bill number sits in the header — the extracted quote was the page header. So
+each such document class gets a parser, not a matcher, and its claims are compared
+field by field:
+
+| Claim says | Record says | Status |
+|---|---|---|
+| Voted Yea | Yea / Aye | `recorded`, confidence 0.95 |
+| Voted Yea | Nay / No | `refuted` — the record contradicts the sentence |
+| Voted Yea | Not Voting / Present | `refuted`, with the actual field shown |
+| Voted Yea | member absent from the file | stays `legacy`, counted as unverified |
+
+The passage stored is the exact substring the value was read from — byte for
+byte, not a reconstruction from parsed attributes, because a quote that is not
+in the document is not a quote. A recorded vote is a fact about the chamber, not
+a finding of wrongdoing; it carries no weight by itself. It is the spine that
+money attaches to.
+
 ### 3. Resolution → entities, edges
 
 Names to entities, once: exact match on alias, then on external id, then a
@@ -133,7 +154,8 @@ hops, never three.
 The verifier recomputes, for each claim: does the quote still appear in the
 document text, what stance does each source hold, how many independent origins,
 and therefore what grade and score. It writes `confidence`, `confidence_basis`
-and `status` (`alleged | reported | recorded | found | admitted`). A document
+and `status` (`legacy | alleged | reported | recorded | refuted | found |
+admitted | superseded`). A document
 that changes upstream and no longer supports the quote flags the claim
 `superseded` — it does not silently stay.
 
