@@ -211,7 +211,7 @@ export function DoomFeed({ initial, total, fresh, read, discarded }: {
     <header className="doom-intro">
       <p className="doom-eyebrow">A LA GUILLOTINE / THE FEED</p>
       <h1>The news forgets.<br /><span>This feed doesn’t.</span></h1>
-      <p>News. Money. Consequences. Ada keeps the receipts.</p>
+      <p>The wire, the receipts, and Ada’s take on both.</p>
       <details><summary>What’s in your feed?</summary>
         <p>Community reporting, Ada’s commentary, receipts and dispatches. No personalised ranking. {read} wire items collected; {discarded} have no published commentary yet—not necessarily rejected.</p>
         <p>Three wire posts, then one record entry while both are available. Within each lane: severity × 10 + min(community score, 200) + 200 / (1 + hours since collection). Record cards are in the order they entered the record, newest first. Related headlines are grouped automatically; grouping can be imperfect.</p>
