@@ -17,6 +17,7 @@ export function NavBar() {
     ...content.nav.filter((link) => FORUM_ENABLED || link.href !== "/forum"),
     { href: "/archive", label: "The Archive" },
     { href: "/coverage", label: "Coverage" },
+    { href: "/leads", label: "Leads" },
     { href: "/feed", label: "The Feed" },
   ];
 

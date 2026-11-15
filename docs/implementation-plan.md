@@ -282,6 +282,46 @@ The gap between the second and third is the whole truth about the register as it
 stands: it can show what members did, and on almost none of them can it yet show
 something that was wrong.
 
+### The denominator was one country
+
+The three numbers above were, without saying so, a statement about the US House.
+The page read `universes[0]`, the committee rules had no body, and a ratio
+computed for 435 seats was presented as the register's coverage. That is the
+same defect as the others in this section: a number true enough to publish and
+wrong enough to mislead. `alaguillotine` is about everybody.
+
+Migration `0040_bodies.sql` gives every universe a `country`, a `body` and a
+stable `body_key`; committees and assignments carry `body_key` too, because a
+jurisdiction rule written for one parliament must never be applied to another.
+The coverage page now renders every declared population separately and never
+sums them.
+
+| body | country | declared | read | documented | accused |
+|---|---|---|---|---|---|
+| US House, 119th Congress | US | 435 (433 listed) | 433 | 92 | 1 |
+| European Parliament, 10th term | — (27 member states) | 720 | 705 | 0 | 0 |
+
+The Parliament is declared from its own open-data `meps/show-current` list:
+720 current MEPs, 27 member states, 9 political groups, identified by the
+Parliament's person id. Its roll-call connector reads the Parliament's daily XML
+(`PV-10-...-RCV_en.xml`), the same shape as the House Clerk file: one official
+document, one exact line per member per vote. 50 roll-call votes across three sitting days
+make 705 of 720 MEPs `read`. The 15 who remain are not missing identities; they
+did not appear in any of the 50 votes read, and the page says so.
+
+The roll-call document is a mechanical transcript of the official RCV XML, not
+the XML bytes. Every line is generated from a structured field
+(`Result.For/Against/Abstention`), the URL is the Parliament's file, and the
+audit checks each claim against the stored transcript. It is the same treatment
+as text extracted from a PDF: the source is official, the transcript is what we
+can check.
+
+`documented` and `accused` are both zero for the Parliament, and that is the
+correct reading: a vote is a fact about the chamber, not a finding. The next
+connector that can move those numbers is the Parliament's register of
+declarations of financial interests (`meps-declarations`), which is the document
+class that can say something about conduct.
+
 # P2 — two connectors end to end (7–8 days)
 
 **Goal:** one full loop through real paperwork, twice.

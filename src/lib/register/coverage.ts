@@ -8,16 +8,22 @@ import { getDb } from "@/lib/clock-store";
  * population can we say anything about, and on what". That needs a denominator
  * written down before the counting, which is what `universes` is for.
  *
- * Two ratios, deliberately separate:
+ * There is no single denominator. A member of the US House and a Member of the
+ * European Parliament belong to different populations with different documents,
+ * different rules and different gaps. Their numbers are reported separately and
+ * never added: a combined ratio would describe a body that does not exist.
  *
- *   read      — the person appears in a document we have read, with a passage
- *               stored. For a member of the House this is usually a vote.
- *   covered   — the person has a stored passage about conduct, from a document
- *               that is not a roll call. A vote is a fact about the chamber,
- *               not evidence of anything, so it does not count here.
+ * Three ratios, deliberately separate:
  *
- * Reporting one number instead of two would flatter the register. A vote file
- * read across 20 roll calls touches almost everyone and documents nothing about
+ *   read       — the person appears in a document we have read, with a passage
+ *                stored. For a member of the House this is usually a vote.
+ *   documented — the person has a stored passage about conduct, from a document
+ *                that is not a roll call. A vote is a fact about the chamber,
+ *                not evidence of anything, so it does not count here.
+ *   accused    — the passage is about a misdeed, from journalism or a register.
+ *
+ * Reporting one number instead of three would flatter the register. A vote file
+ * read across a parliament touches almost everyone and documents nothing about
  * anyone.
  */
 
@@ -27,6 +33,9 @@ export interface UniverseCoverage {
   id: string;
   name: string;
   description: string;
+  country: string;
+  body: string;
+  bodyKey: string;
   expected: number;
   listed: number;
   read: number;
@@ -34,6 +43,7 @@ export interface UniverseCoverage {
   accused: number;
   declaredAt: string;
   sourceUrl: string;
+  parties: PartyCoverage[];
 }
 
 export interface PartyCoverage {
@@ -46,7 +56,6 @@ export interface PartyCoverage {
 
 export interface CoverageReport {
   universes: UniverseCoverage[];
-  parties: PartyCoverage[];
   record: {
     claims: number;
     byStatus: Array<{ status: string; n: number }>;
@@ -62,10 +71,24 @@ const PARTY_NAME: Record<string, string> = {
   D: "Democratic",
   I: "Independent",
   ID: "Independent",
+  PPE: "European People's Party",
+  "S&D": "Socialists and Democrats",
+  PfE: "Patriots for Europe",
+  ECR: "European Conservatives and Reformists",
+  Renew: "Renew Europe",
+  "Verts/ALE": "Greens/European Free Alliance",
+  "The Left": "The Left",
+  ESN: "Europe of Sovereign Nations",
+  NI: "Non-attached",
 };
 
 export function partyLabel(code: string): string {
   return PARTY_NAME[code] ?? code ?? "unknown";
+}
+
+/** The label for a body, with its country when it has one. */
+export function bodyLabel(universe: Pick<UniverseCoverage, "country" | "body">): string {
+  return universe.country ? `${universe.country} · ${universe.body}` : universe.body;
 }
 
 export async function readCoverage(): Promise<CoverageReport | null> {
@@ -74,7 +97,7 @@ export async function readCoverage(): Promise<CoverageReport | null> {
 
   const universes = await db
     .prepare(
-      `SELECT c.*, u.description, u.source_url
+      `SELECT c.*, u.description, u.source_url, u.country, u.body, u.body_key
          FROM coverage c
          JOIN universes u ON u.id = c.universe_id
         ORDER BY c.declared_at DESC`,
@@ -83,7 +106,8 @@ export async function readCoverage(): Promise<CoverageReport | null> {
 
   const parties = await db
     .prepare(
-      `SELECT coalesce(nullif(e.affiliation, ''), 'unknown') AS party,
+      `SELECT m.universe_id,
+              coalesce(nullif(e.affiliation, ''), 'unknown') AS party,
               COUNT(*) AS listed,
               SUM(CASE WHEN EXISTS (
                     SELECT 1 FROM claims c
@@ -107,10 +131,26 @@ export async function readCoverage(): Promise<CoverageReport | null> {
                   THEN 1 ELSE 0 END) AS accused
          FROM universe_members m
          JOIN entities e ON e.id = m.entity_id
-        GROUP BY party
+        WHERE m.status != 'excluded'
+        GROUP BY m.universe_id, party
         ORDER BY listed DESC`,
     )
     .all();
+
+  const byUniverse = new Map<string, PartyCoverage[]>();
+  for (const row of parties.results ?? []) {
+    const id = String(row.universe_id ?? "");
+    byUniverse.set(id, [
+      ...(byUniverse.get(id) ?? []),
+      {
+        party: String(row.party ?? "unknown"),
+        listed: Number(row.listed ?? 0),
+        read: Number(row.read ?? 0),
+        documented: Number(row.documented ?? 0),
+        accused: Number(row.accused ?? 0),
+      },
+    ]);
+  }
 
   const statuses = await db
     .prepare("SELECT status, COUNT(*) AS n FROM claims GROUP BY status ORDER BY n DESC")
@@ -138,25 +178,25 @@ export async function readCoverage(): Promise<CoverageReport | null> {
     .first<Record<string, unknown>>();
 
   return {
-    universes: (universes.results ?? []).map((row) => ({
-      id: String(row.universe_id ?? ""),
-      name: String(row.name ?? ""),
-      description: String(row.description ?? ""),
-      expected: Number(row.expected ?? 0),
-      listed: Number(row.listed ?? 0),
-      read: Number(row.read ?? 0),
-      documented: Number(row.documented ?? 0),
-      accused: Number(row.accused ?? 0),
-      declaredAt: String(row.declared_at ?? ""),
-      sourceUrl: String(row.source_url ?? ""),
-    })),
-    parties: (parties.results ?? []).map((row) => ({
-      party: String(row.party ?? "unknown"),
-      listed: Number(row.listed ?? 0),
-      read: Number(row.read ?? 0),
-      documented: Number(row.documented ?? 0),
-      accused: Number(row.accused ?? 0),
-    })),
+    universes: (universes.results ?? []).map((row) => {
+      const id = String(row.universe_id ?? "");
+      return {
+        id,
+        name: String(row.name ?? ""),
+        description: String(row.description ?? ""),
+        country: String(row.country ?? ""),
+        body: String(row.body ?? ""),
+        bodyKey: String(row.body_key ?? ""),
+        expected: Number(row.expected ?? 0),
+        listed: Number(row.listed ?? 0),
+        read: Number(row.read ?? 0),
+        documented: Number(row.documented ?? 0),
+        accused: Number(row.accused ?? 0),
+        declaredAt: String(row.declared_at ?? ""),
+        sourceUrl: String(row.source_url ?? ""),
+        parties: byUniverse.get(id) ?? [],
+      };
+    }),
     record: record
       ? {
           claims: Number(record.claims ?? 0),

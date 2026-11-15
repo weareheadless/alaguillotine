@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, type D1 } from "@/lib/clock-store";
 import { isAdminAuthed } from "@/lib/admin-auth";
+import { recomputeUniverseStatus } from "@/lib/register/coverage-status";
 
 export const dynamic = "force-dynamic";
 
@@ -300,40 +301,7 @@ export async function POST(request: Request) {
   // member read. A passage about an act — a trade, a filing, a story — makes
   // them documented. A passage about a misdeed makes them accused. Three
   // numbers, because one number let 90 trade filings look like 90 findings.
-  const grounded = `cd.quote != '' AND c.status NOT IN ('legacy', 'refuted', 'alleged')`;
-  await db
-    .prepare("UPDATE universe_members SET status = 'listed' WHERE universe_id = 'house-119'")
-    .run();
-  await db
-    .prepare(
-      `UPDATE universe_members SET status = 'read'
-        WHERE universe_id = 'house-119' AND entity_id IN (
-          SELECT DISTINCT c.entity_id FROM claims c
-            JOIN claim_documents cd ON cd.claim_id = c.id
-            JOIN documents d ON d.id = cd.document_id
-           WHERE ${grounded})`,
-    )
-    .run();
-  await db
-    .prepare(
-      `UPDATE universe_members SET status = 'documented'
-        WHERE universe_id = 'house-119' AND entity_id IN (
-          SELECT DISTINCT c.entity_id FROM claims c
-            JOIN claim_documents cd ON cd.claim_id = c.id
-            JOIN documents d ON d.id = cd.document_id
-           WHERE ${grounded} AND d.kind != 'roll_call')`,
-    )
-    .run();
-  await db
-    .prepare(
-      `UPDATE universe_members SET status = 'accused'
-        WHERE universe_id = 'house-119' AND entity_id IN (
-          SELECT DISTINCT c.entity_id FROM claims c
-            JOIN claim_documents cd ON cd.claim_id = c.id
-            JOIN documents d ON d.id = cd.document_id
-           WHERE ${grounded} AND d.kind IN ('press', 'register'))`,
-    )
-    .run();
+  await recomputeUniverseStatus(db, "house-119");
 
   const coverage = await db
     .prepare(

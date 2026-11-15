@@ -95,12 +95,38 @@ R2 (`text_ref`); D1 keeps the metadata.
 | Companies House / EU registers | registry | free |
 | OFAC / EU sanctions | sanction | free |
 | Roll calls (Clerk, Senate) | roll_call | free |
+| Roll calls (European Parliament RCV XML) | roll_call | free, published |
 | Press RSS (allow-list) | press | free |
 | Field investigations, OSINT | report | free, manual |
 
 Every connector has a declared budget (documents/day) and a declared universe
 (what population it is expected to cover). A connector that returns nothing for
 its universe is a finding, not a quiet day.
+
+### One register, many bodies
+
+The register is about everybody, and "everybody" is not one population. A
+universe therefore declares the country and the body it enumerates:
+
+```
+universes(id, name, country, body, body_key, definition, source_url, expected, declared_at)
+```
+
+`country` is empty when the body spans countries, as the European Parliament
+does; that is a fact about the body, not a missing value. `body_key` is the
+stable name rules are scoped by. Coverage is computed and published per
+universe, never summed across them: a ratio over the US House and the European
+Parliament together would describe a body that does not exist.
+
+Committee jurisdiction is a rule about one body. "Armed Services oversees
+defence procurement" is a US House rule, and the mapping is stored with
+`body_key` so it can never be applied to another parliament by accident. Every
+lead prints the body, the rule and both citations.
+
+Adding a body is a declaration and a connector, not a code path. The European
+Parliament is `ep-10`, enumerated from its own open-data list, with the
+Parliament's person id as the external id; its roll-call XML is the second
+document class read against a second population.
 
 ### 2. Extraction → claims
 
@@ -185,7 +211,7 @@ claim_documents(claim_id, document_id, quote, locator, stance)
 claim_entities(claim_id, entity_id, role)         -- payer, beneficiary, owner
 entity_edges(id, from_entity, to_entity, kind, since, amount, currency,
              document_id, quote)
-universes(id, name, definition, source_url, expected, declared_at)
+universes(id, name, country, body, body_key, definition, source_url, expected, declared_at)
 universe_members(universe_id, entity_id, status)
 ```
 
