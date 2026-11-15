@@ -52,3 +52,5 @@ data/hateometer.json.tmp
 .open-next/
 .next/
 .wrangler/
+
+.dev.vars
