@@ -65,6 +65,12 @@ export default function HomePage() {
   // standing line is the promise; the numbers under it are what move.
   const heroHeadline = content.hero.headline;
   const heroSubheadline = content.hero.subheadline;
+  // The last beat is the accusation, so it is the one in red. Done by rule
+  // rather than by markup in the copy, so a new headline gets the same
+  // treatment without anyone having to remember the span.
+  const heroEnds = heroHeadline.trim().split(/\s+/);
+  const heroLast = heroEnds.length > 1 ? heroEnds[heroEnds.length - 1] : "";
+  const heroLead = heroEnds.slice(0, -1).join(" ");
   const { state: hate, pull: pullHate } = useHateometer();
   // Once a name is chopped it stays chopped until the card is replaced. The
   // poll can take a moment, and the head must not reappear in the gap.
@@ -133,7 +139,13 @@ export default function HomePage() {
               {content.hero.badge}
             </p>
             <h1 className="mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
-              {heroHeadline}
+              {heroLead}
+              {heroLast && (
+                <>
+                  {" "}
+                  <span className="text-spiteCrimson">{heroLast}</span>
+                </>
+              )}
             </h1>
             {(hate.wire?.count || typeof hate.ledgerTotal === "number") && (
               /* Two numbers, both checkable: how much record there is, and what
