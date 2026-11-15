@@ -1,12 +1,18 @@
 import { getDb } from "@/lib/clock-store";
 
 /**
- * The findings view. Not a register of acts, not a coverage table: rows where a
- * report says a named person was charged, convicted, sentenced or found liable.
- * The name came from the report; the quote is the sentence.
+ * The archive: the record behind the line, plus the findings the machine adds.
+ *
+ * The queue is the cast; this is what each name stands on. A row is an act a
+ * source states, not only a conviction. The finding field says how strong the
+ * passage is (`found`, `admitted`, `alleged`) and `none` means an act without a
+ * finding — the line's wars, trades, crackdowns and appointments.
+ *
+ * Compliance documents (roll calls, trades, interests) are deliberately out:
+ * they were the register's old spine and they are not what this site is about.
  */
 
-export interface FindingRow {
+export interface ArchiveRow {
   claimId: string;
   entityId: string;
   name: string;
@@ -15,7 +21,7 @@ export interface FindingRow {
   act: string;
   category: string;
   date: string;
-  dateKind: "act" | "reported";
+  dateKind: "act" | "reported" | "undated";
   datePrecision: string;
   finding: string;
   status: string;
@@ -25,21 +31,23 @@ export interface FindingRow {
   url: string;
   quote: string;
   stance: string;
+  inLine: boolean;
 }
 
-export interface FindingSource {
+export interface ArchiveSource {
   name: string;
   n: number;
 }
 
-export interface FindingsResult {
-  rows: FindingRow[];
+export interface ArchiveResult {
+  rows: ArchiveRow[];
   total: number;
   page: number;
   pages: number;
-  counts: { findings: number; people: number; sources: number };
+  counts: { acts: number; people: number; sources: number; line: number };
   byFinding: Array<{ key: string; n: number }>;
-  bySource: FindingSource[];
+  byCategory: Array<{ key: string; n: number }>;
+  bySource: ArchiveSource[];
   person: {
     id: string;
     name: string;
@@ -50,15 +58,19 @@ export interface FindingsResult {
   } | null;
 }
 
-export interface FindingsQuery {
+export interface ArchiveQuery {
   q?: string;
   entity?: string;
   finding?: string;
   source?: string;
+  line?: string;
+  focus?: string;
   page?: number;
 }
 
-export async function readFindings(query: FindingsQuery): Promise<FindingsResult | null> {
+const PRESS = "d.kind = 'press'";
+
+export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | null> {
   const db = await getDb();
   if (!db) return null;
 
@@ -68,8 +80,10 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
   const entity = (query.entity ?? "").trim();
   const finding = (query.finding ?? "").trim();
   const source = (query.source ?? "").trim();
+  const line = (query.line ?? "") === "1";
+  const focus = (query.focus ?? "").trim();
 
-  const where = ["c.finding != 'none'", "cd.quote != ''"];
+  const where = [PRESS];
   const binds: Array<string | number> = [];
   if (entity) {
     where.push("c.entity_id = ?");
@@ -79,7 +93,9 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
     const like = `%${q.toLowerCase()}%`;
     binds.push(like, like);
   }
-  if (finding) {
+  if (finding === "act") {
+    where.push("c.finding = 'none'");
+  } else if (finding) {
     where.push("c.finding = ?");
     binds.push(finding);
   }
@@ -87,15 +103,33 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
     where.push("d.issuer = ?");
     binds.push(source);
   }
-  const clause = `WHERE ${where.join(" AND ")}`;
-  const from = `
-    FROM claims c
+  if (line) {
+    where.push(
+      "EXISTS (SELECT 1 FROM queue_people qp WHERE lower(qp.name) = lower(e.name))",
+    );
+  }
+  const baseClause = `WHERE ${where.join(" AND ")}`;
+  const from = `FROM claims c
     JOIN entities e ON e.id = c.entity_id
-    JOIN claim_documents cd ON cd.claim_id = c.id
-    JOIN documents d ON d.id = cd.document_id`;
+    JOIN documents d ON d.id = c.document_id`;
+
+  // The focus is a reading of the categories, not a new population: money,
+  // influence, war and repression are the four ways power is used.
+  const FOCUS: Record<string, string[]> = {
+    money: ["finance", "extraction", "labour", "climate"],
+    influence: ["impunity", "media"],
+    war: ["war", "arms", "genocide"],
+    repression: ["repression", "migration"],
+  };
+  const focusCats = FOCUS[focus] ?? [];
+  if (focusCats.length) {
+    where.push(`c.category IN (${focusCats.map(() => "?").join(", ")})`);
+    for (const category of focusCats) binds.push(category);
+  }
+  const clause = `WHERE ${where.join(" AND ")}`;
 
   const totalRow = await db
-    .prepare(`SELECT COUNT(DISTINCT c.id) AS n ${from} ${clause}`)
+    .prepare(`SELECT COUNT(*) AS n ${from} ${clause}`)
     .bind(...binds)
     .first<{ n: number }>();
   const total = Number(totalRow?.n ?? 0);
@@ -103,11 +137,12 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
   const rows = await db
     .prepare(
       `SELECT c.id AS claim_id, c.entity_id, c.act, c.category, c.act_date,
-              c.finding, c.status, c.confidence, c.date_precision,
+              c.date_precision, c.finding, c.status, c.confidence,
               e.name, e.country, e.affiliation,
-              d.issuer, d.title, d.url, d.published_at, cd.quote, cd.stance
+              d.issuer, d.title, d.url, d.published_at, c.quote, '' AS stance,
+              EXISTS (SELECT 1 FROM queue_people qp WHERE lower(qp.name) = lower(e.name)) AS in_line
          ${from} ${clause}
-        ORDER BY COALESCE(c.act_date, d.published_at) DESC, c.id
+        ORDER BY COALESCE(c.act_date, d.published_at, c.created_at) DESC, c.id
         LIMIT ? OFFSET ?`,
     )
     .bind(...binds, per, (page - 1) * per)
@@ -115,40 +150,42 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
 
   const counts = await db
     .prepare(
-      `SELECT
-         (SELECT COUNT(DISTINCT c.id) FROM claims c
-            JOIN claim_documents cd ON cd.claim_id = c.id
-           WHERE c.finding != 'none' AND cd.quote != '') AS findings,
-         (SELECT COUNT(DISTINCT c.entity_id) FROM claims c
-            JOIN claim_documents cd ON cd.claim_id = c.id
-           WHERE c.finding != 'none' AND cd.quote != '') AS people,
-         (SELECT COUNT(DISTINCT d.issuer) FROM claims c
-            JOIN claim_documents cd ON cd.claim_id = c.id
-            JOIN documents d ON d.id = cd.document_id
-           WHERE c.finding != 'none' AND cd.quote != '') AS sources`,
+      `SELECT COUNT(*) AS acts,
+              COUNT(DISTINCT c.entity_id) AS people,
+              COUNT(DISTINCT d.issuer) AS sources,
+              COUNT(DISTINCT CASE WHEN EXISTS (
+                SELECT 1 FROM queue_people qp WHERE lower(qp.name) = lower(e.name)
+              ) THEN c.entity_id END) AS line
+         ${from} ${clause}`,
     )
-    .first<{ findings: number; people: number; sources: number }>();
+    .bind(...binds)
+    .first<{ acts: number; people: number; sources: number; line: number }>();
 
   const byFinding = await db
     .prepare(
-      `SELECT c.finding AS key, COUNT(*) AS n FROM claims c
-         JOIN claim_documents cd ON cd.claim_id = c.id
-        WHERE c.finding != 'none' AND cd.quote != ''
+      `SELECT c.finding AS key, COUNT(*) AS n ${from} ${baseClause}
         GROUP BY c.finding ORDER BY n DESC`,
     )
+    .bind(...binds.slice(0, binds.length - focusCats.length))
+    .all();
+
+  const byCategory = await db
+    .prepare(
+      `SELECT c.category AS key, COUNT(*) AS n ${from} ${baseClause}
+        GROUP BY c.category ORDER BY n DESC`,
+    )
+    .bind(...binds.slice(0, binds.length - focusCats.length))
     .all();
 
   const bySource = await db
     .prepare(
-      `SELECT d.issuer AS name, COUNT(DISTINCT c.id) AS n FROM claims c
-         JOIN claim_documents cd ON cd.claim_id = c.id
-         JOIN documents d ON d.id = cd.document_id
-        WHERE c.finding != 'none' AND cd.quote != ''
+      `SELECT d.issuer AS name, COUNT(DISTINCT c.id) AS n ${from}
+        WHERE ${PRESS} AND d.issuer != ''
         GROUP BY d.issuer ORDER BY n DESC LIMIT 12`,
     )
     .all();
 
-  let person: FindingsResult["person"] = null;
+  let person: ArchiveResult["person"] = null;
   if (entity) {
     const row = await db
       .prepare("SELECT id, name, country, affiliation FROM entities WHERE id = ? OR slug = ? LIMIT 1")
@@ -158,10 +195,8 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
       const tally = await db
         .prepare(
           `SELECT COUNT(DISTINCT c.id) AS findings, COUNT(DISTINCT d.issuer) AS sources
-             FROM claims c
-             JOIN claim_documents cd ON cd.claim_id = c.id
-             JOIN documents d ON d.id = cd.document_id
-            WHERE c.entity_id = ? AND c.finding != 'none' AND cd.quote != ''`,
+             FROM claims c JOIN documents d ON d.id = c.document_id
+            WHERE c.entity_id = ? AND ${PRESS} AND c.finding != 'none' AND c.quote != ''`,
         )
         .bind(String(row.id ?? ""))
         .first<{ findings: number; sources: number }>();
@@ -177,35 +212,45 @@ export async function readFindings(query: FindingsQuery): Promise<FindingsResult
   }
 
   return {
-    rows: (rows.results ?? []).map((raw) => ({
-      claimId: String(raw.claim_id ?? ""),
-      entityId: String(raw.entity_id ?? ""),
-      name: String(raw.name ?? ""),
-      country: String(raw.country ?? ""),
-      affiliation: String(raw.affiliation ?? ""),
-      act: String(raw.act ?? ""),
-      category: String(raw.category ?? ""),
-      date: String(raw.act_date || raw.published_at || ""),
-      dateKind: raw.act_date ? "act" : "reported",
-      datePrecision: String(raw.date_precision ?? ""),
-      finding: String(raw.finding ?? ""),
-      status: String(raw.status ?? ""),
-      confidence: Number(raw.confidence ?? 0),
-      issuer: String(raw.issuer ?? ""),
-      title: String(raw.title ?? ""),
-      url: String(raw.url ?? ""),
-      quote: String(raw.quote ?? ""),
-      stance: String(raw.stance ?? ""),
-    })),
+    rows: (rows.results ?? []).map((raw) => {
+      const actDate = String(raw.act_date ?? "");
+      const published = String(raw.published_at ?? "");
+      return {
+        claimId: String(raw.claim_id ?? ""),
+        entityId: String(raw.entity_id ?? ""),
+        name: String(raw.name ?? ""),
+        country: String(raw.country ?? ""),
+        affiliation: String(raw.affiliation ?? ""),
+        act: String(raw.act ?? ""),
+        category: String(raw.category ?? ""),
+        date: actDate || published,
+        dateKind: actDate ? "act" : published ? "reported" : "undated",
+        datePrecision: String(raw.date_precision ?? ""),
+        finding: String(raw.finding ?? "none"),
+        status: String(raw.status ?? ""),
+        confidence: Number(raw.confidence ?? 0),
+        issuer: String(raw.issuer ?? ""),
+        title: String(raw.title ?? ""),
+        url: String(raw.url ?? ""),
+        quote: String(raw.quote ?? ""),
+        stance: String(raw.stance ?? ""),
+        inLine: Boolean(raw.in_line),
+      };
+    }),
     total,
     page,
     pages: Math.max(1, Math.ceil(total / per)),
     counts: {
-      findings: Number(counts?.findings ?? 0),
+      acts: Number(counts?.acts ?? 0),
       people: Number(counts?.people ?? 0),
       sources: Number(counts?.sources ?? 0),
+      line: Number(counts?.line ?? 0),
     },
     byFinding: (byFinding.results ?? []).map((row) => ({
+      key: String(row.key ?? ""),
+      n: Number(row.n ?? 0),
+    })),
+    byCategory: (byCategory.results ?? []).map((row) => ({
       key: String(row.key ?? ""),
       n: Number(row.n ?? 0),
     })),

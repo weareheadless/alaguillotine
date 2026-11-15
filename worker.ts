@@ -79,13 +79,13 @@ export default {
     if (event.cron === "7,22,37,52 * * * *") {
       context.waitUntil(
         invokeApp(
-          "/api/findings/refresh",
+          "/api/findings/line",
           { scheduledTime: event.scheduledTime },
           env,
           context,
         ).then((response) => {
           if (!response.ok) {
-            throw new Error(`/api/findings/refresh returned HTTP ${response.status}.`);
+            throw new Error(`/api/findings/line returned HTTP ${response.status}.`);
           }
         }),
       );

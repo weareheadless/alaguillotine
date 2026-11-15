@@ -202,8 +202,8 @@ export async function ingestFindings(
               `INSERT OR IGNORE INTO claims
                  (id, entity_id, act, category, mechanism, beneficiary, act_date,
                   date_precision, amount, currency, confidence, confidence_basis,
-                  status, finding, claim_key, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, '', ?, ?, NULL, '', ?, ?, ?, ?, ?, ?, ?)`,
+                  status, finding, claim_key, document_id, quote, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, '', ?, ?, NULL, '', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             )
             .bind(
               claimId,
@@ -218,6 +218,8 @@ export async function ingestFindings(
               finding.finding,
               finding.finding,
               claimKey,
+              docId,
+              finding.quote,
               now,
               now,
             ),

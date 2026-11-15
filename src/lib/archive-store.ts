@@ -881,15 +881,15 @@ export async function chargeStats(): Promise<ChargeStats> {
   if (!d) return { total: 0, last24h: 0 };
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   try {
-    // The record is findings now: a claim counts only when a passage states it.
+    // The record is the press file: the acts behind the line, plus the findings
+    // the machine adds. A vote or a trade is not a charge on this site.
     const row = await d
       .prepare(
         `SELECT COUNT(*) AS total,
-                SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) AS recent
-           FROM claims
-          WHERE finding != 'none'
-            AND EXISTS (SELECT 1 FROM claim_documents cd
-                         WHERE cd.claim_id = claims.id AND cd.quote != '')`,
+                SUM(CASE WHEN c.created_at >= ? THEN 1 ELSE 0 END) AS recent
+           FROM claims c
+           JOIN documents d ON d.id = c.document_id
+          WHERE d.kind = 'press'`,
       )
       .bind(since)
       .first<{ total?: number; recent?: number }>();
