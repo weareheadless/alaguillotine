@@ -168,6 +168,44 @@ for each source: stance, provenance, issuer, URL, quote. A report is a saved
 query plus a row snapshot, so an article cannot silently drift from the data it
 was written on.
 
+## The loop: a name arrives from the paper
+
+This is the part that keeps the archive from becoming a directory of officialdom.
+A press document is a document like any other, stance `reports`, and it is the
+surface that names people no roster contains.
+
+```
+press document ──▶ names extracted ──▶ entity (lead)
+                                          │
+                        bounded document lookup across connectors
+                                          │
+        ┌─────────────────────────────────┼──────────────────────────────────┐
+        ▼                                 ▼                                  ▼
+  document says it                 credible reporting, no document      nothing found
+  claims filed, status             claim filed as `alleged`             no claim, outcome
+  `reported`/`recorded`            (grade C or D, cannot rank)          recorded `no documents`
+  ranks on evidence                visible, attributed, cited           not in the line
+```
+
+All three outcomes are published, because "we looked and found nothing" is
+information about our coverage, not about the person. What the line will not do
+is rank an entity on a press claim alone: an `alleged` claim contributes zero
+weight, so a name can be known to the archive and still not stand under the
+blade until something is filed.
+
+The lookup is bounded and cheap by construction:
+
+- one lead, up to five connector queries (name, aliases, external ids), then an
+  outcome is written whether or not anything was found;
+- an entity is searched again only when a connector publishes something that
+  matches it, or after a cooldown — never in a loop;
+- every lead ends in a row: `found`, `alleged` or `none`, with a date, so the
+  backlog of names we have looked at is countable.
+
+That is also how the gazetteer grows. A name that arrives from the paper and
+later acquires a document stays tracked, so the next connector run picks it up
+without anyone remembering to add it.
+
 ## Cost
 
 | Item | Per day |
