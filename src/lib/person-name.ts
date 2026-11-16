@@ -221,6 +221,18 @@ const BACKGROUND_LEAD = new Set([
   "unlike", "including", "like", "as", "than", "against", "behind",
 ]);
 
+/**
+ * "supporters of Mayor X", "donors including X": the name belongs to a group
+ * that acted, not to the actor. A sentence can name a person and still describe
+ * what a PAC, a campaign or a crowd did around them.
+ */
+const ASSOCIATE_LEAD =
+  /(?:supporters|donors|critics|allies|opponents|backers|funders|aides|advisers|advisors|associates|friends|enemies|members|officials|figureheads)\s+(?:of|from|including|such as|like|behind|around)\s+[^,;:.]{0,90}$/i;
+
+export function mentionedAsAssociate(before: string): boolean {
+  return ASSOCIATE_LEAD.test(before);
+}
+
 export function backgroundReference(before: string): boolean {
   const tokens = before
     .trim()

@@ -2,7 +2,7 @@ import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
 import { articleText, searchUrl, OUTLETS } from "@/lib/findings";
 import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
-import { backgroundReference, surnameOf } from "@/lib/person-name";
+import { backgroundReference, mentionedAsAssociate, surnameOf } from "@/lib/person-name";
 
 /**
  * Discovery: find names the line does not have yet.
@@ -65,6 +65,8 @@ const FILLER = new Set(["the", "a", "an", "its", "their", "is", "was", "and", "o
  * matches lowercase too, which quietly accepted "Congressman Clyburn of".
  */
 function roleLead(before: string): boolean {
+  // "supporters of Mayor X": the name is in the crowd around the actor.
+  if (mentionedAsAssociate(before)) return false;
   // "under President X", "while President X": the office is a background
   // reference to the previous administration, not the actor of the sentence.
   if (backgroundReference(before)) return false;
@@ -228,11 +230,11 @@ function categoryOf(sentence: string): string {
   const s = sentence.toLowerCase();
   if (/genocide|ethnic cleansing|massacre|kill|airstrike|troops|war crime/.test(s)) return "war";
   if (/weapon|arms|missile|drone|defen[cs]e contract|military/.test(s)) return "arms";
-  if (/surveillance|spy|police|prison|detention|deport|crackdown|protest|journalist/.test(s)) {
-    return "repression";
-  }
   if (/lobby|donat|campaign|super pac|\bpac\b|influence|conflict of interest|ethics|revolving door/.test(s)) {
     return "influence";
+  }
+  if (/surveillance|spy|police|prison|detention|deport|crackdown|protest|journalist/.test(s)) {
+    return "repression";
   }
   if (/media|newspaper|broadcast|platform|algorithm|disinformation|propaganda/.test(s)) return "media";
   if (/tax|subsid|profit|loan|fund|invest|stake|shares|merger|monopol|price|rent/.test(s)) {

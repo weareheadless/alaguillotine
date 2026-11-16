@@ -2,7 +2,7 @@ import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
 import { articleText, OUTLETS, searchUrl, type Post } from "@/lib/findings";
 import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
-import { backgroundReference } from "@/lib/person-name";
+import { backgroundReference, mentionedAsAssociate } from "@/lib/person-name";
 
 /**
  * The line pass: the people under the blade, read by name.
@@ -24,11 +24,11 @@ function categoryOf(sentence: string): string {
   const s = sentence.toLowerCase();
   if (/genocide|ethnic cleansing|massacre|kill|airstrike|troops|war crime/.test(s)) return "war";
   if (/weapon|arms|missile|drone|defen[cs]e contract|military/.test(s)) return "arms";
-  if (/surveillance|spy|police|prison|detention|deport|crackdown|protest|journalist/.test(s)) {
-    return "repression";
-  }
   if (/lobby|donat|campaign|super pac|\bpac\b|influence|conflict of interest|ethics|revolving door/.test(s)) {
     return "influence";
+  }
+  if (/surveillance|spy|police|prison|detention|deport|crackdown|protest|journalist/.test(s)) {
+    return "repression";
   }
   if (/media|newspaper|broadcast|platform|algorithm|disinformation|propaganda/.test(s)) return "media";
   if (/tax|subsid|profit|loan|fund|invest|stake|shares|merger|monopol|price|rent/.test(s)) {
@@ -88,6 +88,9 @@ export function mentionsName(sentence: string, name: string): boolean {
     /^[’'`]s\s+(?:administration|government|white house|company|firm|fund|foundation|campaign|business|empire|bank|group|team|office|agency|department|committee|pac|super pac|companies|businesses|holdings|trust|estate|network|operation)\b/i.test(
       afterName,
     );
+
+  // "including supporters of Mayor Zohran Mamdani": the group acted, not him.
+  if (mentionedAsAssociate(lead)) return false;
 
   // "under President Joe Biden", "while President Joe Biden was in office",
   // "the administration of President Joe Biden": the act belongs to someone
