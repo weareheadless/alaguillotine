@@ -44,7 +44,7 @@ export interface ArchiveResult {
   total: number;
   page: number;
   pages: number;
-  counts: { acts: number; people: number; sources: number; line: number };
+  counts: { acts: number; people: number; sources: number; line: number; fresh: number };
   byFinding: Array<{ key: string; n: number }>;
   byCategory: Array<{ key: string; n: number }>;
   bySource: ArchiveSource[];
@@ -65,6 +65,7 @@ export interface ArchiveQuery {
   source?: string;
   line?: string;
   focus?: string;
+  fresh?: string;
   page?: number;
 }
 
@@ -82,6 +83,7 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
   const source = (query.source ?? "").trim();
   const line = (query.line ?? "") === "1";
   const focus = (query.focus ?? "").trim();
+  const fresh = (query.fresh ?? "") === "1";
 
   const where = [PRESS];
   const binds: Array<string | number> = [];
@@ -106,6 +108,15 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
   if (line) {
     where.push(
       "EXISTS (SELECT 1 FROM queue_people qp WHERE lower(qp.name) = lower(e.name))",
+    );
+  }
+  if (fresh) {
+    // A name the discovery pass put in the line. The queue row is the mark:
+    // every person discovery added is source 'discovery', and the name pass
+    // then reads them like any other. This is the machine's intake, not the
+    // leftovers of the conviction search.
+    where.push(
+      "EXISTS (SELECT 1 FROM queue_people qp WHERE lower(qp.name) = lower(e.name) AND qp.source = 'discovery')",
     );
   }
   const baseClause = `WHERE ${where.join(" AND ")}`;
@@ -155,11 +166,15 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
               COUNT(DISTINCT d.issuer) AS sources,
               COUNT(DISTINCT CASE WHEN EXISTS (
                 SELECT 1 FROM queue_people qp WHERE lower(qp.name) = lower(e.name)
-              ) THEN c.entity_id END) AS line
+              ) THEN c.entity_id END) AS line,
+              COUNT(DISTINCT CASE WHEN EXISTS (
+                SELECT 1 FROM queue_people qp
+                 WHERE lower(qp.name) = lower(e.name) AND qp.source = 'discovery'
+              ) THEN c.entity_id END) AS fresh
          ${from} ${clause}`,
     )
     .bind(...binds)
-    .first<{ acts: number; people: number; sources: number; line: number }>();
+    .first<{ acts: number; people: number; sources: number; line: number; fresh: number }>();
 
   const byFinding = await db
     .prepare(
@@ -245,6 +260,7 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
       people: Number(counts?.people ?? 0),
       sources: Number(counts?.sources ?? 0),
       line: Number(counts?.line ?? 0),
+      fresh: Number(counts?.fresh ?? 0),
     },
     byFinding: (byFinding.results ?? []).map((row) => ({
       key: String(row.key ?? ""),

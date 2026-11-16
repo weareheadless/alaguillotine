@@ -433,6 +433,54 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   const d = await db();
   if (!d) return [];
   const [first, last] = namePair(name);
+  const nameClause = first && last
+    ? "(lower(e.name) = lower(?) OR (lower(e.name) LIKE ? AND lower(e.name) LIKE ?))"
+    : "lower(e.name) = lower(?)";
+  const nameBinds = first && last ? [name, `%${first}%`, `%${last}%`] : [name];
+
+  // One record: the press claims (including the line pass and the findings) and
+  // the older ledger rows, deduplicated by act, claims first because they carry
+  // the document and the sentence.
+  let claims: LedgerEntry[] = [];
+  try {
+    const rows = await d
+      .prepare(
+        `SELECT c.id, c.act, c.category, c.confidence, c.act_date, c.quote,
+                c.finding, c.status, e.country, d.url
+           FROM claims c
+           JOIN entities e ON e.id = c.entity_id
+           JOIN documents d ON d.id = c.document_id
+          WHERE ${nameClause} AND d.kind = 'press'
+          ORDER BY COALESCE(c.act_date, d.published_at) DESC
+          LIMIT 160`,
+      )
+      .bind(...nameBinds)
+      .all();
+    claims = (rows.results ?? []).map((r) => {
+      const finding = String(r.finding ?? "none");
+      const quote = String(r.quote ?? "");
+      const grade =
+        finding === "found" ? "A" : finding === "admitted" ? "B" : finding === "alleged" ? "C" : quote ? "C" : "D";
+      const date = r.act_date == null ? null : String(r.act_date);
+      return {
+        id: String(r.id ?? ""),
+        act: String(r.act ?? ""),
+        place: String(r.country ?? ""),
+        year: date ? Number(date.slice(0, 4)) : 0,
+        category: String(r.category ?? ""),
+        confidence: Math.round(Number(r.confidence ?? 0) * 100),
+        sources: r.url ? [String(r.url)] : [],
+        actDate: date,
+        grade,
+        outcome: finding === "found" ? "found" : finding === "alleged" ? "alleged" : "unknown",
+        status: String(r.status ?? "recorded"),
+        take: "",
+      };
+    });
+  } catch {
+    claims = [];
+  }
+
   const where = first && last
     ? "lower(person) = lower(?) OR (lower(person) LIKE ? AND lower(person) LIKE ?)"
     : "lower(person) = lower(?)";
@@ -444,7 +492,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
     )
     .bind(name, ...(first && last ? [`%${first}%`, `%${last}%`] : []))
     .all();
-  return (rows.results ?? []).map((r) => {
+  const ledger = (rows.results ?? []).map((r) => {
     let sources: string[] = [];
     try {
       sources = JSON.parse(String(r.sources ?? "[]")) as string[];
@@ -466,6 +514,13 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
       take: String(r.take ?? ""),
     };
   });
+
+  const key = (act: string) =>
+    act.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 180);
+  const seen = new Set(claims.map((entry) => key(entry.act)));
+  return [...claims, ...ledger.filter((entry) => !seen.has(key(entry.act)))].sort(
+    (a, b) => b.confidence - a.confidence || b.year - a.year,
+  );
 }
 
 /**
@@ -639,7 +694,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
     return (aliases.get(key) ?? name).trim().toLowerCase();
   };
 
-  const rows = await d
+  const ledgerRows = await d
     .prepare(
       // Pending and rejected claims are on the record and do not score. The
       // archive shows them; the blade does not count them.
@@ -652,10 +707,68 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
     .bind()
     .all();
 
+  // One record: the press claims are the same record the archive shows. Without
+  // them a name the line or the discovery pass found scores at zero and the
+  // queue pass drops it, even though its acts are on the archive.
+  const actKey = (act: string): string =>
+    act.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 180);
+  const seenActs = new Set<string>();
+  const records: Array<Record<string, unknown>> = [];
+  const take = (row: Record<string, unknown>): void => {
+    const key = `${canonicalKey(String(row.n ?? ""))}|${actKey(String(row.act ?? ""))}`;
+    if (seenActs.has(key)) return;
+    seenActs.add(key);
+    records.push(row);
+  };
+
+  try {
+    const claims = await d
+      .prepare(
+        `SELECT lower(e.name) AS n, c.act, e.country AS place,
+                CASE WHEN c.act_date IS NULL OR c.act_date = ''
+                     THEN 0 ELSE CAST(substr(c.act_date, 1, 4) AS INTEGER) END AS year,
+                c.category, c.confidence, c.act_date, c.finding, c.quote
+           FROM claims c
+           JOIN entities e ON e.id = c.entity_id
+           JOIN documents d ON d.id = c.document_id
+          WHERE d.kind = 'press'`,
+      )
+      .bind()
+      .all();
+    for (const row of claims.results ?? []) {
+      const finding = String(row.finding ?? "none");
+      const quote = String(row.quote ?? "");
+      take({
+        n: row.n,
+        act: row.act,
+        place: row.place,
+        year: row.year,
+        category: row.category,
+        confidence: Math.round(Number(row.confidence ?? 0.5) * 100),
+        attribution: 1,
+        act_date: row.act_date,
+        evidence_grade:
+          finding === "found"
+            ? "A"
+            : finding === "admitted"
+              ? "B"
+              : finding === "alleged"
+                ? "C"
+                : quote
+                  ? "C"
+                  : "D",
+      });
+    }
+  } catch {
+    /* the archive tables are optional for a queue that has only the old ledger */
+  }
+
+  for (const row of ledgerRows.results ?? []) take({ ...row } as Record<string, unknown>);
+
   const map = new Map<string, LedgerSummary>();
   const cutoff = new Date().getFullYear() - 1;
 
-  for (const r of rows.results ?? []) {
+  for (const r of records) {
     const key = canonicalKey(String(r.n ?? ""));
     if (!key) continue;
     const conf = Number(r.confidence ?? 0);

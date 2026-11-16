@@ -91,6 +91,23 @@ export default {
       );
       return;
     }
+    // Discovery runs on its own half-hour offset. One power term in one
+    // outlet per run; the sentence supplies a name the line does not have.
+    if (event.cron === "2,17,32,47 * * * *") {
+      context.waitUntil(
+        invokeApp(
+          "/api/findings/discover",
+          { scheduledTime: event.scheduledTime },
+          env,
+          context,
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`/api/findings/discover returned HTTP ${response.status}.`);
+          }
+        }),
+      );
+      return;
+    }
     // The blade keeps its own time: sentence at the reading, drop at the
     // hour. No model call, so a slot no longer depends on a visitor.
     if (event.cron === "*/15 * * * *") {

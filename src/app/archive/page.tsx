@@ -18,6 +18,7 @@ type Params = {
   source?: string;
   line?: string;
   focus?: string;
+  fresh?: string;
   page?: string | number;
 };
 
@@ -50,10 +51,11 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
   const finding = (params.finding ?? "").trim();
   const source = (params.source ?? "").trim();
   const focus = (params.focus ?? "").trim();
+  const fresh = params.fresh === "1";
   // The archive opens on the line, because the line is the site. A search or a
   // finding filter opens it to everyone; "everyone" is explicit from there on.
   const searched = Boolean(q || entity || finding || source);
-  const line = params.line === "1" || (params.line !== "0" && !searched);
+  const line = !fresh && (params.line === "1" || (params.line !== "0" && !searched));
   const page = Math.max(1, Number(params.page) || 1);
 
   const result = await readArchive({
@@ -63,6 +65,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
     source,
     line: line ? "1" : "",
     focus,
+    fresh: fresh ? "1" : "",
     page,
   });
   if (!result) {
@@ -86,8 +89,9 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
     source: source || undefined,
     line: line ? "1" : undefined,
     focus: focus || undefined,
+    fresh: fresh ? "1" : undefined,
   };
-  const filtered = Boolean(q || entity || finding || source || line || focus);
+  const filtered = Boolean(q || entity || finding || source || line || focus || fresh);
   const findings = byFinding.filter((entry) => entry.key !== "none");
   const acts = byFinding.find((entry) => entry.key === "none");
 
@@ -157,6 +161,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
           {source ? <input type="hidden" name="source" value={source} /> : null}
           {line ? <input type="hidden" name="line" value="1" /> : null}
           {focus ? <input type="hidden" name="focus" value={focus} /> : null}
+          {fresh ? <input type="hidden" name="fresh" value="1" /> : null}
           <input
             type="search"
             name="q"
@@ -192,6 +197,20 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
             }`}
           >
             Everyone
+          </Link>
+          <Link
+            href={href(base, {
+              fresh: fresh ? undefined : "1",
+              line: fresh ? "1" : "0",
+              page: undefined,
+            })}
+            className={`border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] ${
+              fresh
+                ? "border-spiteCrimson bg-spiteCrimson/15 text-spiteCrimson"
+                : "border-chop-border text-chop-muted hover:text-sheetWhite"
+            }`}
+          >
+            New names {num(counts.fresh)}
           </Link>
           {[
             ["money", "Money", ["finance", "extraction", "labour", "climate"]],
@@ -262,7 +281,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
 
         <div className="mt-8 flex flex-wrap items-baseline gap-x-3 border-b border-chop-border pb-3">
           <h2 className="text-lg font-black uppercase tracking-tight text-sheetWhite">
-            {person ? "Their record" : line ? "The line" : filtered ? "Results" : "Everyone"}
+            {person ? "Their record" : fresh ? "New names" : line ? "The line" : filtered ? "Results" : "Everyone"}
           </h2>
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-chop-muted">
             {num(total)} {total === 1 ? "act" : "acts"}

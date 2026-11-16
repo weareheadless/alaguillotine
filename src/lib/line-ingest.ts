@@ -56,7 +56,11 @@ function sentencesOf(text: string): string[] {
 
 /** The sentence must be about the name, not merely mention it in passing. */
 const ACTION =
-  /\b(invested|donat|gave|spent|bought|sold|acquir|won|receiv|paid|lobbied|lobbying|push|press|urged|met with|holds?|owns?|controls?|runs?|founded|funded|backed|profit|launch|expand|cut|laid off|sued|settl|fined|sanctioned|awarded|granted|approved|signed|ordered|deployed|struck|bombed|killed|detained|deported|surveill|monopol|raised|donated|contributed|invested|acquired)\w*/i;
+  /\b(invested|donat|gave|spent|bought|sold|acquir|won|receiv|paid|lobbied|lobbying|push|press|urged|met with|holds?|owns?|controls?|runs?|founded|funded|backed|profit|launch|expand|cut|laid off|sued|settl|fined|sanctioned|awarded|granted|approved|signed|ordered|deployed|struck|bombed|killed|detained|deported|surveill|monopol|raised|donated|contributed|invested|acquired|charged|convicted|indicted|pleaded|testified|sought|filed|argued|warned|bankrolled|poured)\w*/i;
+
+/** "Apollo CEO Marc Rowan" is about Rowan even though the name is not first. */
+const ROLE_BEFORE =
+  /\b(?:billionaire|millionaire|oligarch|donor|lobbyist|minister|president|senator|congressman|congresswoman|governor|mayor|CEO|chief executive|co-?founder|founder|chairman|chairwoman|investor|banker|contractor|adviser|advisor|secretary|director|executive|tycoon|magnate|heir|heiress|prince|sheikh|general|commander|financier|backer|owner)\s*$/i;
 
 function mentionsName(sentence: string, name: string): boolean {
   const lower = sentence.toLowerCase();
@@ -66,11 +70,14 @@ function mentionsName(sentence: string, name: string): boolean {
   const at = [lower.indexOf(full), lower.indexOf(surname)].filter((i) => i >= 0);
   if (!at.length) return false;
   const index = Math.min(...at);
-  // A name buried after the first clause is usually a modifier, not the actor.
-  if (index > 60) return false;
-  // If it is not the opening subject, it needs a possessive or "whose" to be
-  // the thing the sentence is about.
-  if (index > 0) {
+  const lead = sentence.slice(Math.max(0, index - 40), index);
+  const role = ROLE_BEFORE.test(lead);
+  // A name buried after the first clause is usually a modifier, not the actor
+  // — unless the office is stated right in front of it.
+  if (index > 60 && !role) return false;
+  // If it is not the opening subject, it needs a possessive, "whose", or the
+  // office to be the thing the sentence is about.
+  if (index > 0 && !role) {
     const escaped = surname.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (!new RegExp(`\\b${escaped}(?:'s|’s|\\s*,\\s*whose)\\b`, "i").test(sentence)) {
       return false;
@@ -133,16 +140,21 @@ export async function ingestLinePerson(
   for (const post of posts) {
     try {
       const existing = await db
-        .prepare("SELECT id FROM documents WHERE url = ? LIMIT 1")
+        .prepare("SELECT id, text_excerpt FROM documents WHERE url = ? LIMIT 1")
         .bind(post.link)
-        .all();
-      if ((existing.results ?? []).length) {
-        tally.skipped += 1;
+        .first<{ id: string; text_excerpt: string }>();
+
+      // A stored article still has sentences the discovery pass did not take,
+      // so the name pass reads it again. Claim keys keep the repeat honest.
+      const text = (
+        existing?.text_excerpt && existing.text_excerpt.length >= 200
+          ? existing.text_excerpt
+          : articleText(post.content)
+      ).slice(0, 80_000);
+      if (text.length < 200) {
+        if (existing?.id) tally.skipped += 1;
         continue;
       }
-
-      const text = articleText(post.content).slice(0, 80_000);
-      if (text.length < 200) continue;
       const hits = sentencesOf(text)
         .filter((sentence) => mentionsName(sentence, personName) && SIGNAL.test(sentence))
         .slice(0, 6);
@@ -164,31 +176,34 @@ export async function ingestLinePerson(
           .run();
       }
 
-      const docId = `doc:news:${await sha16(post.link)}`;
+      const docId = existing?.id ? String(existing.id) : `doc:news:${await sha16(post.link)}`;
       const hash = await sha16(text);
-      const writes: ReturnType<D1["prepare"]>[] = [
-        db
-          .prepare(
-            `INSERT INTO documents
-               (id, kind, issuer, title, number, url, published_at, retrieved_at,
-                content_hash, locator, provenance, self_serving, text_excerpt,
-                fetched_at, http_status, parsed_at)
-             VALUES (?, 'press', ?, ?, '', ?, ?, ?, ?, '', ?, 0, ?, ?, 200, ?)`,
-          )
-          .bind(
-            docId,
-            outlet.name,
-            post.title.slice(0, 300),
-            post.link,
-            post.date || now.slice(0, 10),
-            now,
-            hash,
-            `${outlet.name} name search "${personName}"`,
-            text,
-            now,
-            now,
-          ),
-      ];
+      const writes: ReturnType<D1["prepare"]>[] = [];
+      if (!existing?.id) {
+        writes.push(
+          db
+            .prepare(
+              `INSERT INTO documents
+                 (id, kind, issuer, title, number, url, published_at, retrieved_at,
+                  content_hash, locator, provenance, self_serving, text_excerpt,
+                  fetched_at, http_status, parsed_at)
+               VALUES (?, 'press', ?, ?, '', ?, ?, ?, ?, '', ?, 0, ?, ?, 200, ?)`,
+            )
+            .bind(
+              docId,
+              outlet.name,
+              post.title.slice(0, 300),
+              post.link,
+              post.date || now.slice(0, 10),
+              now,
+              hash,
+              `${outlet.name} name search "${personName}"`,
+              text,
+              now,
+              now,
+            ),
+        );
+      }
 
       for (const sentence of hits) {
         const act = sentence.slice(0, 300);
