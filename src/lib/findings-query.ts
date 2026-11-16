@@ -69,7 +69,7 @@ export interface ArchiveQuery {
   page?: number;
 }
 
-const PRESS = "d.kind = 'press'";
+const PRESS = "d.kind = 'press' AND c.status != 'retracted'";
 
 export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | null> {
   const db = await getDb();

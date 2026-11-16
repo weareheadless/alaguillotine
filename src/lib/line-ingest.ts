@@ -3,6 +3,7 @@ import { slugify } from "@/lib/slug";
 import { articleText, OUTLETS, searchUrl, type Post } from "@/lib/findings";
 import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
 import { backgroundReference, mentionedAsAssociate } from "@/lib/person-name";
+import { judgeActs, keepsVerdict, type JudgeConfig } from "@/lib/act-judge";
 
 /**
  * The line pass: the people under the blade, read by name.
@@ -14,6 +15,12 @@ import { backgroundReference, mentionedAsAssociate } from "@/lib/person-name";
  */
 
 const UA = "AdaGuillotine/1.0 (line)";
+const BROAD_CATEGORY: Record<string, string> = {
+  money: "finance",
+  influence: "impunity",
+  war: "war",
+  repression: "repression",
+};
 const BATCH = 50;
 
 /** Sentences about power, money, or the use of either. */
@@ -122,6 +129,7 @@ export interface LineTally {
   articles: number;
   acts: number;
   skipped: number;
+  rejected: number;
   errors: string[];
 }
 
@@ -130,6 +138,7 @@ export async function ingestLinePerson(
   personName: string,
   outletKey: string,
   per = 20,
+  judge: JudgeConfig | null = null,
 ): Promise<LineTally> {
   const outlet = OUTLETS.find((entry) => entry.key === outletKey);
   if (!outlet) throw new Error(`unknown outlet ${outletKey}`);
@@ -164,6 +173,7 @@ export async function ingestLinePerson(
     articles: 0,
     acts: 0,
     skipped: 0,
+    rejected: 0,
     errors: [],
   };
 
@@ -189,6 +199,24 @@ export async function ingestLinePerson(
         .filter((sentence) => mentionsName(sentence, personName) && SIGNAL.test(sentence))
         .slice(0, 6);
       if (!hits.length) continue;
+
+      // The judge decides whether the sentence is about this person and
+      // whether it is the kind of act the record keeps. The rule above only
+      // narrows the candidates; it does not get the last word.
+      const items = hits.map((sentence, i) => ({
+        id: `hit:${i}`,
+        name: personName,
+        sentence,
+        outlet: outlet.name,
+        title: post.title,
+      }));
+      const verdicts = await judgeActs(judge, db, items);
+      const kept = items.filter((item) => {
+        const verdict = verdicts.get(item.id);
+        return verdict ? keepsVerdict(verdict) : !judge;
+      });
+      tally.rejected += items.length - kept.length;
+      if (!kept.length) continue;
 
       // The queue may spell the name differently from the entity the press
       // claims were filed under. Resolve through the index and the approved
@@ -242,7 +270,8 @@ export async function ingestLinePerson(
         );
       }
 
-      for (const sentence of hits) {
+      for (const item of kept) {
+        const sentence = item.sentence;
         const act = sentence.slice(0, 300);
         const claimKey = `${entityId}|act|${await sha16(act.toLowerCase())}`;
         const claimId = `claim:line:${await sha16(claimKey)}`;
@@ -272,7 +301,11 @@ export async function ingestLinePerson(
               claimId,
               entityId,
               act,
-              categoryOf(sentence),
+              // The judge's reading of the act wins over the keyword list.
+              verdicts.get(item.id)?.category && verdicts.get(item.id)?.category !== "other"
+                ? BROAD_CATEGORY[verdicts.get(item.id)?.category ?? ""] ??
+                  String(verdicts.get(item.id)?.category)
+                : categoryOf(sentence),
               outlet.name,
               actDate,
               precision,

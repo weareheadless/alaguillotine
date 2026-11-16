@@ -3,10 +3,16 @@ import { getDb } from "@/lib/clock-store";
 import { isAdminAuthed } from "@/lib/admin-auth";
 import { ingestLinePerson, type LineTally } from "@/lib/line-ingest";
 import { rescoreQueue } from "@/lib/hate-store";
+import { judgeConfig } from "@/lib/act-judge";
 
 export const dynamic = "force-dynamic";
 
-type Env = { CRON_SECRET?: string };
+type Env = {
+  CRON_SECRET?: string;
+  SITE_AGENT_LLM_API_KEY?: string;
+  CLOCK_CHAT_BASE?: string;
+  CLOCK_MODEL?: string;
+};
 
 /**
  * POST /api/findings/line — the pass that matters.
@@ -66,9 +72,10 @@ export async function POST(request: Request) {
     outlet = explicitOutlet || OUTLET_ROTATION[position % OUTLET_ROTATION.length];
   }
 
+  const judge = judgeConfig(context.env ?? {});
   const results: Array<LineTally | { person: string; outlet: string; error: string }> = [];
   try {
-    results.push(await ingestLinePerson(db, person, outlet, per));
+    results.push(await ingestLinePerson(db, person, outlet, per, judge));
   } catch (error) {
     results.push({ person, outlet, error: String(error).slice(0, 180) });
   }

@@ -4,10 +4,16 @@ import { isAdminAuthed } from "@/lib/admin-auth";
 import { discoverPower, POWER_QUERIES, type DiscoveryTally } from "@/lib/discovery";
 import { OUTLETS } from "@/lib/findings";
 import { rescoreQueue } from "@/lib/hate-store";
+import { judgeConfig } from "@/lib/act-judge";
 
 export const dynamic = "force-dynamic";
 
-type Env = { CRON_SECRET?: string };
+type Env = {
+  CRON_SECRET?: string;
+  SITE_AGENT_LLM_API_KEY?: string;
+  CLOCK_CHAT_BASE?: string;
+  CLOCK_MODEL?: string;
+};
 
 /**
  * POST /api/findings/discover — find names the line does not have.
@@ -45,9 +51,10 @@ export async function POST(request: Request) {
       ? { outlet: explicitOutlet, query: explicitQuery }
       : grid[position % grid.length];
 
+  const judge = judgeConfig(context.env ?? {});
   const results: Array<DiscoveryTally | { outlet: string; query: string; error: string }> = [];
   try {
-    results.push(await discoverPower(db, pair.outlet, pair.query, per));
+    results.push(await discoverPower(db, pair.outlet, pair.query, per, judge));
   } catch (error) {
     results.push({ outlet: pair.outlet, query: pair.query, error: String(error).slice(0, 180) });
   }

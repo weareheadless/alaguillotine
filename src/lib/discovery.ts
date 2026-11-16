@@ -2,6 +2,7 @@ import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
 import { articleText, searchUrl, OUTLETS } from "@/lib/findings";
 import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
+import { judgeActs, keepsVerdict, type JudgeConfig } from "@/lib/act-judge";
 import { backgroundReference, mentionedAsAssociate, surnameOf } from "@/lib/person-name";
 
 /**
@@ -16,6 +17,13 @@ import { backgroundReference, mentionedAsAssociate, surnameOf } from "@/lib/pers
 
 const UA = "AdaGuillotine/1.0 (discovery)";
 const BATCH = 50;
+
+const BROAD_CATEGORY: Record<string, string> = {
+  money: "finance",
+  influence: "impunity",
+  war: "war",
+  repression: "repression",
+};
 
 export const POWER_QUERIES = [
   "dark money",
@@ -271,6 +279,7 @@ export interface DiscoveryTally {
   names: string[];
   newNames: string[];
   skipped: number;
+  rejected: number;
   errors: string[];
 }
 
@@ -279,6 +288,7 @@ export async function discoverPower(
   outletKey: string,
   query: string,
   per = 15,
+  judge: JudgeConfig | null = null,
 ): Promise<DiscoveryTally> {
   const outlet = OUTLETS.find((entry) => entry.key === outletKey);
   if (!outlet) throw new Error(`unknown outlet ${outletKey}`);
@@ -314,6 +324,7 @@ export async function discoverPower(
     names: [],
     newNames: [],
     skipped: 0,
+    rejected: 0,
     errors: [],
   };
   const seenNames = new Set<string>();
@@ -348,6 +359,31 @@ export async function discoverPower(
       }
       if (!hits.length) continue;
 
+      // The judge reads each sentence for this name: is the person the actor,
+      // and is the act the kind the record exists for? A sentence about
+      // supporters, an office held, or opposition to harm is not a charge.
+      const pairs = hits.flatMap((hit, hi) =>
+        hit.names.map((name, ni) => ({
+          id: `${hi}:${ni}`,
+          name,
+          sentence: hit.sentence,
+          outlet: outlet.name,
+          title: post.title,
+        })),
+      );
+      const verdicts = await judgeActs(judge, db, pairs);
+      const keep = (id: string): boolean => {
+        const verdict = verdicts.get(id);
+        // No judge configured: the regex result stands, as before. Judge
+        // configured but no verdict: the call failed or the model did not
+        // answer, and an unjudged sentence is not filed.
+        return verdict ? keepsVerdict(verdict) : !judge;
+      };
+      if (judge && !pairs.some((pair) => keep(pair.id))) {
+        tally.rejected += pairs.length;
+        continue;
+      }
+
       const docId = `doc:news:${await sha16(post.link)}`;
       const hash = await sha16(text);
       const writes: ReturnType<D1["prepare"]>[] = [
@@ -374,8 +410,13 @@ export async function discoverPower(
           ),
       ];
 
-      for (const hit of hits) {
-        for (const name of hit.names) {
+      for (const [hi, hit] of hits.entries()) {
+        for (const [ni, name] of hit.names.entries()) {
+          if (!keep(`${hi}:${ni}`)) {
+            tally.rejected += 1;
+            continue;
+          }
+          const verdict = verdicts.get(`${hi}:${ni}`);
           const slug = slugify(name);
           let known = resolveInIndex(index, name);
           if (!known) {
@@ -471,7 +512,11 @@ export async function discoverPower(
                 claimId,
                 entityId,
                 act,
-                categoryOf(hit.sentence),
+                // The judge's reading of the act wins over the keyword list:
+                // it knows a PAC's money is influence, not a weapons transfer.
+                verdict && verdict.category !== "other"
+                  ? BROAD_CATEGORY[verdict.category] ?? verdict.category
+                  : categoryOf(hit.sentence),
                 outlet.name,
                 actDate,
                 precision,

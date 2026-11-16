@@ -462,7 +462,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
            FROM claims c
            JOIN entities e ON e.id = c.entity_id
            JOIN documents d ON d.id = c.document_id
-          WHERE ${nameClause} AND d.kind = 'press'
+          WHERE ${nameClause} AND d.kind = 'press' AND c.status != 'retracted'
           ORDER BY COALESCE(c.act_date, d.published_at) DESC
           LIMIT 160`,
       )
@@ -751,7 +751,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
            FROM claims c
            JOIN entities e ON e.id = c.entity_id
            JOIN documents d ON d.id = c.document_id
-          WHERE d.kind = 'press'`,
+          WHERE d.kind = 'press' AND c.status != 'retracted'`,
       )
       .bind()
       .all();
@@ -1020,7 +1020,7 @@ export async function chargeStats(): Promise<ChargeStats> {
                 SUM(CASE WHEN c.created_at >= ? THEN 1 ELSE 0 END) AS recent
            FROM claims c
            JOIN documents d ON d.id = c.document_id
-          WHERE d.kind = 'press'`,
+          WHERE d.kind = 'press' AND c.status != 'retracted'`,
       )
       .bind(since)
       .first<{ total?: number; recent?: number }>();
