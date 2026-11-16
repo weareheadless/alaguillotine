@@ -193,6 +193,46 @@ export function sameNameExpanded(observed: string, known: string): boolean {
   return true;
 }
 
+/**
+ * Roles and titles that sit between a person's name and the word that
+ * introduces the clause. Stripped when looking for what the name depends on.
+ */
+const LEAD_QUALIFIERS = new Set([
+  "mr", "mrs", "ms", "dr", "prof", "sir", "dame", "lord", "lady", "president",
+  "vice", "senator", "representative", "rep", "congressman", "congresswoman",
+  "governor", "mayor", "minister", "secretary", "director", "general",
+  "commander", "prince", "sheikh", "judge", "justice", "cllr", "councillor",
+  "chancellor", "ambassador", "billionaire", "millionaire", "oligarch", "donor",
+  "lobbyist", "ceo", "executive", "founder", "chairman", "chairwoman", "chair",
+  "investor", "banker", "contractor", "adviser", "advisor", "tycoon", "magnate",
+  "heir", "heiress", "former", "late", "outgoing", "then", "current", "acting",
+  "deputy", "ex", "the",
+]);
+
+/**
+ * Prepositions that put a name in the background of a sentence rather than in
+ * its subject: "under President Joe Biden", "while President Joe Biden was in
+ * office", "the administration of President Joe Biden". The act in those
+ * sentences belongs to someone else, and filing it under the name is how a
+ * record fills with sentences that merely mention the person.
+ */
+const BACKGROUND_LEAD = new Set([
+  "under", "during", "while", "after", "before", "of", "since", "until",
+  "unlike", "including", "like", "as", "than", "against", "behind",
+]);
+
+export function backgroundReference(before: string): boolean {
+  const tokens = before
+    .trim()
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map((token) => token.toLowerCase().replace(/[.,:;]$/, ""));
+  let i = tokens.length - 1;
+  while (i >= 0 && LEAD_QUALIFIERS.has(tokens[i])) i -= 1;
+  if (i < 0) return false;
+  return BACKGROUND_LEAD.has(tokens[i]);
+}
+
 /** The surname alone, folded, for narrowing a candidate list. */
 export function surnameOf(raw: string): string {
   return parsePersonName(raw)?.last ?? foldName(raw).split(" ").pop() ?? "";

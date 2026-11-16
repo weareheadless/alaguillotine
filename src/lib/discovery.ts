@@ -2,7 +2,7 @@ import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
 import { articleText, searchUrl, OUTLETS } from "@/lib/findings";
 import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
-import { surnameOf } from "@/lib/person-name";
+import { backgroundReference, surnameOf } from "@/lib/person-name";
 
 /**
  * Discovery: find names the line does not have yet.
@@ -65,6 +65,9 @@ const FILLER = new Set(["the", "a", "an", "its", "their", "is", "was", "and", "o
  * matches lowercase too, which quietly accepted "Congressman Clyburn of".
  */
 function roleLead(before: string): boolean {
+  // "under President X", "while President X": the office is a background
+  // reference to the previous administration, not the actor of the sentence.
+  if (backgroundReference(before)) return false;
   const tokens = before.trim().split(/[\s,]+/).filter(Boolean);
   if (!tokens.length) return false;
   for (let i = 1; i <= 3 && i <= tokens.length; i += 1) {

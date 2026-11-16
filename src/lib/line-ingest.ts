@@ -2,6 +2,7 @@ import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
 import { articleText, OUTLETS, searchUrl, type Post } from "@/lib/findings";
 import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
+import { backgroundReference } from "@/lib/person-name";
 
 /**
  * The line pass: the people under the blade, read by name.
@@ -63,7 +64,7 @@ const ACTION =
 const ROLE_BEFORE =
   /\b(?:billionaire|millionaire|oligarch|donor|lobbyist|minister|president|senator|congressman|congresswoman|governor|mayor|CEO|chief executive|co-?founder|founder|chairman|chairwoman|investor|banker|contractor|adviser|advisor|secretary|director|executive|tycoon|magnate|heir|heiress|prince|sheikh|general|commander|financier|backer|owner)\s*$/i;
 
-function mentionsName(sentence: string, name: string): boolean {
+export function mentionsName(sentence: string, name: string): boolean {
   const lower = sentence.toLowerCase();
   const full = name.toLowerCase();
   const surname = (name.split(/\s+/).pop() ?? "").toLowerCase();
@@ -71,20 +72,44 @@ function mentionsName(sentence: string, name: string): boolean {
   const at = [lower.indexOf(full), lower.indexOf(surname)].filter((i) => i >= 0);
   if (!at.length) return false;
   const index = Math.min(...at);
-  const lead = sentence.slice(Math.max(0, index - 40), index);
+  const lead = sentence.slice(Math.max(0, index - 60), index);
   const role = ROLE_BEFORE.test(lead);
+  const escaped = surname.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const possessive = new RegExp(
+    `\\b${escaped}(?:'s|’s|\\s*,\\s*whose)\\b`,
+    "i",
+  ).test(sentence);
+
+  // "Trump's administration", "Musk's company": the possession is the actor.
+  // "Biden's historic climate bill" is an object someone else lobbied for.
+  const isFull = lower.slice(index, index + full.length) === full;
+  const afterName = sentence.slice(index + (isFull ? full.length : surname.length));
+  const institutional =
+    /^[’'`]s\s+(?:administration|government|white house|company|firm|fund|foundation|campaign|business|empire|bank|group|team|office|agency|department|committee|pac|super pac|companies|businesses|holdings|trust|estate|network|operation)\b/i.test(
+      afterName,
+    );
+
+  // "under President Joe Biden", "while President Joe Biden was in office",
+  // "the administration of President Joe Biden": the act belongs to someone
+  // else. An institutional possessive keeps the attribution.
+  if (!institutional && backgroundReference(lead)) return false;
+
+  // A possessive that is not an institution is describing something the name
+  // owns, not something the name did: "lobbying for the passage of President
+  // Biden's climate bill".
+  if (possessive && !institutional && index > 0) return false;
+
   // A name buried after the first clause is usually a modifier, not the actor
   // — unless the office is stated right in front of it.
-  if (index > 60 && !role) return false;
+  if (index > 60 && !role && !institutional) return false;
+
   // If it is not the opening subject, it needs a possessive, "whose", or the
   // office to be the thing the sentence is about.
-  if (index > 0 && !role) {
-    const escaped = surname.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (!new RegExp(`\\b${escaped}(?:'s|’s|\\s*,\\s*whose)\\b`, "i").test(sentence)) {
-      return false;
-    }
-  }
-  return ACTION.test(sentence);
+  if (index > 0 && !role && !possessive) return false;
+
+  // The action has to come after the name: a verb in the clause before it
+  // belongs to another subject.
+  return ACTION.test(sentence.slice(index));
 }
 
 export interface LineTally {
