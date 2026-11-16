@@ -3,6 +3,7 @@ import { getDb } from "@/lib/clock-store";
 import { isAdminAuthed } from "@/lib/admin-auth";
 import { discoverPower, POWER_QUERIES, type DiscoveryTally } from "@/lib/discovery";
 import { OUTLETS } from "@/lib/findings";
+import { rescoreQueue } from "@/lib/hate-store";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,15 @@ export async function POST(request: Request) {
     0,
   );
 
+  // The new name has a receipt and now needs its number: score it before the
+  // response, so the page and the line order agree with the archive at once.
+  let rescored = 0;
+  try {
+    rescored = await rescoreQueue(db);
+  } catch {
+    /* the four-hourly pass will still put the numbers right */
+  }
+
   try {
     await db
       .prepare(
@@ -81,7 +91,7 @@ export async function POST(request: Request) {
   }
 
   return Response.json(
-    { ok: true, ...pair, position: next, grid: grid.length, results },
+    { ok: true, ...pair, position: next, grid: grid.length, rescored, results },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

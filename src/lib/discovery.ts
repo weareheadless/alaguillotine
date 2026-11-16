@@ -1,6 +1,8 @@
 import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
 import { articleText, searchUrl, OUTLETS } from "@/lib/findings";
+import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
+import { surnameOf } from "@/lib/person-name";
 
 /**
  * Discovery: find names the line does not have yet.
@@ -123,6 +125,9 @@ const NOT_A_NAME = new Set([
   "sign", "newsletter", "byline", "herald", "journal", "review", "observer",
   "guardian", "telegraph", "mirror", "sun", "star", "mail", "express", "report",
   "reports", "reported", "according", "meanwhile", "however", "but", "and",
+  "who", "whom", "whose", "which", "that", "this", "these", "those", "called",
+  "said", "says", "told", "asked", "added", "including", "among", "about",
+  "against", "into", "than", "then", "there", "here", "where", "when",
   // modals and connectives: a headline window ("Donor Could Profit") is not a
   // person, and neither is any two-word slice of one
   "could", "would", "should", "will", "may", "might", "must", "can", "from",
@@ -136,7 +141,11 @@ const NOT_A_NAME = new Set([
 ]);
 
 function validName(raw: string): string | null {
-  const words = raw.split(/\s+/).filter(Boolean);
+  // A sentence-final period is punctuation, not part of the name.
+  const words = (raw.match(/[\p{L}][\p{L}'’.-]*/gu) ?? []).map((word) =>
+    word.length > 2 ? word.replace(/\.$/, "") : word,
+  );
+  if (!words.length) return null;
   const leading = (word: string): boolean => {
     const bare = word.toLowerCase().replace(/[.,]/g, "");
     return TITLE.has(bare) || ROLE_SET.has(bare);
@@ -144,6 +153,8 @@ function validName(raw: string): string | null {
   while (words.length > 1 && leading(words[0])) words.shift();
   if (words.length < 2 || words.length > 3) return null;
   if (NOT_A_NAME.has(words[0].toLowerCase().replace(/[.,]/g, ""))) return null;
+  // A surname is a name, not an initial: "David H." is a fragment.
+  if (words[words.length - 1].replace(/\.$/, "").length < 2) return null;
   for (const word of words) {
     if (!/^[A-Z][\p{L}'’.-]*$/u.test(word)) return null;
     if (word.length < 2 && !/^[A-Z]\.$/.test(word)) return null;
@@ -194,6 +205,22 @@ export function powerNames(sentence: string): string[] {
   return names;
 }
 
+/** The article refers to the name as a person somewhere, not only as a party. */
+function hasPersonEvidence(sentences: string[], name: string): boolean {
+  const surname = surnameOf(name);
+  if (!surname) return false;
+  return sentences.some((sentence) => {
+    if (!sentence.toLowerCase().includes(surname)) return false;
+    return /\b(he|she|his|her|him|hers|himself|herself)\b/i.test(sentence);
+  });
+}
+
+/** A nineteenth-century reference is history, not a current act. */
+function historical(sentence: string): boolean {
+  const years = [...sentence.matchAll(/\b(1[89]\d{2}|20\d{2})\b/g)].map((m) => Number(m[1]));
+  return years.length > 0 && Math.max(...years) < 1990;
+}
+
 function categoryOf(sentence: string): string {
   const s = sentence.toLowerCase();
   if (/genocide|ethnic cleansing|massacre|kill|airstrike|troops|war crime/.test(s)) return "war";
@@ -242,35 +269,6 @@ export interface DiscoveryTally {
   errors: string[];
 }
 
-/**
- * The same person under a shorter first name: "Jeff Yass" for "Jeffrey Yass".
- * Same surname, and one first name is a prefix of the other. Only a prefix of
- * three letters or more, so "Al Gore" and "Albert Gore" merge but "Ed" and
- * "Edward" stay the same person while "Bo" and "Bob" do not.
- */
-async function twinOf(db: D1, name: string): Promise<{ id: string; name: string } | null> {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  const first = parts[0].toLowerCase();
-  const surname = parts[parts.length - 1].toLowerCase();
-  if (surname.length < 3) return null;
-  const rows = await db
-    .prepare("SELECT id, name FROM entities WHERE kind = 'person' AND lower(name) LIKE ? LIMIT 20")
-    .bind(`% ${surname}`)
-    .all();
-  for (const row of rows.results ?? []) {
-    const other = String(row.name ?? "").trim().split(/\s+/);
-    if (other.length < 2) continue;
-    if (other[other.length - 1].toLowerCase() !== surname) continue;
-    const otherFirst = other[0].toLowerCase();
-    const shared = Math.min(first.length, otherFirst.length);
-    if (shared >= 3 && (first.startsWith(otherFirst) || otherFirst.startsWith(first))) {
-      return { id: String(row.id ?? ""), name: String(row.name ?? "") };
-    }
-  }
-  return null;
-}
-
 export async function discoverPower(
   db: D1,
   outletKey: string,
@@ -301,6 +299,7 @@ export async function discoverPower(
     .filter((post) => post.link && post.content);
 
   const now = new Date().toISOString();
+  const index = await loadPersonIndex(db);
   const tally: DiscoveryTally = {
     outlet: outlet.key,
     query,
@@ -328,10 +327,17 @@ export async function discoverPower(
       const text = articleText(post.content).slice(0, 80_000);
       if (text.length < 200) continue;
 
+      const sentences = sentencesOf(text);
       const hits: Array<{ sentence: string; names: string[] }> = [];
-      for (const sentence of sentencesOf(text)) {
+      for (const sentence of sentences) {
+        if (historical(sentence)) continue;
         if (!ROLE.test(sentence) || !SIGNAL.test(sentence) || !ACTION.test(sentence)) continue;
-        const names = powerNames(sentence);
+        // A company is not a person: "Lockheed Martin" can sit beside the word
+        // "general" and still be an issuer. Somewhere in the article the name
+        // has to be referred to as he or she.
+        const names = powerNames(sentence).filter((name) =>
+          hasPersonEvidence(sentences, name),
+        );
         if (names.length) hits.push({ sentence, names });
         if (hits.length >= 4) break;
       }
@@ -366,16 +372,27 @@ export async function discoverPower(
       for (const hit of hits) {
         for (const name of hit.names) {
           const slug = slugify(name);
-          const existing = await db
-            .prepare("SELECT id, name FROM entities WHERE lower(name) = lower(?) AND kind = 'person' LIMIT 1")
-            .bind(name)
-            .first<{ id: string; name: string }>();
-          // Spelling is not identity. "Jeff Yass" and "Jeffrey Yass" are one
-          // donor; taking both would split his record across two pages.
-          const twin = existing?.id ? null : await twinOf(db, name);
-          const known = existing?.id ? existing : twin;
+          let known = resolveInIndex(index, name);
+          if (!known) {
+            const canonical = await canonicalFromAlias(db, name);
+            if (canonical) known = resolveInIndex(index, canonical);
+          }
           const entityId = known?.id ? String(known.id) : `person:${slug}`;
-          if (!known?.id) {
+
+          if (known) {
+            // The record already holds this person under another spelling.
+            // Write the alias so the scorer and the archive use one key, and
+            // file the act under that person rather than a second page.
+            await noteAlias(db, name, known.name, now);
+            await db
+              .prepare(
+                `INSERT OR IGNORE INTO entities
+                   (id, kind, name, slug, aliases, country, affiliation, role, external_ids, created_at, updated_at)
+                 VALUES (?, 'person', ?, ?, '[]', '', '', '', '{}', ?, ?)`,
+              )
+              .bind(known.id, known.name, slugify(known.name), now, now)
+              .run();
+          } else {
             const role = (ROLE.exec(hit.sentence)?.[0] ?? "").toLowerCase();
             await db
               .prepare(
@@ -385,6 +402,7 @@ export async function discoverPower(
               )
               .bind(entityId, name, slug, role, now, now)
               .run();
+            index.push({ id: entityId, name });
             // A discovered name joins the line at once, so the name pass reads
             // it next cycle and the record grows without another roster edit.
             // Its own sentence is the receipt: the queue pass keeps a name that
@@ -429,6 +447,12 @@ export async function discoverPower(
           if (already?.id) continue;
 
           const year = [...hit.sentence.matchAll(/\b(19\d{2}|20\d{2})\b/g)].map((m) => m[1]).pop();
+          // The record is dated by what the source says. A bare year is placed
+          // mid-year, the same guess the scorer makes for an undated act; a
+          // sentence with no date at all is dated to the report, because the
+          // reporting is the evidence the line is standing on.
+          const actDate = year ? `${year}-07-01` : post.date || now.slice(0, 10);
+          const precision = year ? "year" : "reported";
           writes.push(
             db
               .prepare(
@@ -444,8 +468,8 @@ export async function discoverPower(
                 act,
                 categoryOf(hit.sentence),
                 outlet.name,
-                year ? `${year}-01-01` : null,
-                year ? "year" : "unknown",
+                actDate,
+                precision,
                 0.5,
                 `${outlet.name}, "${post.title.slice(0, 160)}" (${post.date}); role and act in the stored article`,
                 claimKey,

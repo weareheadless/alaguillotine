@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { actDate, EVIDENCE_WINDOW_DAYS, evidenceFor } from "./evidence";
 import { slugify } from "./slug";
+import { nameKey, samePerson } from "./person-name";
 
 type Stmt = {
   bind: (...v: unknown[]) => Stmt;
@@ -419,12 +420,9 @@ export function countLedger(
   name: string,
 ): number {
   const lower = name.toLowerCase();
-  const [first, last] = namePair(name);
   let total = 0;
   for (const r of rows) {
-    const p = r.person.toLowerCase();
-    if (p === lower) total += r.count;
-    else if (first && last && p.includes(first) && p.includes(last)) total += r.count;
+    if (r.person.toLowerCase() === lower || samePerson(r.person, name)) total += r.count;
   }
   return total;
 }
@@ -432,11 +430,25 @@ export function countLedger(
 export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   const d = await db();
   if (!d) return [];
-  const [first, last] = namePair(name);
-  const nameClause = first && last
-    ? "(lower(e.name) = lower(?) OR (lower(e.name) LIKE ? AND lower(e.name) LIKE ?))"
+
+  // The entity table holds one row per spelling that was filed. Resolve the
+  // spellings the same way discovery does — surname, then a first name that is
+  // equal, a diminutive, or a prefix — rather than by substring, which merged
+  // different people who happened to share a syllable.
+  let entityIds: string[] = [];
+  try {
+    const entities = await d.prepare("SELECT id, name FROM entities WHERE kind = 'person'").all();
+    entityIds = (entities.results ?? [])
+      .filter((row) => samePerson(String(row.name ?? ""), name))
+      .map((row) => String(row.id ?? ""))
+      .filter(Boolean);
+  } catch {
+    entityIds = [];
+  }
+  const nameClause = entityIds.length
+    ? `c.entity_id IN (${entityIds.map(() => "?").join(", ")})`
     : "lower(e.name) = lower(?)";
-  const nameBinds = first && last ? [name, `%${first}%`, `%${last}%`] : [name];
+  const nameBinds: string[] = entityIds.length ? entityIds : [name];
 
   // One record: the press claims (including the line pass and the findings) and
   // the older ledger rows, deduplicated by act, claims first because they carry
@@ -481,8 +493,17 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
     claims = [];
   }
 
-  const where = first && last
-    ? "lower(person) = lower(?) OR (lower(person) LIKE ? AND lower(person) LIKE ?)"
+  let ledgerNames: string[] = [];
+  try {
+    const people = await d.prepare("SELECT DISTINCT person FROM ledger_entries").all();
+    ledgerNames = (people.results ?? [])
+      .map((row) => String(row.person ?? ""))
+      .filter((person) => person && samePerson(person, name));
+  } catch {
+    ledgerNames = [];
+  }
+  const where = ledgerNames.length
+    ? `lower(person) IN (${ledgerNames.map(() => "?").join(", ")})`
     : "lower(person) = lower(?)";
   const rows = await d
     .prepare(
@@ -490,7 +511,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
               evidence_grade, institutional_status, review_status, take
          FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
-    .bind(name, ...(first && last ? [`%${first}%`, `%${last}%`] : []))
+    .bind(...(ledgerNames.length ? ledgerNames.map((person) => person.toLowerCase()) : [name]))
     .all();
   const ledger = (rows.results ?? []).map((r) => {
     let sources: string[] = [];
@@ -689,10 +710,9 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
   } catch {
     /* table not created yet */
   }
-  const canonicalKey = (name: string): string => {
-    const key = name.trim().toLowerCase();
-    return (aliases.get(key) ?? name).trim().toLowerCase();
-  };
+  // The key ignores middle names and suffixes, so "Johnny Lehi Jr." and
+  // "Johnny Lehi" are one person's record before any alias is approved.
+  const canonicalKey = (name: string): string => nameKey(aliases.get(name.trim().toLowerCase()) ?? name);
 
   const ledgerRows = await d
     .prepare(
@@ -846,13 +866,11 @@ export function ledgerSummaryFor(
   summaries: Map<string, LedgerSummary>,
   name: string,
 ): LedgerSummary | undefined {
-  const exact = summaries.get(name.toLowerCase());
+  const exact = summaries.get(nameKey(name));
   if (exact) return exact;
-  const [first, last] = namePair(name);
-  if (!first || !last) return undefined;
   let best: LedgerSummary | undefined;
   for (const [key, s] of summaries) {
-    if (key.includes(first) && key.includes(last)) {
+    if (samePerson(key, name)) {
       if (!best || s.count > best.count) best = s;
     }
   }

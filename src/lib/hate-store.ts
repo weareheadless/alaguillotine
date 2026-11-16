@@ -11,7 +11,10 @@ type D1Statement = {
   run: () => Promise<unknown>;
   all: <T = { results?: Array<Record<string, unknown>> }>() => Promise<T>;
 };
-export type D1 = { prepare: (query: string) => D1Statement };
+export type D1 = {
+  prepare: (query: string) => D1Statement;
+  batch?: (statements: D1Statement[]) => Promise<unknown>;
+};
 
 export async function getDb(): Promise<D1 | null> {
   const context = (await getCloudflareContext({ async: true })) as unknown as {
@@ -313,6 +316,53 @@ export async function writeQueue(db: D1, people: Figure[]): Promise<void> {
       )
       .run();
   }
+}
+
+/**
+ * Put the queue's numbers back in step with the record, without waiting for
+ * the research pass.
+ *
+ * A name discovery adds, or an act the name pass files, changes the record the
+ * score is computed from. Leaving the old number in place means the archive
+ * shows an act that the blade has not counted: the page says zero beside a
+ * person with a charge, and the line orders them as if nothing happened. This
+ * recomputes every standing name from the same summaries the page uses and
+ * re-ranks the line, so the two cannot disagree.
+ */
+export async function rescoreQueue(db: D1): Promise<number> {
+  const rows = await db
+    .prepare("SELECT id, name, rank, mentions FROM queue_people")
+    .all();
+  const queue = (rows.results ?? [])
+    .map((row) => ({
+      id: String(row.id ?? ""),
+      name: String(row.name ?? ""),
+      rank: Number(row.rank ?? 0),
+      mentions: Number(row.mentions ?? 0),
+    }))
+    .filter((row) => row.id && row.name);
+  if (!queue.length) return 0;
+
+  const summaries = await readLedgerSummaries();
+  const scored = queue.map((row) => ({
+    ...row,
+    score: Math.round((ledgerSummaryFor(summaries, row.name)?.evidence ?? 0) * 10) / 10,
+  }));
+  scored.sort((a, b) => b.score - a.score || b.mentions - a.mentions);
+
+  const statements = scored.map((row, i) =>
+    db
+      .prepare("UPDATE queue_people SET score = ?, prev_rank = ?, rank = ? WHERE id = ?")
+      .bind(row.score, row.rank > 0 ? row.rank : null, i + 1, row.id),
+  );
+  // One subrequest per batch rather than one per name: the whole queue is
+  // rewritten on every discovery and line pass, and D1 charges both.
+  for (let i = 0; i < statements.length; i += 50) {
+    const chunk = statements.slice(i, i + 50);
+    if (db.batch) await db.batch(chunk);
+    else for (const statement of chunk) await statement.run();
+  }
+  return scored.length;
 }
 
 /**

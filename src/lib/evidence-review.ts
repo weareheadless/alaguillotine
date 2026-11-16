@@ -1,4 +1,5 @@
 import { namePair } from "./archive-store";
+import { samePerson } from "./person-name";
 import {
   actDate,
   evidenceFor,
@@ -465,14 +466,20 @@ export async function rankedWorklist(db: ReviewDb): Promise<RankedPerson[]> {
       .bind(name, `%${first}%`, `%${last}%`)
       .all();
 
+    // The SQL is a cheap narrowing; the identity test is the real one, so two
+    // people who share a syllable are not audited as one.
+    const matched = (rows.results ?? []).filter((r) =>
+      samePerson(String(r.person ?? ""), name),
+    );
+
     const variants = new Map<string, number>();
-    for (const r of rows.results ?? []) {
+    for (const r of matched) {
       const key = String(r.person ?? "");
       if (key) variants.set(key, (variants.get(key) ?? 0) + 1);
     }
 
     const claims: RankedClaim[] = [];
-    for (const r of rows.results ?? []) {
+    for (const r of matched) {
       const row = rowToReview(r);
       const stamp = row.actDate
         ? { at: new Date(`${row.actDate}T00:00:00Z`), precise: true }

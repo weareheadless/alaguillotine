@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb } from "@/lib/clock-store";
 import { isAdminAuthed } from "@/lib/admin-auth";
 import { ingestLinePerson, type LineTally } from "@/lib/line-ingest";
+import { rescoreQueue } from "@/lib/hate-store";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,15 @@ export async function POST(request: Request) {
     results.push({ person, outlet, error: String(error).slice(0, 180) });
   }
 
+  // New acts change the record the score is computed from, so the number and
+  // the line order move with them rather than at the next scheduled pass.
+  let rescored = 0;
+  try {
+    rescored = await rescoreQueue(db);
+  } catch {
+    /* the four-hourly pass will still put the numbers right */
+  }
+
   const next = explicitPerson ? position : position + 1;
   try {
     await db
@@ -86,7 +96,7 @@ export async function POST(request: Request) {
   }
 
   return Response.json(
-    { ok: true, person, outlet, position: next, results },
+    { ok: true, person, outlet, position: next, rescored, results },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

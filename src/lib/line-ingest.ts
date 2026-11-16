@@ -1,6 +1,7 @@
 import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
 import { articleText, OUTLETS, searchUrl, type Post } from "@/lib/findings";
+import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
 
 /**
  * The line pass: the people under the blade, read by name.
@@ -127,6 +128,7 @@ export async function ingestLinePerson(
     .filter((post) => post.link && post.content);
 
   const now = new Date().toISOString();
+  const index = await loadPersonIndex(db);
   const tally: LineTally = {
     person: personName,
     outlet: outlet.key,
@@ -160,12 +162,18 @@ export async function ingestLinePerson(
         .slice(0, 6);
       if (!hits.length) continue;
 
-      const entity = await db
-        .prepare("SELECT id FROM entities WHERE lower(name) = lower(?) AND kind = 'person' LIMIT 1")
-        .bind(personName)
-        .first<{ id: string }>();
-      const entityId = entity?.id ? String(entity.id) : `person:${slugify(personName)}`;
-      if (!entity?.id) {
+      // The queue may spell the name differently from the entity the press
+      // claims were filed under. Resolve through the index and the approved
+      // aliases, then file under that person's id.
+      let known = resolveInIndex(index, personName);
+      if (!known) {
+        const canonical = await canonicalFromAlias(db, personName);
+        if (canonical) known = resolveInIndex(index, canonical);
+      }
+      const entityId = known?.id ? String(known.id) : `person:${slugify(personName)}`;
+      if (known) {
+        await noteAlias(db, personName, known.name, now);
+      } else {
         await db
           .prepare(
             `INSERT OR IGNORE INTO entities
@@ -174,6 +182,7 @@ export async function ingestLinePerson(
           )
           .bind(entityId, personName, slugify(personName), now, now)
           .run();
+        index.push({ id: entityId, name: personName });
       }
 
       const docId = existing?.id ? String(existing.id) : `doc:news:${await sha16(post.link)}`;
@@ -216,6 +225,11 @@ export async function ingestLinePerson(
         if (already?.id) continue;
 
         const year = [...sentence.matchAll(/\b(19\d{2}|20\d{2})\b/g)].map((m) => m[1]).pop();
+        // Date the act as the sentence does; where it does not, the report's
+        // date is the evidence, and the scorer must see it inside the window or
+        // a fresh charge would read as no charge at all.
+        const actDate = year ? `${year}-07-01` : post.date || now.slice(0, 10);
+        const precision = year ? "year" : "reported";
 
         writes.push(
           db
@@ -232,8 +246,8 @@ export async function ingestLinePerson(
               act,
               categoryOf(sentence),
               outlet.name,
-              year ? `${year}-01-01` : null,
-              year ? "year" : "unknown",
+              actDate,
+              precision,
               0.55,
               `${outlet.name}, "${post.title.slice(0, 160)}" (${post.date}); name and act in the stored article`,
               claimKey,
