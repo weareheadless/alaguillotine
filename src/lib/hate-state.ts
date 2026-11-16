@@ -47,20 +47,26 @@ export async function buildHateState(db: D1): Promise<HateState> {
   const row = await readHate(db);
   await ensureSentence(db, row?.computedAt ?? null);
   await executeDueSentences(db);
-  const execution = await ensureSentence(db, row?.computedAt ?? null);
-  const lastExecution = execution ? null : await readLastExecution(db);
-  const queue = await readQueue(db);
+
+  // Everything that only reads is read together. This used to be five round
+  // trips in a row, which is most of a second before the page can be sent.
+  const [execution, queue, chops, last] = await Promise.all([
+    ensureSentence(db, row?.computedAt ?? null),
+    readQueue(db),
+    listChops(db),
+    readLastExecution(db),
+  ]);
+  const lastExecution = execution ? null : last;
   if (!row && queue.length === 0) return emptyHate();
 
-  const chops = await listChops(db);
   const chopBySlug = Object.fromEntries(chops.map((c) => [c.slug, c]));
-  const [summaries, ledgerStats, wire] = await Promise.all([
+  const [summaries, ledgerStats, wire, coverage, allNumbers] = await Promise.all([
     memo("ledger-summaries", 60_000, () => readLedgerSummaries()),
     memo("charge-stats", 60_000, () => chargeStats()),
     memo("feed-count", 30_000, () => feedCount(db)),
+    memo("coverage", 120_000, () => coverageBySlug(db)),
+    memo("numbers", 300_000, () => readAllNumbers(db)),
   ]);
-  const coverage = await memo("coverage", 120_000, () => coverageBySlug(db));
-  const allNumbers = await memo("numbers", 300_000, () => readAllNumbers(db));
 
   const withCounts = (queue.length ? queue : (row?.figures ?? [])).map((f) => {
     const slug = slugify(f.name);
