@@ -30,6 +30,26 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // A deploy replaces every chunk hash. An HTML page that outlives its build
+  // then points at scripts that no longer exist, and the page arrives with its
+  // client components dead: the blade never renders and the ticker keeps only
+  // the lines it was compiled with. Hashed assets are immutable; the document
+  // is never cached.
+  async headers() {
+    return [
+      {
+        source: "/",
+        headers: [{ key: "Cache-Control", value: "no-store, must-revalidate" }],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
+  },
+
   webpack: (config) => {
     // Resolve @/ alias
     config.resolve.alias = {

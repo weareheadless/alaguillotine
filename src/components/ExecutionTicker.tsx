@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { HateState } from "@/lib/hateometer";
 import { countdown, executionNotice } from "@/lib/execution-notice";
+import { useExecutionReading } from "@/lib/hateometer-client";
 import { usePromise } from "@/lib/use-promise";
 import { useDrawer } from "./drawers";
 
@@ -18,7 +18,10 @@ const DISMISS_KEY = "ala:execution-ticker:dismissed";
  * it lasts for the tab, not forever.
  */
 export function ExecutionTicker() {
-  const [state, setState] = useState<HateState | null>(null);
+  // The appointment, from the page's own reading when there is one and from
+  // the lean endpoint otherwise. The strip used to fetch the whole record for
+  // every page on the site, only to read one name and one time out of it.
+  const state = useExecutionReading();
   const [dismissed, setDismissed] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [promo, setPromo] = useState(false);
@@ -31,26 +34,6 @@ export function ExecutionTicker() {
     } catch {
       /* private mode */
     }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const pull = async () => {
-      try {
-        const res = await fetch("/api/hateometer", { cache: "no-store" });
-        if (!res.ok) return;
-        const next = (await res.json()) as HateState;
-        if (!cancelled) setState(next);
-      } catch {
-        /* keep the last reading */
-      }
-    };
-    pull();
-    const id = setInterval(pull, 5 * 60 * 1000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
   }, []);
 
   useEffect(() => {

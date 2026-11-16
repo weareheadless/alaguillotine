@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { emptyHate, type HateState } from "../lib/hateometer";
+import { useEffect, useState } from "react";
+import type { HateState } from "../lib/hateometer";
 import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, SHRINK_M } from "../lib/clock";
+import { useHateometer } from "../lib/hateometer-client";
 
 /**
  * The second instrument: an arc gauge, not a blade.
@@ -14,30 +15,9 @@ import { ALPHA, LEVEL_CEIL, LEVEL_FLOOR, MAX_STEP, SHRINK_M } from "../lib/clock
  * decoration.
  */
 
-export function useHateometer() {
-  const [state, setState] = useState<HateState>(emptyHate);
-
-  const pull = useCallback(async (): Promise<HateState | null> => {
-    try {
-      const res = await fetch("/api/hateometer", { cache: "no-store" });
-      if (!res.ok) return null;
-      const next = (await res.json()) as HateState;
-      setState(next);
-      return next;
-    } catch {
-      /* keep the last good reading */
-      return null;
-    }
-  }, []);
-
-  useEffect(() => {
-    pull();
-    const id = setInterval(pull, 90 * 1000);
-    return () => clearInterval(id);
-  }, [pull]);
-
-  return { state, pull };
-}
+// The reading is shared: the front page and the announcement strip subscribe
+// to one fetch rather than asking for the same 300 KB twice.
+export { useHateometer };
 
 function needleAngle(level: number) {
   return -90 + (Math.max(0, Math.min(100, level)) / 100) * 180;
