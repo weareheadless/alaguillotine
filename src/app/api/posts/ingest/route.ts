@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { saveDispatch } from "@/lib/posts-store";
+import { saveDispatch, normaliseEditorial } from "@/lib/posts-store";
 import { normaliseCategory } from "@/lib/dispatch-style";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     body?: string;
     publishedAt?: string;
     category?: string;
+    editorial?: unknown;
   } | null;
 
   const slug = String(payload?.slug ?? "")
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
     body,
     publishedAt: publishedAt.toISOString(),
     category,
+    editorial: normaliseEditorial(payload?.editorial),
   });
 
   return Response.json({ ok: true, slug, category });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DOOM_RATES as RATES } from "@/lib/doom-rates";
 
 /**
  * The doom meter.
@@ -12,19 +13,6 @@ import { useEffect, useState } from "react";
  * extinction count; the best measure is a fifty-year percentage, and a ticker
  * would be a lie. The refusal is part of the meter.
  */
-
-const YEAR = 31_557_600;
-
-const RATES = {
-  // Oxfam 2025: billionaire wealth +$2T in 2024 ≈ $5.7B a day.
-  wealth: 5.7e9 / 86_400,
-  // Global Carbon Budget 2025: 38.1 Gt of fossil CO2 in 2025.
-  co2: 38.1e9 / YEAR,
-  // FAO 2025: 10.9 Mha of deforestation a year, 2015–2025.
-  forest: (10.9e6 * 10_000) / YEAR,
-  // State of Global Air 2025: 7.9M deaths from air pollution in 2023.
-  deaths: 7.9e6 / YEAR,
-};
 
 function clock(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -74,16 +62,22 @@ export function DoomMeter({
 
   useEffect(() => {
     const start = Date.now();
-    const timer = setInterval(() => setElapsed((Date.now() - start) / 1000), 200);
+    const timer = setInterval(() => setElapsed((Date.now() - start) / 1000), 1000);
     return () => clearInterval(timer);
   }, []);
 
   return (
     <section className="border-y-2 border-black bg-canvasBlack">
+      <div className="doom-pocket" aria-label="Session estimates">
+        <span>{clock(elapsed)} HERE</span>
+        <b>+${num(elapsed * RATES.wealth)}</b><span>wealth</span>
+        <b>{num(elapsed * RATES.co2)} t</b><span>CO₂</span>
+        <a href="#doom-method">Estimates ↗</a>
+      </div>
       <div className="mx-auto max-w-3xl px-4 pt-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2 pb-2">
           <span className="font-mono text-[9px] font-black uppercase tracking-[0.3em] text-spiteCrimson">
-            doom · since you arrived
+            while you’re here · estimated at historical rates
           </span>
           <span className="font-mono text-[10px] font-bold tabular-nums text-sheetWhite">
             {clock(elapsed)}
@@ -104,7 +98,7 @@ export function DoomMeter({
           tone="#F4F4F5"
         />
         <Cell
-          label="forest"
+          label="deforestation"
           value={`${num(elapsed * RATES.forest)} m²`}
           source="10.9 Mha/yr · FAO 2025"
           tone="#22C55E"
@@ -116,17 +110,29 @@ export function DoomMeter({
           tone="#60A5FA"
         />
       </div>
-      <div className="mx-auto max-w-3xl px-4 pb-3 pt-2">
+      <div id="doom-method" className="mx-auto max-w-3xl px-4 pb-3 pt-2 scroll-mt-36">
         <p className="font-mono text-[8.5px] leading-relaxed text-chop-muted">
           <span className="font-black uppercase tracking-[0.18em] text-sheetWhite">
-            species lost:
+            wildlife:
           </span>{" "}
-          no per-second number. The Living Planet Index is −73% since 1970, and
-          anyone selling you an extinction ticker is selling something. The
+          The 2024 Living Planet Index reports a 73% average decline in monitored
+          vertebrate population sizes between 1970 and 2020—not 73% of animals or
+          species extinct. No extinction ticker. The
           record: {stats.receipts.toLocaleString()} receipts ·{" "}
           {stats.names.toLocaleString()} names · {stats.dispatches.toLocaleString()}{" "}
           dispatches.
         </p>
+        <details className="mt-2 text-[10px] text-chop-muted">
+          <summary className="cursor-pointer">Sources & what these counters mean</summary>
+          <p className="mt-2">Annual estimates divided by time, not live measurements or deaths verified during your visit. Wealth uses Oxfam’s rounded daily rate; emissions use the 2025 projection; deforestation is a 2015–2025 average. Air-pollution mortality is attributable premature mortality, not a count of murders.</p>
+          <ul className="mt-2 space-y-2 underline">
+            <li><a href="https://www.oxfam.org/en/press-releases/billionaire-wealth-surges-2-trillion-2024-three-times-faster-year-while-number" target="_blank" rel="noreferrer">Oxfam · 2024 wealth growth</a></li>
+            <li><a href="https://globalcarbonbudget.org/fossil-fuel-co2-emissions-hit-record-high-in-2025/" target="_blank" rel="noreferrer">Global Carbon Budget · 2025 projection</a></li>
+            <li><a href="https://www.fao.org/forest-resources-assessment/en/" target="_blank" rel="noreferrer">FAO · Forest Resources Assessment 2025</a></li>
+            <li><a href="https://www.stateofglobalair.org/" target="_blank" rel="noreferrer">State of Global Air · 2025 report, 2023 mortality</a></li>
+            <li><a href="https://livingplanet.panda.org/" target="_blank" rel="noreferrer">WWF · Living Planet Report 2024</a></li>
+          </ul>
+        </details>
       </div>
     </section>
   );

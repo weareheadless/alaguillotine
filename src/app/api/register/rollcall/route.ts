@@ -128,11 +128,34 @@ export async function POST(request: Request) {
     url: String(r.url ?? ""),
   }));
 
+  // Who we can name by number, once, so deriving the votes the archive missed
+  // does not cost a query per member.
+  const known = await db
+    .prepare(
+      `SELECT id, json_extract(external_ids, '$.bioguide') AS bioguide
+         FROM entities
+        WHERE kind = 'person'
+          AND json_extract(external_ids, '$.bioguide') IS NOT NULL`,
+    )
+    .all();
+  const entityByBioguide = new Map(
+    (known.results ?? []).map((r) => [String(r.bioguide), String(r.id)]),
+  );
+
   let parsed = 0;
   let failed = 0;
   let votes = 0;
   let examined = 0;
-  const tally = { agrees: 0, refuted: 0, notInRoll: 0, ambiguous: 0, mismatch: 0, noVote: 0 };
+  const tally = {
+    agrees: 0,
+    refuted: 0,
+    notInRoll: 0,
+    ambiguous: 0,
+    mismatch: 0,
+    noVote: 0,
+    derived: 0,
+    unresolvedVoters: 0,
+  };
 
   const one = async (doc: { id: string; url: string }) => {
     let xml = "";
@@ -324,6 +347,76 @@ export async function POST(request: Request) {
     }
 
     await batchWrite(db, claimsWrites);
+
+    // Every member in this file is a fact about the file. The archive happened
+    // to file claims for some voters and not others, and the pattern of who was
+    // missed fell entirely on one party — which would have been published as a
+    // finding about Democrats. So the missing voters are derived: same file,
+    // same passage, same wording as the claims already filed for this roll.
+    const filed = new Set(rows.map((r) => bioguideFrom(r.id)));
+    const template = rows.find((r) => /^Voted\s/i.test(r.act))?.act ?? "";
+    const modal = await db
+      .prepare(
+        `SELECT c.category, COUNT(*) AS n
+           FROM claims c
+           JOIN claim_documents cd ON cd.claim_id = c.id
+          WHERE cd.document_id = ? AND c.act LIKE 'Voted %'
+          GROUP BY c.category ORDER BY n DESC LIMIT 1`,
+      )
+      .bind(doc.id)
+      .first<{ category: string }>();
+    const category = String(modal?.category ?? "");
+    const year = (/\/(\d{4})\/roll\d+\.xml/.exec(doc.url) ?? [])[1] ?? meta.actionDate.slice(0, 4);
+
+    const derivedWrites: ReturnType<D1["prepare"]>[] = [];
+    for (const voter of cast) {
+      if (filed.has(voter.nameId)) continue;
+      const entityId = entityByBioguide.get(voter.nameId);
+      if (!entityId) {
+        // No entity for this person: a former member the archive never named.
+        // Creating one from a surname in a vote file would be invention.
+        tally.unresolvedVoters += 1;
+        continue;
+      }
+      const act = template
+        ? template.replace(/^Voted\s+\w+/i, `Voted ${voter.vote}`)
+        : `Voted ${voter.vote} — ${meta.legislation}, "${meta.description}" (${meta.question}) — roll call ${meta.roll}, ${meta.actionDate}.`;
+      const claimId = `claim:${voter.nameId}:vote:${year}:${meta.roll}`;
+      const claimKey = `${entityId.toLowerCase()}|${act.replace(/\s+/g, " ").trim().toLowerCase()}|${meta.actionDate}`;
+      const basis = `${meta.chamber || "House"} roll call ${meta.roll}, ${meta.actionDate}: recorded ${voter.vote} (derived from the file; no claim had been filed)`;
+
+      derivedWrites.push(
+        db
+          .prepare(
+            `INSERT OR IGNORE INTO claims
+               (id, entity_id, act, category, mechanism, beneficiary, act_date,
+                date_precision, amount, currency, confidence, confidence_basis,
+                status, claim_key, legacy_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, '', '', ?, 'day', NULL, '', 0.95, ?, 'recorded', ?, NULL, ?, ?)`,
+          )
+          .bind(claimId, entityId, act, category, meta.actionDate, basis, claimKey, now, now),
+        db
+          .prepare(
+            "INSERT OR IGNORE INTO claim_entities (claim_id, entity_id, role) VALUES (?, ?, 'actor')",
+          )
+          .bind(claimId, entityId),
+        db
+          .prepare(
+            `INSERT OR IGNORE INTO claim_documents
+               (claim_id, document_id, quote, locator, stance)
+             VALUES (?, ?, ?, ?, 'records')`,
+          )
+          .bind(
+            claimId,
+            doc.id,
+            fragments.get(voter.nameId) ?? "",
+            `roll ${meta.roll} · bioguide ${voter.nameId}`,
+          ),
+      );
+      tally.derived += 1;
+    }
+
+    await batchWrite(db, derivedWrites);
   };
 
   // Two files at a time: each is ~650 writes, and a leased job is one that can
