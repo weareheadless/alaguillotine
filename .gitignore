@@ -54,3 +54,9 @@ data/hateometer.json.tmp
 .wrangler/
 
 .dev.vars
+
+# local runtime data and artefacts: never in the repository
+/data/backups/
+/data/local.db
+/logs/
+/.openchamber/

@@ -8,10 +8,12 @@
     "start": "next start",
     "test": "npm run typecheck",
     "lint": "next lint",
-    "build:worker": "opennextjs-cloudflare build",
-    "deploy": "opennextjs-cloudflare deploy",
+    "build:worker": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "deploy": "bash scripts/deploy.sh",
     "preview": "opennextjs-cloudflare preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "deploy:worker": "bash scripts/deploy.sh",
+    "push": "bash scripts/push.sh"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
