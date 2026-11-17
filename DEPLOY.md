@@ -23,14 +23,14 @@ bash scripts/deploy.sh
 6. fetches `/`, `/archive` and prints the version id.
 
 It needs Cloudflare credentials in the environment, which the script sources
-itself from `/SOCIAL/configs/superincompetence-cloudflare.env`
+itself from `/SOCIAL/configs/cloudflare.env`
 (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`).
 
 ## Doing it by hand
 
 ```bash
 cd /FYE
-set -a && source /SOCIAL/configs/superincompetence-cloudflare.env && set +a
+set -a && source /SOCIAL/configs/cloudflare.env && set +a
 
 npm run typecheck
 TMPDIR=/var/tmp/opencode-build \
@@ -72,7 +72,7 @@ Schema changes are numbered SQL files in `migrations/` and are applied by hand
 to the remote database before (or with) the code that needs them:
 
 ```bash
-set -a && source /SOCIAL/configs/superincompetence-cloudflare.env && set +a
+set -a && source /SOCIAL/configs/cloudflare.env && set +a
 npx wrangler d1 execute alaguillotine-content --remote --file migrations/0050_act_verdicts.sql
 ```
 

@@ -69,7 +69,7 @@ Full runbook, secrets, migrations, rollback: **`DEPLOY.md`**.
 - Worker `alaguillotine`; D1 `alaguillotine-content`
   (`830aa6e6-d1bb-4cfa-98cf-b7c8e5284755`); domains `alaguillotine.com` and
   `www.fuckyouelon.net`.
-- Cloudflare credentials: `/SOCIAL/configs/superincompetence-cloudflare.env`
+- Cloudflare credentials: `/SOCIAL/configs/cloudflare.env`
   (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`). Source it, never copy it.
 - Admin key for `/api/admin/*`: `ADMIN_KEY` in `/FYE/.env.local`, sent as
   `x-admin-key`. Not the cron secret.

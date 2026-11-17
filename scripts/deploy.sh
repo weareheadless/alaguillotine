@@ -60,10 +60,10 @@ echo ""
 echo "=== [3/5] Building the Worker ==="
 set -a
 # shellcheck disable=SC1091
-source /SOCIAL/configs/superincompetence-cloudflare.env
+source /SOCIAL/configs/cloudflare.env
 set +a
 if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
-  echo -e "${RED}✗ CLOUDFLARE_API_TOKEN is empty — check /SOCIAL/configs/superincompetence-cloudflare.env${NC}" >&2
+  echo -e "${RED}✗ CLOUDFLARE_API_TOKEN is empty — check /SOCIAL/configs/cloudflare.env${NC}" >&2
   exit 1
 fi
 
