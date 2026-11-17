@@ -1,5 +1,6 @@
 import type { D1 } from "@/lib/clock-store";
 import { slugify } from "@/lib/slug";
+import { canonicalFromAlias, loadPersonIndex, noteAlias, resolveInIndex } from "@/lib/person-index";
 import {
   articleText,
   extractFindings,
@@ -94,6 +95,10 @@ export async function ingestFindings(
     .filter((post) => post.link && post.content);
 
   const now = new Date().toISOString();
+  // The record's own spellings decide who this is. Exact match alone filed
+  // "Donald J. Trump" as a second person beside "Donald Trump", with half the
+  // findings on a row the line page never reads.
+  const index = await loadPersonIndex(db);
   const tally: IngestTally = {
     outlet: outlet.key,
     query,
@@ -160,13 +165,30 @@ export async function ingestFindings(
         }
 
         const slug = slugify(finding.name);
-        const known = await db
-          .prepare("SELECT id FROM entities WHERE lower(name) = lower(?) AND kind = 'person' LIMIT 1")
-          .bind(finding.name)
-          .first<{ id: string }>();
+        let known = resolveInIndex(index, finding.name);
+        if (!known) {
+          const canonical = await canonicalFromAlias(db, finding.name);
+          if (canonical) known = resolveInIndex(index, canonical);
+        }
         const entityId = known?.id ? String(known.id) : `person:${slug}`;
 
-        if (!known?.id) {
+        if (known) {
+          // The person is already on the record under another spelling. Write
+          // the alias and file the claim against that record, so the page the
+          // line shows is the page these findings land on. The entity row is
+          // written as well: a queue row without one would take a claim the
+          // archive's join cannot see.
+          await noteAlias(db, finding.name, known.name, now);
+          writes.push(
+            db
+              .prepare(
+                `INSERT OR IGNORE INTO entities
+                   (id, kind, name, slug, aliases, country, affiliation, role, external_ids, created_at, updated_at)
+                 VALUES (?, 'person', ?, ?, '[]', '', '', '', '{}', ?, ?)`,
+              )
+              .bind(known.id, known.name, slugify(known.name), now, now),
+          );
+        } else {
           writes.push(
             db
               .prepare(
@@ -176,6 +198,9 @@ export async function ingestFindings(
               )
               .bind(entityId, finding.name, slug, now, now),
           );
+          // Later findings in this same pass must find the row just written,
+          // or two spellings of it would each become their own entity.
+          index.push({ id: entityId, name: finding.name });
         }
 
         const act = finding.act.slice(0, 300);

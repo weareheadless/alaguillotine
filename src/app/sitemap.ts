@@ -43,7 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const personRoutes: MetadataRoute.Sitemap = people.map((figure) => ({
-    url: `${BASE}/person/${slugify(figure.name)}`,
+    url: `${BASE}/person/${figure.slug || slugify(figure.name)}`,
     lastModified: now,
     changeFrequency: "daily",
     priority: 0.6,

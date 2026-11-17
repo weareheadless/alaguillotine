@@ -169,7 +169,7 @@ export default function NextInLinePage() {
                   {uncharged.map((f) => (
                     <li key={f.name}>
                       <Link
-                        href={`/person/${f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`}
+                        href={`/person/${f.slug || f.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`}
                         className="font-mono text-[11px] text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
                       >
                         {f.name}

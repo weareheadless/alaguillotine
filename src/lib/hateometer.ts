@@ -76,6 +76,10 @@ export interface Figure {
   ledgerCount?: number;
   /** How many times the blade has fallen on this name. */
   timesChopped?: number;
+  /** The queue's own slug: the one page a name has, whatever URL found it. */
+  slug?: string;
+  /** The entity the claims are filed under, for the archive filter. */
+  entityId?: string;
   /** Acts inside the evidence window, weighted. */
   windowActs?: number;
   /** The newest credible act inside the window, for the card. */

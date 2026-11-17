@@ -28,7 +28,7 @@ export function LineRow({ figure, promoted }: { figure: Figure; promoted?: boole
 
   return (
     <Link
-      href={`/person/${slugify(figure.name)}`}
+      href={`/person/${figure.slug || slugify(figure.name)}`}
       className={`group block border-2 bg-white/[0.03] p-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:bg-white/[0.06] ${
         promoted
           ? "border-spiteCrimson/70 shadow-[0_0_24px_rgba(225,29,72,0.12)]"

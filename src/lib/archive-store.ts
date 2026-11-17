@@ -371,12 +371,25 @@ export interface LedgerEntry {
   actDate: string | null;
   /** A/B/C/D. */
   grade: string;
-  /** charged | convicted | investigated | settled | sanctioned | no_action | blocked | unknown */
+  /** charged | convicted | investigated | settled | sanctioned | admitted | no_action | blocked | unknown */
   outcome: string;
   /** pending | accepted | rejected | legacy */
   status: string;
   /** Ada's take: what follows from the act, in the conditional where needed. */
   take: string;
+  /**
+   * The finding the passage states, when the claim came from a document rather
+   * than the legacy ledger: found | admitted | alleged | none. The person page
+   * reads it in the same words the archive uses, so the same claim cannot be a
+   * conviction on one page and an unread allegation on another.
+   */
+  finding?: string;
+  /** The sentence the claim rests on, verbatim from the document. */
+  quote?: string;
+  /** Who published it. */
+  issuer?: string;
+  /** The document's title, when it has one. */
+  title?: string;
 }
 
 /**
@@ -458,7 +471,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
     const rows = await d
       .prepare(
         `SELECT c.id, c.act, c.category, c.confidence, c.act_date, c.quote,
-                c.finding, c.status, e.country, d.url
+                c.finding, c.status, e.country, d.issuer, d.title, d.url
            FROM claims c
            JOIN entities e ON e.id = c.entity_id
            JOIN documents d ON d.id = c.document_id
@@ -484,9 +497,23 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
         sources: r.url ? [String(r.url)] : [],
         actDate: date,
         grade,
-        outcome: finding === "found" ? "found" : finding === "alleged" ? "alleged" : "unknown",
+        // The archive's own words for the finding. A discovery or findings
+        // claim used to say "found" here, a term no other page uses, and the
+        // page counted zero proceedings under a record of convictions.
+        outcome:
+          finding === "found"
+            ? "convicted"
+            : finding === "admitted"
+              ? "admitted"
+              : finding === "alleged"
+                ? "charged"
+                : "unknown",
         status: String(r.status ?? "recorded"),
         take: "",
+        finding,
+        quote,
+        issuer: String(r.issuer ?? ""),
+        title: String(r.title ?? ""),
       };
     });
   } catch {

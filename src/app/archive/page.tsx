@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { NavBar } from "@/components/NavBar";
 import { readArchive } from "@/lib/findings-query";
+import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,14 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
               <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-chop-muted">
                 {[person.affiliation, person.country].filter(Boolean).join(" · ")}
               </span>
+              {person.inLine ? (
+                <Link
+                  href={`/person/${person.slug || slugify(person.name)}`}
+                  className="font-mono text-[9px] uppercase tracking-[0.14em] text-hypeNeon underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+                >
+                  their page →
+                </Link>
+              ) : null}
               <Link
                 href="/archive"
                 className="ml-auto font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted hover:text-sheetWhite"
@@ -344,7 +353,11 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
 
                 <div className="mt-2">
                   <Link
-                    href={href({}, { entity: row.entityId })}
+                    href={
+                      row.inLine && row.lineSlug
+                        ? `/person/${row.lineSlug}`
+                        : href({}, { entity: row.entityId })
+                    }
                     className="text-[17px] font-bold leading-tight text-sheetWhite underline-offset-2 hover:underline"
                   >
                     {row.name}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NavBar } from "@/components/NavBar";
 import { getLedgerEntry, ledgerRevisions } from "@/lib/archive-store";
-import { slugify } from "@/lib/slug";
+import { lineSlugFor } from "@/lib/hate-store";
 import { safeHref } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +53,9 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
   const row = await getLedgerEntry(decodeURIComponent(id));
   if (!row) notFound();
   const revisions = await ledgerRevisions(row.id);
+  // A page is a seat in the line. This claim may be about a name without one,
+  // and then the name is text, not a door that opens onto nothing.
+  const pageSlug = await lineSlugFor(row.person);
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
@@ -66,12 +69,18 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
         </p>
 
         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted">
-          <Link
-            href={`/person/${slugify(row.person)}`}
-            className="text-[15px] font-black tracking-normal text-sheetWhite hover:text-spiteCrimson"
-          >
-            {row.person}
-          </Link>
+          {pageSlug ? (
+            <Link
+              href={`/person/${pageSlug}`}
+              className="text-[15px] font-black tracking-normal text-sheetWhite hover:text-spiteCrimson"
+            >
+              {row.person}
+            </Link>
+          ) : (
+            <span className="text-[15px] font-black tracking-normal text-sheetWhite">
+              {row.person}
+            </span>
+          )}
           <span>·</span>
           <span>{row.role || "role unknown"}</span>
           <span>·</span>
@@ -221,12 +230,14 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
         </p>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link
-            href={`/person/${slugify(row.person)}`}
-            className="border border-chop-border px-3 py-2 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted hover:text-sheetWhite"
-          >
-            every claim about {row.person.split(" ")[0]} →
-          </Link>
+          {pageSlug ? (
+            <Link
+              href={`/person/${pageSlug}`}
+              className="border border-chop-border px-3 py-2 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted hover:text-sheetWhite"
+            >
+              every claim about {row.person.split(" ")[0]} →
+            </Link>
+          ) : null}
           <Link
             href="/archive"
             className="border border-chop-border px-3 py-2 font-mono text-[9px] uppercase tracking-[0.2em] text-chop-muted hover:text-sheetWhite"

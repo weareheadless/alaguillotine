@@ -244,6 +244,13 @@ document classes back an entity's record). `ledger_entries` is frozen at 6,082
 rows and read only through `v_entity_record`, so the UI never learns that the
 storage changed.
 
+As built: `v_entity_record` does not exist. `getLedgerFor` in `archive-store.ts`
+stands in for it — the same claims, joined to their entity and document, with
+the legacy ledger merged underneath by act. The archive reads the same tables
+through `readArchive`, so the two pages cannot count different things. A person
+page exists only for a name standing in the line; every other name is read in
+the archive, and `/person/<slug>` redirects there.
+
 ## Query surface
 
 ```

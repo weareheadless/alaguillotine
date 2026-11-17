@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getDeclarationsFor, getLedgerFor, getPositionsFor } from "@/lib/archive-store";
-import { getDb, getPersonBySlug } from "@/lib/hate-store";
+import { archiveHrefForSlug, getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
-import { safeHref } from "@/lib/url";
 import { PromiseAd } from "@/components/PromiseAd";
 import { evidenceFor } from "@/lib/evidence";
 import { RecordReport } from "@/components/RecordReport";
@@ -29,14 +28,15 @@ export async function generateMetadata({
   const person = await getPersonBySlug(slug);
   if (!person) return { title: "Name not found — A LA GUILLOTINE" };
   const description = metaDescription(person.reason);
+  const canonical = person.slug ?? slug;
   return {
     title: `${person.name} — the record`,
     description,
-    alternates: { canonical: `/person/${slug}` },
+    alternates: { canonical: `/person/${canonical}` },
     openGraph: {
       title: `${person.name} — the record`,
       description,
-      url: `https://alaguillotine.com/person/${slug}`,
+      url: `https://alaguillotine.com/person/${canonical}`,
       siteName: "A LA GUILLOTINE",
     },
   };
@@ -48,11 +48,24 @@ export async function generateMetadata({
  * The ledger is not a tab — it is attached to the person. This is where the
  * record lives: every charge with its place, year, confidence and sources, and
  * whether the blade has already fallen.
+ *
+ * Only a name standing in the line has this page. A name the findings pass
+ * added to the archive without a seat is read there — the URL still resolves,
+ * so a link written before the rule is not a dead end.
  */
 export default async function PersonPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const person = await getPersonBySlug(slug);
-  if (!person) notFound();
+  if (!person) {
+    const elsewhere = await archiveHrefForSlug(slug);
+    if (elsewhere) redirect(elsewhere);
+    notFound();
+  }
+
+  // A finding can spell a name the queue already holds longer than the queue
+  // does. One person, one page: the second spelling sends the reader to the
+  // first rather than opening a copy of the record.
+  if (person.slug && person.slug !== slug) redirect(`/person/${person.slug}`);
 
   const ledger = await getLedgerFor(person.name);
   const positions = await getPositionsFor(slug);
@@ -79,6 +92,19 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   );
   const db = await getDb();
   const numbers = db ? await readNumbersFor(db, slug) : [];
+
+  // The record's own count, in the archive's words. The page and the archive
+  // read the same claims, so this is the sentence that keeps them honest about
+  // each other: N acts from documents, and how many of them are findings.
+  const tally = { found: 0, admitted: 0, alleged: 0, acts: 0 };
+  for (const entry of ledger) {
+    if (!entry.finding) continue;
+    if (entry.finding === "found") tally.found += 1;
+    else if (entry.finding === "admitted") tally.admitted += 1;
+    else if (entry.finding === "alleged") tally.alleged += 1;
+    else tally.acts += 1;
+  }
+  const fromDocuments = tally.found + tally.admitted + tally.alleged + tally.acts;
 
   // The receipt the charge rests on, or the sentence that clears the name.
   const charge = chargeFor({ name: person.name, numbers, positions });
@@ -217,28 +243,32 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
 
       <PromiseAd variant="panel" />
 
-      {person.items.length > 0 && (
-        <>
-          <h2 className="mt-10 border-b border-chop-border pb-2 font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
-            named in
+      <section className="mt-10 border-t border-chop-border pt-4">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="font-mono text-[10px] uppercase tracking-[0.3em] text-sheetWhite">
+            the record, in the archive
           </h2>
-          <ul className="mt-4 space-y-3">
-            {person.items.map((item, i) => (
-              <li key={i}>
-                <a
-                  href={safeHref(item.sourceUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[13px] text-sheetWhite hover:text-spiteCrimson"
-                >
-                  {item.headline}
-                </a>
-                <p className="font-mono text-[10px] text-chop-muted">{item.source}</p>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-chop-muted">
+            {fromDocuments} {fromDocuments === 1 ? "act" : "acts"} from documents
+            {tally.found ? ` · ${tally.found} convicted` : ""}
+            {tally.alleged ? ` · ${tally.alleged} charged` : ""}
+            {tally.admitted ? ` · ${tally.admitted} admitted` : ""}
+          </span>
+          {person.entityId ? (
+            <Link
+              href={`/archive?entity=${encodeURIComponent(person.entityId)}`}
+              className="ml-auto font-mono text-[9px] uppercase tracking-[0.14em] text-hypeNeon underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+            >
+              every claim, with its source →
+            </Link>
+          ) : null}
+        </div>
+        <p className="mt-1.5 max-w-3xl font-mono text-[10px] leading-relaxed text-chop-muted">
+          The same claims are listed above under the year they happened. The archive lists them by
+          the sentence they rest on: who published it, what it says, and what the finding is. A
+          conviction, a charge and an act are three different things, and both pages say which.
+        </p>
+      </section>
     </main>
   );
 }

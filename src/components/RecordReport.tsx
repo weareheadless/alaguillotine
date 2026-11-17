@@ -26,6 +26,7 @@ const OUTCOME: Record<string, string> = {
   investigated: "investigated",
   settled: "settled",
   sanctioned: "sanctioned",
+  admitted: "admitted",
   no_action: "no action taken",
   blocked: "proceedings blocked",
   unknown: "no proceeding recorded",
@@ -807,8 +808,10 @@ function ClaimItem({ entry: e }: { entry: LedgerEntry }) {
           <span className="border border-hypeNeon/40 px-1 text-hypeNeon/80">awaiting review</span>
         ) : null}
       </div>
-      {/* The reason comes first; the act is the receipt for it. A claim nobody
-          has read is listed as unread rather than presented as a finding. */}
+      {/* The reason comes first; the act is the receipt for it. A claim from a
+          document carries the sentence behind it, shown in the same words the
+          archive shows — a finding is not unread because nobody wrote an
+          editorial line for it. */}
       {e.take ? (
         <p className="mt-1 text-[13px] leading-snug text-sheetWhite/90">
           <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-hypeNeon/70">
@@ -816,14 +819,31 @@ function ClaimItem({ entry: e }: { entry: LedgerEntry }) {
           </span>
           {e.take}
         </p>
-      ) : (
+      ) : null}
+      <p className="mt-1 text-[11.5px] leading-snug text-chop-muted">{e.act}</p>
+      {e.quote ? (
+        <blockquote className="mt-1.5 border-l border-spiteCrimson/50 pl-2.5">
+          <span className="block font-mono text-[10.5px] leading-relaxed text-chop-muted">
+            {e.quote}
+          </span>
+          {e.issuer ? (
+            <span className="mt-1 block font-mono text-[8.5px] uppercase tracking-[0.14em] text-chop-muted/70">
+              {e.issuer}
+              {e.title ? ` — ${e.title}` : ""}
+            </span>
+          ) : null}
+        </blockquote>
+      ) : null}
+      {!e.take && !e.quote ? (
         <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted/70">
           not yet read · the act is listed, not explained
         </p>
-      )}
-      <p className="mt-0.5 text-[11.5px] leading-snug text-chop-muted">{e.act}</p>
+      ) : null}
       <div className="mt-1 flex flex-wrap gap-2.5">
-        {e.id ? (
+        {/* A claim from a document has its sentence and its source above; the
+            claim page holds the legacy ledger rows, so linking a document claim
+            there would be a door with no room behind it. */}
+        {e.id && !e.quote ? (
           <Link
             href={`/archive/claim/${encodeURIComponent(e.id)}`}
             className="font-mono text-[9px] uppercase tracking-[0.14em] text-spiteCrimson/90 underline decoration-chop-border underline-offset-2 hover:text-spiteCrimson"

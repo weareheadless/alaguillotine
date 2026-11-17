@@ -166,7 +166,7 @@ export function QueueCard({
                   {String(figure.rank).padStart(2, "0")}
                 </span>
                 <Link
-                  href={`/person/${slugify(figure.name)}`}
+                  href={`/person/${figure.slug || slugify(figure.name)}`}
                   className="text-[17px] font-black leading-tight text-sheetWhite hover:text-spiteCrimson md:text-xl"
                 >
                   {figure.name}
@@ -231,7 +231,7 @@ export function QueueCard({
               {figure.topCharges!.slice(0, 2).map((charge, i) => (
                 <li key={`${charge.year}-${i}`} className="font-mono text-[10px] leading-relaxed text-chop-muted">
                   <Link
-                    href={`/person/${slugify(figure.name)}`}
+                    href={`/person/${figure.slug || slugify(figure.name)}`}
                     className="text-sheetWhite underline decoration-chop-border underline-offset-2 hover:decoration-spiteCrimson"
                   >
                     {charge.act}

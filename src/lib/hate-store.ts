@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { Figure, HateDimension } from "./hateometer";
 import { slugify } from "./slug";
+import { samePerson } from "./person-name";
 import { ledgerSummaryFor, readLedgerSummaries } from "./archive-store";
 import { COOLDOWN_DAYS, SENTENCE_BAND } from "./evidence";
 import { sentenceSlot } from "./schedule";
@@ -92,6 +93,7 @@ const FIGURE_COLUMNS =
 function rowToFigure(r: Record<string, unknown>): Figure {
   return {
     name: String(r.name),
+    slug: String(r.slug ?? ""),
     role: String(r.role ?? ""),
     country: String(r.country ?? ""),
     score: Number(r.score),
@@ -159,22 +161,54 @@ export async function readQueue(db: D1): Promise<Figure[]> {
     });
 }
 
+/**
+ * The slug is a door, and a name can have two: the queue writes one when the
+ * name joins the line, and a claim writes one when a finding is filed. A
+ * finding that spells the name longer — "Donald J. Trump" for "Donald Trump" —
+ * must not open a second page, or half the record sits behind a URL nobody
+ * links to. Both slugs resolve to the queue row.
+ */
+async function queueRowForEntitySlug(
+  db: D1,
+  slug: string,
+): Promise<Record<string, unknown> | null> {
+  const entity = await db
+    .prepare("SELECT name FROM entities WHERE slug = ? AND kind = 'person' LIMIT 1")
+    .bind(slug)
+    .first<{ name: string }>();
+  if (!entity?.name) return null;
+
+  const queue = await db.prepare("SELECT slug, name FROM queue_people").all();
+  const match = (queue.results ?? []).find(
+    (row) => row.name && samePerson(String(row.name), String(entity.name)),
+  );
+  if (!match?.slug) return null;
+
+  return db
+    .prepare(`SELECT ${FIGURE_COLUMNS} FROM queue_people WHERE slug = ?`)
+    .bind(String(match.slug))
+    .first<Record<string, unknown>>();
+}
+
 /** One name, with its chop tally and the last time the blade fell. */
 export async function getPersonBySlug(slug: string): Promise<Figure | null> {
   const db = await getDb();
   if (!db) return null;
 
-  const row = await db
-    .prepare(`SELECT ${FIGURE_COLUMNS} FROM queue_people WHERE slug = ?`)
-    .bind(slug)
-    .first<Record<string, unknown>>();
+  // A page is a seat in the line. Everything else the record holds — a finding,
+  // a charge, a vote — is read in the archive, one query over the claims that
+  // cannot disagree with itself. A name without a queue row gets no page here;
+  // the caller sends it to the archive instead.
+  const row =
+    (await db
+      .prepare(`SELECT ${FIGURE_COLUMNS} FROM queue_people WHERE slug = ?`)
+      .bind(slug)
+      .first<Record<string, unknown>>()) ?? (await queueRowForEntitySlug(db, slug));
 
-  // Not everyone with a record stands in the line. A member of Congress filed
-  // for a vote has charges and no queue row, and a ledger you cannot look up is
-  // a rumour. Build the page from the ledger instead.
-  if (!row) return personFromLedger(db, slug);
+  if (!row) return null;
 
   const figure = rowToFigure(row);
+  figure.slug = String(row.slug ?? slug);
 
   // The stored rank is from the last research pass; a chop moves the line, so
   // show the rank the name holds right now.
@@ -191,12 +225,20 @@ export async function getPersonBySlug(slug: string): Promise<Figure | null> {
       .prepare(
         "SELECT COUNT(*) AS n, MAX(chopped_at) AS last FROM chop_events WHERE slug = ?",
       )
-      .bind(slug)
+      .bind(figure.slug)
       .first<Record<string, unknown>>();
     figure.timesChopped = Number(chops?.n ?? figure.timesChopped ?? 0);
     figure.lastChoppedAt = chops?.last == null ? null : String(chops.last);
   } catch {
     figure.lastChoppedAt = null;
+  }
+
+  // The page links back to the same claims in the archive, filtered to this
+  // person, so the two views cannot drift apart in the reader's hands.
+  try {
+    figure.entityId = await entityIdForName(db, figure.name);
+  } catch {
+    /* the page still renders without the link */
   }
 
   // The page has to show the same window the number is scored on, or it will
@@ -215,20 +257,49 @@ export async function getPersonBySlug(slug: string): Promise<Figure | null> {
 }
 
 /**
- * A page for a name the ledger knows and the queue does not.
+ * The entity the claims are filed under for this name, when one exists.
  *
- * The record is the record whether or not a blade is over it, so the row is
- * assembled from the charges themselves: the newest act, the count, the score
- * the evidence earns. Rank is left at zero — this name is not standing in the
- * line, and saying otherwise would be theatre.
+ * The person page and the archive both need it: the archive filters by it, and
+ * the page uses it for the link back to the full record.
  */
-async function personFromLedger(db: D1, slug: string): Promise<Figure | null> {
-  const rows = await db
-    .prepare(
-      "SELECT DISTINCT person, role FROM ledger_entries ORDER BY person COLLATE NOCASE",
-    )
-    .all<{ results?: Array<{ person: string; role: string }> }>();
+export async function entityIdForName(db: D1, name: string): Promise<string> {
+  const rows = await db.prepare("SELECT id, name FROM entities WHERE kind = 'person'").all();
+  const hit = (rows.results ?? []).find(
+    (row) => row.name && samePerson(String(row.name), name),
+  );
+  return hit ? String(hit.id) : "";
+}
 
+/** The line's slug for a name, or null when the name has no seat. */
+export async function lineSlugFor(name: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.prepare("SELECT slug, name FROM queue_people").all();
+  const hit = (rows.results ?? []).find(
+    (row) => row.name && samePerson(String(row.name), name),
+  );
+  return hit?.slug ? String(hit.slug) : null;
+}
+
+/**
+ * Where a name without a page is read: the archive, filtered to that record.
+ *
+ * The URL keeps working and the content stays reachable; the page itself is
+ * kept for a name standing in the line, so "the person page" means one thing.
+ */
+export async function archiveHrefForSlug(slug: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const entity = await db
+    .prepare("SELECT id FROM entities WHERE slug = ? AND kind = 'person' LIMIT 1")
+    .bind(slug)
+    .first<{ id: string }>();
+  if (entity?.id) return `/archive?entity=${encodeURIComponent(String(entity.id))}`;
+
+  // The legacy ledger filed names without an entity. Match the two spellings
+  // the old page matched — exact, then first-and-last — so no link is lost.
+  const rows = await db.prepare("SELECT DISTINCT person FROM ledger_entries").all();
   const loose = (person: string): string => {
     const parts = String(person)
       .replace(/["“”]/g, "")
@@ -236,39 +307,10 @@ async function personFromLedger(db: D1, slug: string): Promise<Figure | null> {
       .filter((w) => !/^[A-Z]\.$/.test(w) && !/^Jr\.?$|^Sr\.?$|^III$|^II$/i.test(w));
     return slugify(parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : person);
   };
-
-  const rowsFound = rows.results ?? [];
-  const match =
-    rowsFound.find((r) => slugify(String(r.person)) === slug) ??
-    rowsFound.find((r) => loose(String(r.person)) === slug);
-  if (!match) return null;
-
-  const name = String(match.person);
-  const summaries = await readLedgerSummaries();
-  const summary = ledgerSummaryFor(summaries, name);
-  const newest = summary?.newest ?? summary?.top?.[0] ?? null;
-
-  return {
-    name,
-    role: String(match.role ?? ""),
-    country: "",
-    score: summary?.evidence ?? 0,
-    mentions: 0,
-    reason: newest?.act ?? "No charge inside the last 180 days.",
-    source: "ledger",
-    sourceUrl: newest ? "" : "",
-    items: [],
-    rank: 0,
-    prevRank: null,
-    delta: null,
-    ledgerCount: summary?.count ?? 0,
-    windowActs: summary?.windowActs ?? 0,
-    latestAct: summary?.newest ?? null,
-    topCharges: summary?.top ?? [],
-    timesChopped: 0,
-    lastChoppedAt: null,
-    investigated: true,
-  };
+  const name = (rows.results ?? [])
+    .map((row) => String(row.person ?? ""))
+    .find((person) => person && (slugify(person) === slug || loose(person) === slug));
+  return name ? `/archive?q=${encodeURIComponent(name)}` : null;
 }
 
 export async function writeQueue(db: D1, people: Figure[]): Promise<void> {

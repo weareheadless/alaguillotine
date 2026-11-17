@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/clock-store";
+import { samePerson } from "@/lib/person-name";
 
 /**
  * The archive: the record behind the line, plus the findings the machine adds.
@@ -32,6 +33,8 @@ export interface ArchiveRow {
   quote: string;
   stance: string;
   inLine: boolean;
+  /** The queue's slug, when the name is in the line: the one page it has. */
+  lineSlug: string;
 }
 
 export interface ArchiveSource {
@@ -51,10 +54,13 @@ export interface ArchiveResult {
   person: {
     id: string;
     name: string;
+    slug: string;
     country: string;
     affiliation: string;
     findings: number;
     sources: number;
+    /** Standing in the line — the only names that get a person page. */
+    inLine: boolean;
   } | null;
 }
 
@@ -150,8 +156,7 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
       `SELECT c.id AS claim_id, c.entity_id, c.act, c.category, c.act_date,
               c.date_precision, c.finding, c.status, c.confidence,
               e.name, e.country, e.affiliation,
-              d.issuer, d.title, d.url, d.published_at, c.quote, '' AS stance,
-              EXISTS (SELECT 1 FROM queue_people qp WHERE lower(qp.name) = lower(e.name)) AS in_line
+              d.issuer, d.title, d.url, d.published_at, c.quote, '' AS stance
          ${from} ${clause}
         ORDER BY COALESCE(c.act_date, d.published_at, c.created_at) DESC, c.id
         LIMIT ? OFFSET ?`,
@@ -200,10 +205,22 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
     )
     .all();
 
+  // The line is the queue, not a second population. The archive asks it one
+  // question: does this name have a page, and therefore a link? The comparison
+  // is the person matcher, not lower-case equality, so a finding that spells a
+  // line name longer is still the same name.
+  const queue = await db.prepare("SELECT slug, name FROM queue_people").all();
+  const lineFor = (name: string): { inLine: boolean; slug: string } => {
+    const hit = (queue.results ?? []).find(
+      (row) => row.name && samePerson(String(row.name), name),
+    );
+    return { inLine: Boolean(hit), slug: hit?.slug ? String(hit.slug) : "" };
+  };
+
   let person: ArchiveResult["person"] = null;
   if (entity) {
     const row = await db
-      .prepare("SELECT id, name, country, affiliation FROM entities WHERE id = ? OR slug = ? LIMIT 1")
+      .prepare("SELECT id, name, slug, country, affiliation FROM entities WHERE id = ? OR slug = ? LIMIT 1")
       .bind(entity, entity)
       .first<Record<string, unknown>>();
     if (row) {
@@ -215,13 +232,16 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
         )
         .bind(String(row.id ?? ""))
         .first<{ findings: number; sources: number }>();
+      const line = lineFor(String(row.name ?? ""));
       person = {
         id: String(row.id ?? ""),
         name: String(row.name ?? ""),
+        slug: String(row.slug ?? ""),
         country: String(row.country ?? ""),
         affiliation: String(row.affiliation ?? ""),
         findings: Number(tally?.findings ?? 0),
         sources: Number(tally?.sources ?? 0),
+        inLine: line.inLine,
       };
     }
   }
@@ -230,6 +250,7 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
     rows: (rows.results ?? []).map((raw) => {
       const actDate = String(raw.act_date ?? "");
       const published = String(raw.published_at ?? "");
+      const line = lineFor(String(raw.name ?? ""));
       return {
         claimId: String(raw.claim_id ?? ""),
         entityId: String(raw.entity_id ?? ""),
@@ -249,7 +270,8 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
         url: String(raw.url ?? ""),
         quote: String(raw.quote ?? ""),
         stance: String(raw.stance ?? ""),
-        inLine: Boolean(raw.in_line),
+        inLine: line.inLine,
+        lineSlug: line.slug,
       };
     }),
     total,
