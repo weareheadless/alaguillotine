@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDb, readClock } from "@/lib/clock-store";
-import { dispatchDescription, lastDispatchAt, listDispatches, saveDispatch, normaliseEditorial } from "@/lib/posts-store";
+import { dispatchDescription, lastDispatchAt, listDispatches, publishDispatch, normaliseEditorial } from "@/lib/posts-store";
 import { listArchive } from "@/lib/archive-store";
 import { normaliseCategory } from "@/lib/dispatch-style";
 import { isAdminAuthed } from "@/lib/admin-auth";
@@ -162,7 +162,10 @@ export async function POST(request: Request) {
     155,
   );
 
-  await saveDispatch({
+  // The date is part of the file name, not part of the piece: a second run on
+  // a later day with the same headline updates the existing dispatch instead
+  // of publishing it again under a new URL.
+  const stored = await publishDispatch({
     slug,
     title,
     dek,
@@ -172,5 +175,11 @@ export async function POST(request: Request) {
     editorial,
   });
 
-  return Response.json({ ok: true, slug, category, source: "vps-ada" });
+  return Response.json({
+    ok: true,
+    slug: stored.slug,
+    category,
+    source: "vps-ada",
+    duplicate: stored.duplicate,
+  });
 }

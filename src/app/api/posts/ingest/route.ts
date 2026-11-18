@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { saveDispatch, normaliseEditorial } from "@/lib/posts-store";
+import { publishDispatch, normaliseEditorial } from "@/lib/posts-store";
 import { normaliseCategory } from "@/lib/dispatch-style";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +59,9 @@ export async function POST(request: Request) {
 
   const category = normaliseCategory(payload?.category);
 
-  await saveDispatch({
+  // One dispatch per piece, whichever path sends it: a re-push with a new slug
+  // updates the row that already carries this headline instead of adding one.
+  const stored = await publishDispatch({
     slug,
     title,
     dek: String(payload?.dek ?? "").trim().slice(0, 300),
@@ -69,5 +71,10 @@ export async function POST(request: Request) {
     editorial: normaliseEditorial(payload?.editorial),
   });
 
-  return Response.json({ ok: true, slug, category });
+  return Response.json({
+    ok: true,
+    slug: stored.slug,
+    category,
+    duplicate: stored.duplicate,
+  });
 }

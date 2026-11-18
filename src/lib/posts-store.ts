@@ -109,6 +109,67 @@ export async function saveDispatch(dispatch: Dispatch): Promise<void> {
     .run();
 }
 
+/** The identity of a piece: its headline reduced to letters and numbers. */
+function titleKey(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * The dispatch already on record under this headline, if there is one.
+ *
+ * The refresh pass names its file after the day it was written
+ * (`2026-11-17-roughly-one-verdict`), so a second run on a later day with the
+ * same headline used to insert a second row: the same piece, two URLs, twice in
+ * the blog and twice in the sitemap. The date belongs to the publication, not
+ * to the identity of the piece.
+ */
+export async function findDispatchByTitle(
+  title: string,
+): Promise<{ slug: string; title: string } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const key = titleKey(title);
+  if (!key) return null;
+  const rows = await db.prepare("SELECT slug, title FROM dispatches").all();
+  const hit = (rows.results ?? []).find(
+    (row) => titleKey(String(row.title ?? "")) === key,
+  );
+  return hit ? { slug: String(hit.slug), title: String(hit.title) } : null;
+}
+
+/**
+ * Publish a dispatch as one row per piece.
+ *
+ * If the headline is already on record, the existing row is updated and keeps
+ * its original URL; the new slug is not created. `publishedAt` moves to this
+ * publication so the twenty-hour guard in the refresh pass still knows a piece
+ * went out, which is what stops the writer being asked for the same dispatch
+ * on every pass.
+ */
+export async function publishDispatch(
+  dispatch: Dispatch,
+): Promise<{ slug: string; duplicate: boolean }> {
+  const existing = await findDispatchByTitle(dispatch.title);
+  const slug = existing?.slug ?? dispatch.slug;
+
+  await saveDispatch({ ...dispatch, slug });
+
+  if (existing) {
+    const db = await getDb();
+    if (db) {
+      await db
+        .prepare("UPDATE dispatches SET published_at = ? WHERE slug = ?")
+        .bind(dispatch.publishedAt, slug)
+        .run();
+    }
+  }
+
+  return { slug, duplicate: existing ? existing.slug !== dispatch.slug : false };
+}
+
 /** Trim at a word boundary, so a meta description never ends mid-word. */
 function clipWords(text: string, limit: number): string {
   const clean = text.replace(/\s+/g, " ").trim();
