@@ -86,28 +86,55 @@ export async function writeTakesFor(
   db: D1,
   env: TakeEnv,
   limit = 10,
-  opts: { rewrite?: boolean | "stale" } = {},
+  opts: { rewrite?: boolean | "stale"; person?: string } = {},
 ): Promise<TakeReport> {
   const rewrite = Boolean(opts.rewrite);
   const stale = opts.rewrite === "stale";
   const key = env.SITE_AGENT_LLM_API_KEY;
   if (!key) return { sought: 0, written: 0, rejected: 0, failures: [], rejections: [] };
 
+  const person = (opts.person ?? "").trim();
+  const bind: unknown[] = [];
+  const filter = person ? "AND lower(e.name) = lower(?)" : "";
+  if (person) bind.push(person);
+  bind.push(Math.min(60, Math.max(1, limit)));
+
   const rows = await db
     .prepare(
-      `SELECT le.id, le.person, le.role, le.act, le.place, le.year, le.category,
-              le.evidence_grade
-         FROM ledger_entries le
-         JOIN queue_people qp ON lower(qp.name) = lower(le.person)
-        WHERE le.review_status IN ('accepted', 'legacy')
-          AND le.evidence_grade IN ('A', 'B', 'C')
-          AND (le.take IS NULL OR le.take = '')
-        -- The line is where readers start, so the names nearest the blade get
-        -- their takes first. Within a name, the newest claim first.
-        ORDER BY COALESCE(qp.rank, 9999) ASC, le.created_at DESC
+      `WITH pending AS (
+         SELECT c.id AS id, e.name AS person, COALESCE(e.role, e.affiliation, '') AS role,
+                c.act, COALESCE(e.country, '') AS place,
+                CAST(substr(COALESCE(c.act_date, d.published_at, c.created_at), 1, 4) AS INTEGER) AS year,
+                c.category,
+                CASE c.finding
+                  WHEN 'found' THEN 'A'
+                  WHEN 'admitted' THEN 'B'
+                  WHEN 'alleged' THEN 'C'
+                  ELSE 'C'
+                END AS evidence_grade,
+                COALESCE(qp.rank, 9999) AS person_rank,
+                ROW_NUMBER() OVER (
+                  PARTITION BY lower(e.name)
+                  ORDER BY COALESCE(c.act_date, d.published_at, c.created_at) DESC
+                ) AS nth
+           FROM claims c
+           JOIN entities e ON e.id = c.entity_id
+           JOIN documents d ON d.id = c.document_id
+           LEFT JOIN queue_people qp ON lower(qp.name) = lower(e.name)
+          WHERE d.kind = 'press' AND c.status != 'retracted'
+            AND trim(coalesce(c.quote, '')) != ''
+            AND instr(d.text_excerpt, c.quote) > 0
+            AND (c.take IS NULL OR c.take = '')
+            ${filter}
+       )
+       -- Every name gets its newest claim read before any name gets a second
+       -- one. Ordering by rank alone let one prolific name take the whole
+       -- batch, so the names nearest the blade still had no take at the top.
+       SELECT * FROM pending
+        ORDER BY nth ASC, person_rank ASC
         LIMIT ?`,
     )
-    .bind(Math.min(60, Math.max(1, limit)))
+    .bind(...bind)
     .all();
 
   const claims = (rows.results ?? []).map((r) => ({
@@ -216,8 +243,8 @@ export async function writeTakesFor(
       await db
         .prepare(
           rewrite
-            ? "UPDATE ledger_entries SET take = ?, take_at = ? WHERE id = ?"
-            : "UPDATE ledger_entries SET take = ?, take_at = ? WHERE id = ? AND (take IS NULL OR take = '')",
+            ? "UPDATE claims SET take = ?, take_at = ? WHERE id = ?"
+            : "UPDATE claims SET take = ?, take_at = ? WHERE id = ? AND (take IS NULL OR take = '')",
         )
         .bind(take, new Date().toISOString(), id)
         .run();

@@ -472,7 +472,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
     const rows = await d
       .prepare(
         `SELECT c.id, c.act, c.category, c.confidence, c.act_date, c.quote,
-                c.finding, c.status, e.country, d.issuer, d.title, d.url
+                c.take, c.finding, c.status, e.country, d.issuer, d.title, d.url
            FROM claims c
            JOIN entities e ON e.id = c.entity_id
            JOIN documents d ON d.id = c.document_id
@@ -511,7 +511,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
                 ? "charged"
                 : "unknown",
         status: String(r.status ?? "recorded"),
-        take: "",
+        take: String(r.take ?? ""),
         finding,
         quote,
         issuer: String(r.issuer ?? ""),

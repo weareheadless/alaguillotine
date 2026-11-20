@@ -285,6 +285,14 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
                             </a>
                           </>
                         ) : null}
+                        {sourceAct.take ? (
+                          <p className="mt-1 border-l-2 border-hypeNeon/40 pl-2 text-[11.5px] leading-snug text-sheetWhite/80">
+                            <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-hypeNeon/80">
+                              why it counts ·{" "}
+                            </span>
+                            {sourceAct.take}
+                          </p>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

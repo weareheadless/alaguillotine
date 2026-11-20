@@ -636,7 +636,9 @@ export async function executeDueSentences(db: D1): Promise<number> {
 }
 
 export interface ChopBasisAct {
+  id?: string;
   act: string;
+  take?: string;
   url: string;
   title: string;
   at: string | null;
@@ -648,7 +650,7 @@ async function sentenceEvidence(db: D1, name: string): Promise<ChopBasisAct[]> {
   try {
     const rows = await db
       .prepare(
-        `SELECT c.act, c.category, COALESCE(c.act_date, d.published_at) AS at, d.url, d.title
+        `SELECT c.id, c.act, c.take, c.category, COALESCE(c.act_date, d.published_at) AS at, d.url, d.title
            FROM claims c
            JOIN entities e ON e.id = c.entity_id
            JOIN documents d ON d.id = c.document_id
@@ -662,7 +664,9 @@ async function sentenceEvidence(db: D1, name: string): Promise<ChopBasisAct[]> {
       .bind(name)
       .all();
     return (rows.results ?? []).map((r) => ({
+      id: String(r.id ?? ""),
       act: String(r.act ?? "").slice(0, 400),
+      take: String(r.take ?? ""),
       url: String(r.url ?? ""),
       title: String(r.title ?? ""),
       at: r.at == null ? null : String(r.at),

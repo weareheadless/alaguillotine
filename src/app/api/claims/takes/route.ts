@@ -43,7 +43,10 @@ export async function POST(request: Request) {
   // the ones already written in the right register.
   const mode = params.get("rewrite");
   const rewrite = mode === "1" ? true : mode === "stale" ? ("stale" as const) : false;
-  const report = await writeTakesFor(db, context.env ?? {}, limit, { rewrite });
+  // ?person=Jeffrey Yass reads only that name's claims, so a sentence can be
+  // given the argument for the acts it stands on without re-reading the line.
+  const person = (params.get("person") ?? "").trim().slice(0, 120);
+  const report = await writeTakesFor(db, context.env ?? {}, limit, { rewrite, person });
 
   let published = 0;
   try {
