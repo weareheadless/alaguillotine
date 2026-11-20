@@ -87,8 +87,9 @@ export function HowThisWasDecided({
 
       <p className="mt-3 max-w-3xl font-mono text-[10.5px] leading-relaxed text-chop-muted">
         It did not decide that anyone committed a crime. Each sentence is printed
-        with the article it came from, and a quote that is not found in the
-        stored text is not on this page.
+        with the article it came from, a charge is labelled as a charge (charged,
+        convicted, investigated, settled, no proceedings), and a quote that is
+        not found in the stored text is not on this page.
       </p>
 
       <p className="mt-2 max-w-3xl font-mono text-[10.5px] leading-relaxed text-chop-muted">

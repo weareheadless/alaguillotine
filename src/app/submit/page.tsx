@@ -35,6 +35,12 @@ export default function SubmitPage() {
             a blade with their own counter. You do not need an account, an email,
             or a wallet.
           </p>
+          <p className="mt-3 max-w-2xl font-mono text-[12px] leading-relaxed text-chop-muted">
+            Challenging something already on the record uses the same form: name
+            the person, quote the sentence, and say what is wrong with it. A row
+            whose passage does not hold is retracted and leaves the page and the
+            score.
+          </p>
         </section>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
