@@ -23,6 +23,11 @@ The editorial rule is the product:
   runs before a machine-found act is filed.
 - **One record.** The homepage line, `/archive`, `/person/<slug>` and the queue
   score read the same claims. If an act is retracted it leaves all of them.
+- **Keep the reason, and let it be challenged.** A sentence snapshots its charge
+  and the acts behind it into `chop_sentences`/`chop_events`; the profile shows
+  every execution with the reason recorded at the time. Every public claim has a
+  challenge button; upholding a challenge writes `status='retracted'` and runs
+  `rescoreQueue`, so it leaves the page, the score and the archive together.
 - **No manual per-case rows.** Discovery, the line pass and the findings ingest
   find names; nothing is hand-entered.
 
@@ -37,6 +42,9 @@ The editorial rule is the product:
 | `src/lib/findings-query.ts` | `/archive` query; `PRESS` excludes retracted claims |
 | `src/lib/act-judge.ts` | The judge: actor + harm + category, cached in `act_verdicts` |
 | `src/lib/passage.ts` | `PASSAGE_SQL` — the rule that a row needs a verifying quote |
+| `src/components/ChallengeClaim.tsx` | The per-claim challenge form on profiles and the archive |
+| `src/app/api/challenges/route.ts` | Public POST: file a challenge against a claim |
+| `src/app/api/admin/challenges/route.ts` | Review: uphold (retract) or reject a challenge |
 | `src/lib/discovery.ts`, `line-ingest.ts`, `findings-ingest.ts` | The three intakes |
 | `src/lib/hate-store.ts` | The queue, chops, sentences, `rescoreQueue` |
 | `worker.ts` | Cron dispatcher — every schedule in `wrangler.jsonc` lands here |
