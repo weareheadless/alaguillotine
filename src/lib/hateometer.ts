@@ -154,6 +154,10 @@ export interface HateState {
     slug: string;
     score: number;
     executedAt: string;
+    /** The charge the blade fell on, as it was recorded then. */
+    reason?: string;
+    /** JSON: the score and the acts behind it at that moment. */
+    basis?: string;
   } | null;
 }
 

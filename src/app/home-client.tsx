@@ -92,6 +92,32 @@ export function HomePage({ initial }: { initial: HateState }) {
   // Hold the card on the chopped figure while the head falls, so a poll cannot
   // swap it out mid-animation.
   const [frozen, setFrozen] = useState<Figure | null>(null);
+
+  // The appointment's own explanation: the charge as it was written when the
+  // sentence was made, and the acts it stood on, with their sources.
+  const appointment = hate.execution ?? hate.lastExecution ?? null;
+  const appointmentAt = appointment
+    ? "executeAt" in appointment
+      ? appointment.executeAt
+      : appointment.executedAt
+    : null;
+  const appointmentLabel = appointmentAt
+    ? `${new Date(appointmentAt).toUTCString().slice(5, 16)} · ${new Date(appointmentAt).toISOString().slice(11, 16)} UTC`
+    : "";
+  const appointmentBasis = (() => {
+    try {
+      const parsed = JSON.parse(appointment?.basis ?? "{}") as {
+        score?: number;
+        acts?: Array<{ act: string; url: string; title?: string; at?: string | null; category?: string }>;
+      };
+      return {
+        score: Number(parsed.score ?? appointment?.score ?? 0),
+        acts: Array.isArray(parsed.acts) ? parsed.acts.slice(0, 3) : [],
+      };
+    } catch {
+      return { score: Number(appointment?.score ?? 0), acts: [] };
+    }
+  })();
   // Nobody leaves the line: a chop is a tally. The name keeps its record and
   // sits out a cooldown, then returns to the band. The wall beside the blade is
   // where executions accumulate.
@@ -311,6 +337,71 @@ export function HomePage({ initial }: { initial: HateState }) {
                       figure={atTheBlock}
                       dropped={chopped === slugify(atTheBlock.name)}
                     />
+
+                    {appointment && appointment.slug === slugify(atTheBlock.name) ? (
+                      <section
+                        aria-labelledby="why-this-name"
+                        className="mt-3 border border-chop-border bg-white/[0.02] p-3.5"
+                      >
+                        <h3
+                          id="why-this-name"
+                          className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted"
+                        >
+                          why this name, at this hour
+                        </h3>
+                        <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted">
+                          {hate.execution ? "sentenced" : "executed"} {appointmentLabel}
+                          {" · "}score {appointmentBasis.score.toFixed(1)} at the time
+                          {" · "}
+                          {hate.execution ? "top of the line" : "the appointment it fell on"}
+                        </p>
+                        <p className="mt-1.5 max-w-3xl text-[13px] font-semibold leading-snug text-sheetWhite">
+                          {appointment.reason || atTheBlock.reason}
+                        </p>
+                        {appointmentBasis.acts.length ? (
+                          <>
+                            <p className="mt-2 font-mono text-[8.5px] uppercase tracking-[0.2em] text-chop-muted">
+                              the acts it stands on
+                            </p>
+                            <ul className="mt-1 space-y-1">
+                              {appointmentBasis.acts.map((act, i) => (
+                                <li
+                                  key={`${appointment.slug}-why-${i}`}
+                                  className="text-[11.5px] leading-snug text-chop-muted"
+                                >
+                                  <span className="text-sheetWhite/85">{act.act}</span>
+                                  <span className="font-mono text-[9px] uppercase tracking-[0.12em]">
+                                    {" "}
+                                    · {[act.category, act.at ? act.at.slice(0, 4) : ""]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </span>
+                                  {act.url ? (
+                                    <>
+                                      {" "}
+                                      <a
+                                        href={act.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="font-mono text-[9px] uppercase tracking-[0.12em] text-hypeNeon underline-offset-2 hover:underline"
+                                      >
+                                        source ↗
+                                      </a>
+                                    </>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : null}
+                        <a
+                          href={`/person/${appointment.slug}`}
+                          className="mt-2 inline-block font-mono text-[9px] uppercase tracking-[0.14em] text-spiteCrimson underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+                        >
+                          the full record and method ↗
+                        </a>
+                      </section>
+                    ) : null}
                   </div>
                 </div>
               )}
