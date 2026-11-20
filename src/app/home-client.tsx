@@ -101,9 +101,13 @@ export function HomePage({ initial }: { initial: HateState }) {
       ? appointment.executeAt
       : appointment.executedAt
     : null;
-  const appointmentLabel = appointmentAt
-    ? `${new Date(appointmentAt).toUTCString().slice(5, 16)} · ${new Date(appointmentAt).toISOString().slice(11, 16)} UTC`
-    : "";
+  const stamp = (iso: string | null): string =>
+    iso ? `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC` : "";
+  const sentencedAt =
+    appointment && "sentencedAt" in appointment ? appointment.sentencedAt : null;
+  const appointmentLabel = hate.execution
+    ? `sentenced ${stamp(sentencedAt)} · falls ${stamp(appointmentAt)}`
+    : `executed ${stamp(appointmentAt)}`;
   const appointmentBasis = (() => {
     try {
       const parsed = JSON.parse(appointment?.basis ?? "{}") as {
@@ -350,7 +354,7 @@ export function HomePage({ initial }: { initial: HateState }) {
                           why this name, at this hour
                         </h3>
                         <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.14em] text-chop-muted">
-                          {hate.execution ? "sentenced" : "executed"} {appointmentLabel}
+                          {appointmentLabel}
                           {" · "}score {appointmentBasis.score.toFixed(1)} at the time
                           {" · "}
                           {hate.execution ? "top of the line" : "the appointment it fell on"}
