@@ -114,6 +114,28 @@ curl -sS -X POST -H "x-admin-key: $KEY" \
   "https://alaguillotine.com/api/admin/judge?limit=40"
 ```
 
+## Reviewing challenges
+
+Readers can challenge any claim from the profile or the archive. Open ones are
+listed for review, and upholding one retracts the claim:
+
+```bash
+KEY=$(grep '^ADMIN_KEY=' /FYE/.env.local | cut -d= -f2-)
+
+# open and resolved challenges, newest first
+curl -sS -H "x-admin-key: $KEY" https://alaguillotine.com/api/admin/challenges
+
+# uphold: the claim is retracted and the queue is rescored
+curl -sS -X POST -H "x-admin-key: $KEY" -H "content-type: application/json" \
+  -d '{"id":"chal:…","action":"uphold","note":"the passage names a different person"}' \
+  https://alaguillotine.com/api/admin/challenges
+
+# reject: the row stays, the challenge stays on file
+curl -sS -X POST -H "x-admin-key: $KEY" -H "content-type: application/json" \
+  -d '{"id":"chal:…","action":"reject","note":"checked against the article"}' \
+  https://alaguillotine.com/api/admin/challenges
+```
+
 ## GitHub is not wired to the Worker
 
 Every deployment in this account shows `source: wrangler`; nothing was ever
