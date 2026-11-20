@@ -327,38 +327,6 @@ export async function ledgerFacets(): Promise<{
   }
 }
 
-/**
- * Every claim that can be opened as its own page, for the sitemap.
- *
- * This is the table `/archive/claim/[id]` actually reads. A crawler found 21 of
- * these pages — linked from a person's record report and from the wire — and
- * none of them was in the sitemap, because the sitemap only knew about names
- * and dispatches. The page is a real, citable permalink: it belongs there.
- */
-export async function listClaimRoutes(
-  limit = 20_000,
-): Promise<Array<{ id: string; at: string | null }>> {
-  const d = await db();
-  if (!d) return [];
-  try {
-    const rows = await d
-      .prepare(
-        `SELECT id, COALESCE(act_date, created_at) AS at
-           FROM ledger_entries
-          ORDER BY at DESC
-          LIMIT ?`,
-      )
-      .bind(limit)
-      .all();
-    return (rows.results ?? []).map((r) => ({
-      id: String(r.id),
-      at: r.at == null ? null : String(r.at),
-    }));
-  } catch {
-    return [];
-  }
-}
-
 export async function listArchive(limit = 100): Promise<ArchiveRow[]> {
   const d = await db();
   if (!d) return [];
@@ -564,11 +532,17 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
   const where = ledgerNames.length
     ? `lower(person) IN (${ledgerNames.map(() => "?").join(", ")})`
     : "lower(person) = lower(?)";
+  // A row without a passage is research, not a public accusation. The old
+  // ledger named people from a search result and stored the links, not the
+  // sentence; only a handful ever got the passage that makes a row checkable.
+  // The rest stay in the table and stay off the page.
   const rows = await d
     .prepare(
       `SELECT id, act, place, year, category, confidence, sources, attribution, act_date,
               evidence_grade, institutional_status, review_status, take
-         FROM ledger_entries WHERE ${where} ORDER BY confidence DESC, year DESC LIMIT 80`,
+         FROM ledger_entries
+        WHERE ${where} AND trim(coalesce(evidence_quote, '')) != ''
+        ORDER BY confidence DESC, year DESC LIMIT 80`,
     )
     .bind(...(ledgerNames.length ? ledgerNames.map((person) => person.toLowerCase()) : [name]))
     .all();
@@ -781,6 +755,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
               evidence_grade
          FROM ledger_entries
         WHERE review_status IN ('accepted', 'legacy')
+          AND trim(coalesce(evidence_quote, '')) != ''
         ORDER BY confidence DESC, year DESC`,
     )
     .bind()
@@ -970,7 +945,7 @@ export async function recentCharges(limit = 10): Promise<RecentCharge[]> {
     .prepare(
       `SELECT lower(person) AS key, person, act, place, year, category, confidence, created_at
          FROM ledger_entries
-        WHERE year >= ?
+        WHERE year >= ? AND trim(coalesce(evidence_quote, '')) != ''
         ORDER BY created_at DESC, rowid DESC
         LIMIT 2000`,
     )

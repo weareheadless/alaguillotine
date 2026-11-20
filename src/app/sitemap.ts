@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { listClaimRoutes } from "@/lib/archive-store";
 import { getDb, readQueue } from "@/lib/hate-store";
 import { listDispatches } from "@/lib/posts-store";
 import { slugify } from "@/lib/slug";
@@ -11,13 +10,15 @@ const BASE = "https://alaguillotine.com";
 /**
  * The whole record, one URL at a time.
  *
- * Static pages, every dispatch, every name in the line, and every claim that
- * has its own page. The record and the blog are the parts that change, so they
- * are read from D1 at request time rather than frozen into the build.
+ * Static pages, every dispatch and every name in the line. The record and the
+ * blog are the parts that change, so they are read from D1 at request time
+ * rather than frozen into the build.
  *
- * Filtered archive views (`/archive?entity=…`, `?q=…`) are deliberately absent:
- * they are views of `/archive`, they carry `noindex`, and a sitemap that lists
- * every combination of filters is a sitemap of the same page.
+ * The old ledger's per-row pages are not listed: a row with no passage behind
+ * it is not part of the public record (see `getLedgerFor`), and a sitemap is a
+ * promise that a URL is worth indexing. Filtered archive views are absent for
+ * the same reason — they are views of `/archive`, they carry `noindex`, and a
+ * sitemap that lists every combination of filters is a sitemap of one page.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -35,13 +36,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE}/ada`, lastModified: now, changeFrequency: "daily", priority: 0.5 },
   ];
 
-  const [posts, people, claims] = await Promise.all([
+  const [posts, people] = await Promise.all([
     listDispatches(200).catch(() => []),
     (async () => {
       const db = await getDb();
       return db ? readQueue(db).catch(() => []) : [];
     })(),
-    listClaimRoutes().catch(() => []),
   ]);
 
   const dispatchRoutes: MetadataRoute.Sitemap = posts.map((post) => ({
@@ -58,15 +58,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const claimRoutes: MetadataRoute.Sitemap = claims.map((claim) => {
-    const at = claim.at ? new Date(claim.at) : null;
-    return {
-      url: `${BASE}/archive/claim/${encodeURIComponent(claim.id)}`,
-      lastModified: at && !Number.isNaN(at.getTime()) ? at : now,
-      changeFrequency: "yearly" as const,
-      priority: 0.4,
-    };
-  });
-
-  return [...staticRoutes, ...dispatchRoutes, ...personRoutes, ...claimRoutes];
+  return [...staticRoutes, ...dispatchRoutes, ...personRoutes];
 }

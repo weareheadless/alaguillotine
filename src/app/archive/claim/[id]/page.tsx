@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { NavBar } from "@/components/NavBar";
 import { getLedgerEntry, ledgerRevisions } from "@/lib/archive-store";
 import { lineSlugFor } from "@/lib/hate-store";
@@ -56,6 +56,15 @@ export default async function ClaimPage({ params }: { params: Promise<Params> })
   // A page is a seat in the line. This claim may be about a name without one,
   // and then the name is text, not a door that opens onto nothing.
   const pageSlug = await lineSlugFor(row.person);
+
+  // A row with no passage behind it is research, not a public charge. The old
+  // ledger named people from a search result and stored the links instead of
+  // the sentence; the rest of the record now refuses those rows, and this page
+  // must not be the back door that still accuses someone. Send the reader to
+  // the name if it has a page, otherwise to the record.
+  if (!row.evidenceQuote.trim()) {
+    redirect(pageSlug ? `/person/${pageSlug}` : "/archive");
+  }
 
   return (
     <div className="min-h-screen bg-canvasBlack text-sheetWhite">
