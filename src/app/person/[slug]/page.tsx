@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getDeclarationsFor, getLedgerFor, getPositionsFor } from "@/lib/archive-store";
+import { getDeclarationsFor, getLedgerFor, getPositionsFor, verdictsFor } from "@/lib/archive-store";
+import { HowThisWasDecided } from "@/components/HowThisWasDecided";
 import { archiveHrefForSlug, getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
 import { PromiseAd } from "@/components/PromiseAd";
@@ -70,6 +71,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   const ledger = await getLedgerFor(person.name);
   const positions = await getPositionsFor(slug);
   const declarations = await getDeclarationsFor(slug);
+  const verdicts = await verdictsFor(person.name);
 
   // The same function the blade uses, so the sentence under the name and the
   // number beside it cannot disagree.
@@ -232,6 +234,8 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
           </p>
         )}
       </div>
+
+      <HowThisWasDecided name={person.name} entries={ledger} verdicts={verdicts} />
 
       <RecordReport
         ledger={ledger}

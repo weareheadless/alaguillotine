@@ -222,6 +222,62 @@ export function HomePage({ initial }: { initial: HateState }) {
           </div>
         </div>
 
+        {/* The method, in the open. A site that names people shows its work:
+            who decides, on what test, and what this is not. */}
+        <section
+          aria-labelledby="home-method"
+          className="order-1 mt-6 px-[clamp(1rem,2vw,2rem)]"
+        >
+          <div className="border border-chop-border bg-white/[0.02] p-3.5">
+            <h2
+              id="home-method"
+              className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted"
+            >
+              how the line is decided
+            </h2>
+            <p className="mt-2 max-w-4xl font-mono text-[11px] leading-relaxed text-chop-muted md:text-[12px]">
+              A model reads sentences published by newsrooms. It keeps one only
+              when the named person is the actor and the conduct is the harm this
+              record covers — war, weapons, repression, extraction, impunity,
+              self-dealing, or money used as leverage over politics. Ordinary
+              politics, opposition to harm and someone else&rsquo;s conduct are
+              dropped.
+            </p>
+            <p className="mt-1.5 max-w-4xl font-mono text-[11px] leading-relaxed text-chop-muted md:text-[12px]">
+              Every kept sentence is printed with the article it came from, and a
+              quote that is not found in the stored text is not on the record. It
+              is a reading of published reporting, not an investigation, and it
+              does not decide that anyone committed a crime.
+            </p>
+            <p className="mt-1.5 max-w-4xl font-mono text-[11px] leading-relaxed text-chop-muted md:text-[12px]">
+              <span className="text-sheetWhite">The blade is a metaphor.</span>{" "}
+              This is satire about public conduct: no threat, no call for
+              violence, no finding of fact. Every name has the right of reply.
+            </p>
+            <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-[0.16em]">
+              <a
+                href="/whitepaper"
+                className="text-spiteCrimson underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+              >
+                the method ↗
+              </a>
+              <button
+                type="button"
+                onClick={() => show("propose")}
+                className="text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+              >
+                challenge or propose a name
+              </button>
+              <a
+                href="/archive"
+                className="text-chop-muted underline decoration-chop-border underline-offset-2 hover:text-sheetWhite"
+              >
+                read the record ↗
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* ── The blade: full width, the main piece ───────────────────── */}
         <div className="order-2 mt-6 px-[clamp(1rem,2vw,2rem)] lg:mt-8">
           <section id="queue">

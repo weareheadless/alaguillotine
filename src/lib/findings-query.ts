@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/clock-store";
+import { PASSAGE_SQL } from "@/lib/passage";
 import { samePerson } from "@/lib/person-name";
 
 /**
@@ -75,7 +76,7 @@ export interface ArchiveQuery {
   page?: number;
 }
 
-const PRESS = "d.kind = 'press' AND c.status != 'retracted'";
+const PRESS = `d.kind = 'press' AND c.status != 'retracted' AND ${PASSAGE_SQL}`;
 
 export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | null> {
   const db = await getDb();

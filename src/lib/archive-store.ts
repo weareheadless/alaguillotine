@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { actDate, EVIDENCE_WINDOW_DAYS, evidenceFor } from "./evidence";
 import { slugify } from "./slug";
 import { nameKey, samePerson } from "./person-name";
+import { PASSAGE_SQL } from "./passage";
 
 type Stmt = {
   bind: (...v: unknown[]) => Stmt;
@@ -476,6 +477,7 @@ export async function getLedgerFor(name: string): Promise<LedgerEntry[]> {
            JOIN entities e ON e.id = c.entity_id
            JOIN documents d ON d.id = c.document_id
           WHERE ${nameClause} AND d.kind = 'press' AND c.status != 'retracted'
+            AND ${PASSAGE_SQL}
           ORDER BY COALESCE(c.act_date, d.published_at) DESC
           LIMIT 160`,
       )
@@ -785,7 +787,7 @@ export async function readLedgerSummaries(): Promise<Map<string, LedgerSummary>>
            FROM claims c
            JOIN entities e ON e.id = c.entity_id
            JOIN documents d ON d.id = c.document_id
-          WHERE d.kind = 'press' AND c.status != 'retracted'`,
+          WHERE d.kind = 'press' AND c.status != 'retracted' AND ${PASSAGE_SQL}`,
       )
       .bind()
       .all();
@@ -1009,6 +1011,40 @@ export async function recentCharges(limit = 10): Promise<RecentCharge[]> {
  * a checkable statement, so the manifesto page checks it against the table
  * instead of trusting the prose.
  */
+/**
+ * What the judge said about this name, where it said anything.
+ *
+ * The verdict cache is keyed `name|sentence`. Only acts the machine filed have
+ * a verdict, so this is often empty; when it is not, the page can show the
+ * model's own words for keeping the row instead of asking the reader to trust
+ * the label.
+ */
+export async function verdictsFor(
+  name: string,
+  limit = 6,
+): Promise<Array<{ category: string; why: string }>> {
+  const d = await db();
+  if (!d) return [];
+  const key = name.trim().toLowerCase();
+  if (!key) return [];
+  try {
+    const rows = await d
+      .prepare(
+        `SELECT category, why FROM act_verdicts
+          WHERE actor = 'person' AND harm = 'harm' AND act_key LIKE ?
+          ORDER BY at DESC LIMIT ?`,
+      )
+      .bind(`${key}|%`, limit)
+      .all();
+    return (rows.results ?? []).map((r) => ({
+      category: String(r.category ?? ""),
+      why: String(r.why ?? ""),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function ledgerSourceCoverage(): Promise<{
   total: number;
   withSource: number;
@@ -1054,7 +1090,7 @@ export async function chargeStats(): Promise<ChargeStats> {
                 SUM(CASE WHEN c.created_at >= ? THEN 1 ELSE 0 END) AS recent
            FROM claims c
            JOIN documents d ON d.id = c.document_id
-          WHERE d.kind = 'press' AND c.status != 'retracted'`,
+          WHERE d.kind = 'press' AND c.status != 'retracted' AND ${PASSAGE_SQL}`,
       )
       .bind(since)
       .first<{ total?: number; recent?: number }>();
