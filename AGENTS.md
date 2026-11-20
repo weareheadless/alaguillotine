@@ -12,7 +12,10 @@ leverage over politics. One Next.js app, one Cloudflare Worker, one D1 database.
 The editorial rule is the product:
 
 - **A row is a claim with a passage behind it.** Every act links to the stored
-  text of the article and the sentence that states it. Never invent a name, a
+  text of the article and the sentence that states it. The rule is enforced in
+  SQL by `PASSAGE_SQL` (`src/lib/passage.ts`) and gates the archive, person
+  pages, the score and the charge count: if the quote is not found in the
+  stored article text, the row is not on the record. Never invent a name, a
   number, a date or a URL.
 - **The record is for bad actors.** Ordinary politics, advocacy, charity,
   opposition to a war or a genocide, victimhood and someone else's conduct are
@@ -33,6 +36,7 @@ The editorial rule is the product:
 | `src/lib/archive-store.ts` | The record: `getLedgerFor`, `readLedgerSummaries`, scoring |
 | `src/lib/findings-query.ts` | `/archive` query; `PRESS` excludes retracted claims |
 | `src/lib/act-judge.ts` | The judge: actor + harm + category, cached in `act_verdicts` |
+| `src/lib/passage.ts` | `PASSAGE_SQL` — the rule that a row needs a verifying quote |
 | `src/lib/discovery.ts`, `line-ingest.ts`, `findings-ingest.ts` | The three intakes |
 | `src/lib/hate-store.ts` | The queue, chops, sentences, `rescoreQueue` |
 | `worker.ts` | Cron dispatcher — every schedule in `wrangler.jsonc` lands here |
