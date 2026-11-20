@@ -757,27 +757,32 @@ export function RecordReport({
             Only the year is known, or less. They stay on the page and out of the chart, because a
             mark needs a position in time.
           </p>
-          <ul className="mt-2 space-y-1">
-            {undated.map((e) => (
-              <li key={e.id || e.act} className="flex items-baseline gap-2">
-                <span className="w-10 shrink-0 font-mono text-[10px] tabular-nums text-chop-muted">
-                  {e.year || "—"}
-                </span>
-                <span className="text-[12.5px] leading-snug text-sheetWhite/80">{e.act}</span>
-              </li>
-            ))}
-            {undatedMoney.map((n, i) => (
-              <li key={`um-${n.label}-${i}`} className="flex items-baseline gap-2">
-                <span className="w-10 shrink-0 font-mono text-[10px] tabular-nums text-chop-muted">
-                  {n.year || "—"}
-                </span>
-                <span className="text-[12.5px] leading-snug text-sheetWhite/80">
-                  <span className="font-mono font-bold text-spiteCrimson">{n.display}</span>{" "}
-                  {n.counterparty || n.label}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {/* An undated claim is still a claim: it keeps its passage and its
+              source. The bare list that used to sit here showed the accusation
+              without the receipt, which is the one thing this record cannot
+              do. */}
+          {undated.length > 0 ? (
+            <ul className="mt-3 space-y-3">
+              {undated.map((e) => (
+                <ClaimItem key={e.id || e.act} entry={e} />
+              ))}
+            </ul>
+          ) : null}
+          {undatedMoney.length > 0 ? (
+            <ul className="mt-3 space-y-1">
+              {undatedMoney.map((n, i) => (
+                <li key={`um-${n.label}-${i}`} className="flex items-baseline gap-2">
+                  <span className="w-10 shrink-0 font-mono text-[10px] tabular-nums text-chop-muted">
+                    {n.year || "—"}
+                  </span>
+                  <span className="text-[12.5px] leading-snug text-sheetWhite/80">
+                    <span className="font-mono font-bold text-spiteCrimson">{n.display}</span>{" "}
+                    {n.counterparty || n.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </details>
       ) : null}
     </section>
