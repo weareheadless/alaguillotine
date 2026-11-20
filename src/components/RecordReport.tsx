@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { DeclarationRow, LedgerEntry, PositionRow } from "@/lib/archive-store";
 import type { PersonNumber } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
@@ -845,17 +844,9 @@ function ClaimItem({ entry: e }: { entry: LedgerEntry }) {
         </p>
       ) : null}
       <div className="mt-1 flex flex-wrap gap-2.5">
-        {/* A claim from a document has its sentence and its source above; the
-            claim page holds the legacy ledger rows, so linking a document claim
-            there would be a door with no room behind it. */}
-        {e.id && !e.quote ? (
-          <Link
-            href={`/archive/claim/${encodeURIComponent(e.id)}`}
-            className="font-mono text-[9px] uppercase tracking-[0.14em] text-spiteCrimson/90 underline decoration-chop-border underline-offset-2 hover:text-spiteCrimson"
-          >
-            evidence ↗
-          </Link>
-        ) : null}
+        {/* The claim page used to hold the old ledger rows. Those rows are no
+            longer part of the public record, and the page now redirects to the
+            name, so a link there would be a door into the same room. */}
         {e.sources.slice(0, 2).map((url) => (
           <a
             key={url}
