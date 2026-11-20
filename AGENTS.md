@@ -23,6 +23,10 @@ The editorial rule is the product:
   runs before a machine-found act is filed.
 - **One record.** The homepage line, `/archive`, `/person/<slug>` and the queue
   score read the same claims. If an act is retracted it leaves all of them.
+- **The act is printed with the argument for it.** `claims.take` is Ada's
+  reading of why the act counts; it is shown under the act on the profile, the
+  archive and the front page's appointment block. A take that only restates the
+  act is rejected rather than stored.
 - **Keep the reason, and let it be challenged.** A sentence snapshots its charge
   and the acts behind it into `chop_sentences`/`chop_events`; the profile shows
   every execution with the reason recorded at the time. Every public claim has a
@@ -41,6 +45,7 @@ The editorial rule is the product:
 | `src/lib/archive-store.ts` | The record: `getLedgerFor`, `readLedgerSummaries`, scoring |
 | `src/lib/findings-query.ts` | `/archive` query; `PRESS` excludes retracted claims |
 | `src/lib/act-judge.ts` | The judge: actor + harm + category, cached in `act_verdicts` |
+| `src/lib/claim-take.ts` | Ada's take per claim (`claims.take`): why the act counts, not what happened |
 | `src/lib/passage.ts` | `PASSAGE_SQL` — the rule that a row needs a verifying quote |
 | `src/components/ChallengeClaim.tsx` | The per-claim challenge form on profiles and the archive |
 | `src/app/api/challenges/route.ts` | Public POST: file a challenge against a claim |
