@@ -327,6 +327,38 @@ export async function ledgerFacets(): Promise<{
   }
 }
 
+/**
+ * Every claim that can be opened as its own page, for the sitemap.
+ *
+ * This is the table `/archive/claim/[id]` actually reads. A crawler found 21 of
+ * these pages — linked from a person's record report and from the wire — and
+ * none of them was in the sitemap, because the sitemap only knew about names
+ * and dispatches. The page is a real, citable permalink: it belongs there.
+ */
+export async function listClaimRoutes(
+  limit = 20_000,
+): Promise<Array<{ id: string; at: string | null }>> {
+  const d = await db();
+  if (!d) return [];
+  try {
+    const rows = await d
+      .prepare(
+        `SELECT id, COALESCE(act_date, created_at) AS at
+           FROM ledger_entries
+          ORDER BY at DESC
+          LIMIT ?`,
+      )
+      .bind(limit)
+      .all();
+    return (rows.results ?? []).map((r) => ({
+      id: String(r.id),
+      at: r.at == null ? null : String(r.at),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function listArchive(limit = 100): Promise<ArchiveRow[]> {
   const d = await db();
   if (!d) return [];

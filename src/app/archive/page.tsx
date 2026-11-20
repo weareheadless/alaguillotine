@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { NavBar } from "@/components/NavBar";
 import { readArchive } from "@/lib/findings-query";
@@ -5,12 +6,36 @@ import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "The Record — who did it, and where it is written",
-  description:
-    "The record behind the line: the powerful, the acts the reporting states, and the source. Most will never be convicted; they own the system. The record is what they did anyway.",
-  alternates: { canonical: "/archive" },
-};
+const TITLE = "The Record — who did it, and where it is written";
+const DESCRIPTION =
+  "The record behind the line: the powerful, the acts the reporting states, and the source. Most will never be convicted; they own the system. The record is what they did anyway.";
+
+/**
+ * A filtered archive is the archive, not a page of its own.
+ *
+ * `?entity=…`, `?q=…`, `?finding=…` and pagination all render the same record
+ * through a different lens, and every combination used to be a crawlable URL
+ * with no entry in the sitemap. They now say so: canonical to `/archive`,
+ * `noindex` when a filter is set. The claim permalinks behind the rows are the
+ * pages that do get indexed.
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}): Promise<Metadata> {
+  const params = (await searchParams) ?? {};
+  const values = params as Record<string, unknown>;
+  const filtered = ["q", "entity", "finding", "source", "line", "focus", "fresh", "page"].some(
+    (key) => String(values[key] ?? "").length > 0,
+  );
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: { canonical: "/archive" },
+    ...(filtered ? { robots: { index: false, follow: true } } : {}),
+  };
+}
 
 type Params = {
   q?: string;
