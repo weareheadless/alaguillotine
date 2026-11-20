@@ -1,6 +1,7 @@
 import type { DeclarationRow, LedgerEntry, PositionRow } from "@/lib/archive-store";
 import type { PersonNumber } from "@/lib/numbers";
 import { safeHref } from "@/lib/url";
+import { ChallengeClaim } from "./ChallengeClaim";
 import { dominantCurrency, formatMoney, moneyOf } from "@/lib/money";
 
 /**
@@ -858,6 +859,7 @@ function ClaimItem({ entry: e }: { entry: LedgerEntry }) {
             source ↗
           </a>
         ))}
+        {e.id.startsWith("claim:") ? <ChallengeClaim claimId={e.id} /> : null}
       </div>
     </li>
   );

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getDeclarationsFor, getLedgerFor, getPositionsFor, verdictsFor } from "@/lib/archive-store";
 import { HowThisWasDecided } from "@/components/HowThisWasDecided";
-import { archiveHrefForSlug, getDb, getPersonBySlug } from "@/lib/hate-store";
+import { archiveHrefForSlug, chopHistoryFor, getDb, getPersonBySlug } from "@/lib/hate-store";
 import { readNumbersFor } from "@/lib/numbers";
 import { PromiseAd } from "@/components/PromiseAd";
 import { evidenceFor } from "@/lib/evidence";
@@ -72,6 +72,8 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   const positions = await getPositionsFor(slug);
   const declarations = await getDeclarationsFor(slug);
   const verdicts = await verdictsFor(person.name);
+  const database = await getDb();
+  const chops = database ? await chopHistoryFor(database, person.slug ?? slug) : [];
 
   // The same function the blade uses, so the sentence under the name and the
   // number beside it cannot disagree.
@@ -236,6 +238,62 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
       </div>
 
       <HowThisWasDecided name={person.name} entries={ledger} verdicts={verdicts} />
+
+      {chops.length ? (
+        <section
+          id="why-chopped"
+          aria-labelledby="why-chopped-title"
+          className="mt-6 border-l-2 border-spiteCrimson/70 pl-3.5"
+        >
+          <h2
+            id="why-chopped-title"
+            className="font-mono text-[9px] uppercase tracking-[0.22em] text-chop-muted"
+          >
+            why the blade fell on this name
+          </h2>
+          <p className="mt-1 font-mono text-[10px] leading-relaxed text-chop-muted">
+            The reason was recorded when the sentence was written, with the acts behind it, and it
+            is kept here. A later pass cannot rewrite it.
+          </p>
+          <ol className="mt-2 space-y-3">
+            {chops.map((event) => (
+              <li key={`${event.slug}-${event.choppedAt}`} className="border border-chop-border bg-white/[0.02] p-3">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-[9px] uppercase tracking-[0.16em] text-chop-muted">
+                  <span className="text-spiteCrimson">
+                    {new Date(event.choppedAt).toUTCString().slice(5, 22)} UTC
+                  </span>
+                  <span>score {event.score.toFixed(1)} at the time</span>
+                </div>
+                <p className="mt-1 max-w-3xl font-mono text-[11.5px] leading-relaxed text-sheetWhite/85">
+                  {event.reason || "No reason was recorded for this execution; it predates the rule that keeps one."}
+                </p>
+                {event.acts.length ? (
+                  <ul className="mt-2 space-y-1">
+                    {event.acts.map((sourceAct, i) => (
+                      <li key={`${event.choppedAt}-${i}`} className="text-[11px] leading-snug text-chop-muted">
+                        <span className="text-sheetWhite/80">{sourceAct.act}</span>
+                        {sourceAct.url ? (
+                          <>
+                            {" "}
+                            <a
+                              href={sourceAct.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-mono text-[9px] uppercase tracking-[0.12em] text-hypeNeon underline-offset-2 hover:underline"
+                            >
+                              source ↗
+                            </a>
+                          </>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
 
       <RecordReport
         ledger={ledger}

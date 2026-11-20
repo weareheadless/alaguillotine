@@ -143,6 +143,10 @@ export interface HateState {
     sentencedAt: string;
     executeAt: string;
     secondsLeft: number;
+    /** The charge as it was written when the sentence was made. */
+    reason?: string;
+    /** JSON: the score and the acts behind it at that moment. */
+    basis?: string;
   } | null;
   /** The blade that just fell, shown while the wound is fresh. */
   lastExecution?: {

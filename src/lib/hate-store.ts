@@ -435,6 +435,10 @@ export interface Sentence {
   score: number;
   sentencedAt: string;
   executeAt: string;
+  /** The charge in Ada's words, snapshotted when the sentence was written. */
+  reason: string;
+  /** JSON: score and the acts behind it, with their sources. */
+  basis: string;
 }
 
 export interface Execution extends Sentence {
@@ -442,6 +446,8 @@ export interface Execution extends Sentence {
 }
 
 const sentenceFrom = (r: Record<string, unknown>): Sentence => ({
+  reason: String(r.reason ?? ""),
+  basis: String(r.basis ?? "{}"),
   person: String(r.person),
   slug: String(r.slug),
   score: Number(r.score),
@@ -454,7 +460,7 @@ export async function readSentence(db: D1): Promise<Sentence | null> {
   try {
     const row = await db
       .prepare(
-        "SELECT person, slug, score, sentenced_at, execute_at FROM chop_sentences WHERE executed_at IS NULL ORDER BY execute_at ASC LIMIT 1",
+        "SELECT person, slug, score, sentenced_at, execute_at, reason, basis FROM chop_sentences WHERE executed_at IS NULL ORDER BY execute_at ASC LIMIT 1",
       )
       .first<Record<string, unknown>>();
     return row ? sentenceFrom(row) : null;
@@ -471,7 +477,7 @@ export async function readLastExecution(
   try {
     const row = await db
       .prepare(
-        "SELECT person, slug, score, sentenced_at, execute_at, executed_at FROM chop_sentences WHERE executed_at IS NOT NULL ORDER BY executed_at DESC LIMIT 1",
+        "SELECT person, slug, score, sentenced_at, execute_at, executed_at, reason, basis FROM chop_sentences WHERE executed_at IS NOT NULL ORDER BY executed_at DESC LIMIT 1",
       )
       .first<Record<string, unknown>>();
     if (!row) return null;
@@ -519,7 +525,7 @@ export async function ensureSentence(
   ).toISOString();
   const top = await db
     .prepare(
-      `SELECT slug, name, score FROM queue_people
+      `SELECT slug, name, score, reason FROM queue_people
        WHERE score > 0
          AND slug NOT IN (
            SELECT slug FROM chop_events WHERE chopped_at > ?
@@ -539,11 +545,18 @@ export async function ensureSentence(
   const sentencedAt = new Date(now).toISOString();
   const slotIso = new Date(slot).toISOString();
   const slug = String(top.slug);
+
+  // The reason is snapshotted here, with the acts behind it. The queue row is
+  // rewritten on every pass, so the explanation for an execution would
+  // otherwise be the one thing the record does not keep.
+  const reason = String(top.reason ?? "").replace(/\s+/g, " ").trim().slice(0, 700);
+  const acts = await sentenceEvidence(db, String(top.name));
+
   // Deterministic per person per slot: two simultaneous page loads cannot put
   // the same name on the block twice.
   await db
     .prepare(
-      "INSERT OR IGNORE INTO chop_sentences (id, slug, person, score, sentenced_at, execute_at) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT OR IGNORE INTO chop_sentences (id, slug, person, score, sentenced_at, execute_at, reason, basis) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       `${slug}:${slotIso}`,
@@ -552,6 +565,8 @@ export async function ensureSentence(
       Number(top.score),
       sentencedAt,
       slotIso,
+      reason,
+      JSON.stringify({ score: Number(top.score), reason, acts }),
     )
     .run();
 
@@ -572,7 +587,7 @@ export async function executeDueSentences(db: D1): Promise<number> {
   try {
     rows = await db
       .prepare(
-        "SELECT id, slug, person, score FROM chop_sentences WHERE executed_at IS NULL AND execute_at <= ?",
+        "SELECT id, slug, person, score, reason, basis FROM chop_sentences WHERE executed_at IS NULL AND execute_at <= ?",
       )
       .bind(now)
       .all();
@@ -595,9 +610,17 @@ export async function executeDueSentences(db: D1): Promise<number> {
 
     await db
       .prepare(
-        "INSERT OR REPLACE INTO chop_events (id, person, slug, score, chopped_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO chop_events (id, person, slug, score, chopped_at, reason, basis) VALUES (?, ?, ?, ?, ?, ?, ?)",
       )
-      .bind(id, String(p.person), slug, Number(p.score), now)
+      .bind(
+        id,
+        String(p.person),
+        slug,
+        Number(p.score),
+        now,
+        String(p.reason ?? ""),
+        String(p.basis ?? "{}"),
+      )
       .run();
     // The chop is a tally, not a reset. The record that put the name here has
     // not changed; the cooldown is what keeps the blade moving.
@@ -610,6 +633,93 @@ export async function executeDueSentences(db: D1): Promise<number> {
     executed += 1;
   }
   return executed;
+}
+
+export interface ChopBasisAct {
+  act: string;
+  url: string;
+  title: string;
+  at: string | null;
+  category: string;
+}
+
+/** The acts a sentence stands on: the newest verified passages for the name. */
+async function sentenceEvidence(db: D1, name: string): Promise<ChopBasisAct[]> {
+  try {
+    const rows = await db
+      .prepare(
+        `SELECT c.act, c.category, COALESCE(c.act_date, d.published_at) AS at, d.url, d.title
+           FROM claims c
+           JOIN entities e ON e.id = c.entity_id
+           JOIN documents d ON d.id = c.document_id
+          WHERE lower(e.name) = lower(?)
+            AND d.kind = 'press' AND c.status != 'retracted'
+            AND trim(coalesce(c.quote, '')) != ''
+            AND instr(d.text_excerpt, c.quote) > 0
+          ORDER BY COALESCE(c.act_date, d.published_at) DESC
+          LIMIT 3`,
+      )
+      .bind(name)
+      .all();
+    return (rows.results ?? []).map((r) => ({
+      act: String(r.act ?? "").slice(0, 400),
+      url: String(r.url ?? ""),
+      title: String(r.title ?? ""),
+      at: r.at == null ? null : String(r.at),
+      category: String(r.category ?? ""),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export interface ChopEventRow {
+  person: string;
+  slug: string;
+  score: number;
+  choppedAt: string;
+  reason: string;
+  acts: ChopBasisAct[];
+}
+
+/**
+ * Every time the blade fell on this name, with the charge it fell on.
+ *
+ * The event keeps its own snapshot, so a later pass rewriting the queue cannot
+ * rewrite history. This is the record of why, not the current opinion of why.
+ */
+export async function chopHistoryFor(
+  db: D1,
+  slug: string,
+  limit = 10,
+): Promise<ChopEventRow[]> {
+  try {
+    const rows = await db
+      .prepare(
+        "SELECT person, slug, score, chopped_at, reason, basis FROM chop_events WHERE slug = ? ORDER BY chopped_at DESC LIMIT ?",
+      )
+      .bind(slug, limit)
+      .all();
+    return (rows.results ?? []).map((r) => {
+      let acts: ChopBasisAct[] = [];
+      try {
+        const parsed = JSON.parse(String(r.basis ?? "{}")) as { acts?: ChopBasisAct[] };
+        acts = Array.isArray(parsed.acts) ? parsed.acts.slice(0, 3) : [];
+      } catch {
+        acts = [];
+      }
+      return {
+        person: String(r.person ?? ""),
+        slug: String(r.slug ?? ""),
+        score: Number(r.score ?? 0),
+        choppedAt: String(r.chopped_at ?? ""),
+        reason: String(r.reason ?? ""),
+        acts,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 export interface ChopRow {

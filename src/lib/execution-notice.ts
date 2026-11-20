@@ -67,15 +67,29 @@ export function executionNotice(
     state.figures.find((f) => slugify(f.name) === execution.slug) ?? null;
   const { dateLabel, timeLabel } = label(execution.executeAt);
 
+  // The reason recorded with the sentence wins over the current queue row: the
+  // appointment should be explained the way it was made, not the way the queue
+  // happens to read now.
+  const stored = (execution.reason ?? "").replace(/\s+/g, " ").trim();
+  const reason = stored ? clip(stored, 150) : figure ? shortCharge(figure) : "the record speaks for itself";
+
   return {
     name: figure?.name ?? execution.person,
     slug: execution.slug,
-    reason: figure ? shortCharge(figure) : "the record speaks for itself",
+    reason,
     at: execution.executeAt,
     dateLabel,
     timeLabel,
     confirmed: true,
   };
+}
+
+/** The first sentence, cut at a word, without a trailing full stop. */
+function clip(text: string, limit: number): string {
+  const first = text.split(/(?<=[.!?])\s+/)[0] ?? text;
+  const cut =
+    first.length <= limit ? first : `${first.slice(0, limit - 1).replace(/\s+\S*$/, "")}…`;
+  return cut.replace(/[.!?]+$/, "");
 }
 
 /** "02:14:09" or "14:09" — the same shape the blade clock uses. */

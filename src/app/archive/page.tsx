@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { NavBar } from "@/components/NavBar";
+import { ChallengeClaim } from "@/components/ChallengeClaim";
 import { readArchive } from "@/lib/findings-query";
 import { slugify } from "@/lib/slug";
 
@@ -438,6 +439,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
                           ? "reported, not a verdict"
                           : row.stance}
                     </span>
+                    <ChallengeClaim claimId={row.claimId} />
                   </div>
                 </details>
               </li>
