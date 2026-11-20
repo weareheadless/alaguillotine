@@ -399,6 +399,15 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
                   {row.act}
                 </p>
 
+                {row.take ? (
+                  <p className="mt-1 max-w-3xl border-l-2 border-hypeNeon/40 pl-2.5 text-[11.5px] leading-snug text-sheetWhite/80">
+                    <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-hypeNeon/80">
+                      why it counts ·{" "}
+                    </span>
+                    {row.take}
+                  </p>
+                ) : null}
+
                 <details className="group mt-2">
                   <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.14em] text-chop-muted hover:text-sheetWhite">
                     {row.quote ? (

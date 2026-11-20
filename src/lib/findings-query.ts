@@ -32,6 +32,8 @@ export interface ArchiveRow {
   title: string;
   url: string;
   quote: string;
+  /** Ada's reading of why the act counts, where one has been written. */
+  take: string;
   stance: string;
   inLine: boolean;
   /** The queue's slug, when the name is in the line: the one page it has. */
@@ -157,7 +159,7 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
       `SELECT c.id AS claim_id, c.entity_id, c.act, c.category, c.act_date,
               c.date_precision, c.finding, c.status, c.confidence,
               e.name, e.country, e.affiliation,
-              d.issuer, d.title, d.url, d.published_at, c.quote, '' AS stance
+              d.issuer, d.title, d.url, d.published_at, c.quote, c.take, '' AS stance
          ${from} ${clause}
         ORDER BY COALESCE(c.act_date, d.published_at, c.created_at) DESC, c.id
         LIMIT ? OFFSET ?`,
@@ -270,6 +272,7 @@ export async function readArchive(query: ArchiveQuery): Promise<ArchiveResult | 
         title: String(raw.title ?? ""),
         url: String(raw.url ?? ""),
         quote: String(raw.quote ?? ""),
+        take: String(raw.take ?? ""),
         stance: String(raw.stance ?? ""),
         inLine: line.inLine,
         lineSlug: line.slug,
