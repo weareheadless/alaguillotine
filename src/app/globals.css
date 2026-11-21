@@ -1300,14 +1300,13 @@ body::after {
 .bt-flash {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   padding: 4vh 2vw;
-  transform-origin: center;
 }
 
-.bt-flash span {
+.bt-flash > span {
+  grid-area: 1 / 1;
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: clamp(2.2rem, 10.4vw, 10.5rem);
   font-weight: 800;
@@ -1318,6 +1317,37 @@ body::after {
   color: #f4f4f5;
   max-width: 96vw;
   text-shadow: none;
+}
+
+/* The line is printed through the same glass as everything else: the scanlines
+   cut it, and two slices of it pull apart in red and cyan. */
+.bt-flash-main {
+  -webkit-mask-image: repeating-linear-gradient(
+    0deg,
+    #000 0 2px,
+    rgba(0, 0, 0, 0.55) 2px 3px
+  );
+  mask-image: repeating-linear-gradient(
+    0deg,
+    #000 0 2px,
+    rgba(0, 0, 0, 0.55) 2px 3px
+  );
+}
+
+.bt-flash-band {
+  mix-blend-mode: multiply;
+  clip-path: inset(16% 0 62% 0);
+  transform: translateX(-0.34rem);
+}
+
+.bt-flash-band.band-a {
+  color: #ff2d5f;
+}
+
+.bt-flash-band.band-b {
+  color: #00e1dc;
+  clip-path: inset(58% 0 22% 0);
+  transform: translateX(0.38rem);
 }
 
 .bt-switch {
@@ -1442,37 +1472,7 @@ body::after {
   opacity: 0.35;
 }
 
-.reel-pip {
-  position: absolute;
-  left: 10px;
-  bottom: 40px;
-  z-index: 56;
-  width: 37%;
-  overflow: hidden;
-  border: 1px solid rgba(225, 29, 72, 0.75);
-  background: #050506;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
-}
 
-.reel-pip video {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  filter: grayscale(0.35) contrast(1.12) brightness(0.85);
-}
-
-.reel-pip span {
-  position: absolute;
-  left: 5px;
-  bottom: 4px;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.42rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #f4f4f5;
-  text-shadow: 0 1px 3px #000;
-}
 
 /* The page is inside the set. The signal can knock the picture off hold by a
    pixel or two, the glass is curved at the corners, and every line of type

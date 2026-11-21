@@ -140,11 +140,20 @@ export function BrokenTV({ messages }: { messages: string[] }) {
       timer = setTimeout(() => {
         if (!alive) return;
         setFlash(null);
-        timer = setTimeout(burn, 2400 + Math.random() * 2600);
+        // Most gaps are long; some are very long. A flash that can be timed is
+        // not a subliminal, it is a slideshow.
+        const roll = Math.random();
+        const gap =
+          roll < 0.3
+            ? 18_000 + Math.random() * 14_000
+            : roll < 0.65
+              ? 10_000 + Math.random() * 7_000
+              : 6_500 + Math.random() * 4_000;
+        timer = setTimeout(burn, gap);
       }, hold);
     };
 
-    timer = setTimeout(burn, 1400 + Math.random() * 1800);
+    timer = setTimeout(burn, 5_500 + Math.random() * 7_500);
     return () => {
       alive = false;
       clearTimeout(timer);
@@ -154,6 +163,14 @@ export function BrokenTV({ messages }: { messages: string[] }) {
   return (
     <div className={`broken-tv ${on ? "is-on" : "is-off"} ${reduced ? "is-calm" : ""}`}>
       <div className="bt-layer" aria-hidden>
+        {flash ? (
+          <div key={flash.id} className="bt-flash">
+            <span className="bt-flash-main">{flash.text}</span>
+            <span className="bt-flash-band band-a">{flash.text}</span>
+            <span className="bt-flash-band band-b">{flash.text}</span>
+          </div>
+        ) : null}
+
         <div className="bt-scan" />
         <div className="bt-grain" />
         <div className="bt-hue" />
@@ -173,12 +190,6 @@ export function BrokenTV({ messages }: { messages: string[] }) {
               />
             ))
           : null}
-
-        {flash ? (
-          <div key={flash.id} className="bt-flash">
-            <span>{flash.text}</span>
-          </div>
-        ) : null}
       </div>
 
       <button
