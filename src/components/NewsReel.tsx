@@ -426,6 +426,11 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
             </video>
           )}
 
+          {/* A YouTube embed paints white before it paints a picture. Cover
+              the first moment of every clip so the set never flashes a blank
+              page at the reader. */}
+          <div key={`cover-${clip.src}`} className="reel-cover" aria-hidden />
+
           <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
           <div className="reel-vignette pointer-events-none absolute inset-0" aria-hidden />
 

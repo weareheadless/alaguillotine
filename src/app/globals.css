@@ -1426,3 +1426,21 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .bt-flicker { display: none; }
 }
+
+.reel-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  background: #050506;
+  pointer-events: none;
+  animation: reel-cover-in 2.6s ease-out forwards;
+}
+
+@keyframes reel-cover-in {
+  0%, 55% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.bt-switch {
+  opacity: 0.35;
+}
