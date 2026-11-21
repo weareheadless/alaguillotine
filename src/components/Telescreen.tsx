@@ -497,7 +497,7 @@ function mount(
   // On a phone the lens moves into the corner of the room: a camera watching
   // the page, not a spotlight burning through the copy.
   aperture.position.set(mobile ? 4.5 : 0.9, mobile ? 2.75 : 0.1, -16.5);
-  const apertureScale = mobile ? 0.52 : 1;
+  let apertureScale = mobile ? 0.52 : 1;
   aperture.scale.setScalar(apertureScale);
   scene.add(aperture);
 
@@ -668,6 +668,11 @@ function mount(
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    // A phone that rotates, or a window that is dragged narrow, gets the
+    // corner camera rather than a lens the size of the paragraph.
+    const narrow = window.innerWidth < 768;
+    aperture.position.set(narrow ? 4.5 : 0.9, narrow ? 2.75 : 0.1, -16.5);
+    apertureScale = narrow ? 0.52 : 1;
     if (reduced) renderer.render(scene, camera);
   };
   resize();
