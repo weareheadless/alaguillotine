@@ -15,25 +15,19 @@ import type { Figure, HateState } from "../lib/hateometer";
 import { CrossesWall } from "../components/CrossesWall";
 import { FeedMosaic } from "../components/FeedMosaic";
 import { RecordStrip } from "../components/RecordStrip";
-import { SubliminalVideo } from "../components/SubliminalVideo";
-import { NewsReel, type CutIn } from "../components/NewsReel";
+import {
+  TelescreenCanvas,
+  TelescreenClock,
+  TelescreenConsole,
+  TelescreenProvider,
+  TelescreenSlate,
+  type TelescreenReceipt,
+} from "../components/Telescreen";
 import { LiveWire } from "../components/LiveWire";
 import { useSiteContent } from "../lib/use-site-content";
 import { ControlDeck } from "../components/ControlDeck";
 import { ExecutionAd } from "../components/ExecutionAd";
 import { executionNotice } from "../lib/execution-notice";
-
-/**
- * The archive cut-in. The gesture and the words are both on the record, so the
- * frame is shown with the words he said next to it — the viewer gets the
- * argument, not a planted impression.
- */
-const CUT_IN: CutIn = {
-  src: "/static/musknazi-cut.webp",
-  quote: "My heart goes out to you",
-  who: "Elon Musk · 20 Jan 2025 · Capital One Arena",
-  href: "https://apnews.com/article/musk-gesture-salute-antisemitism-0070dae53c7a73397b104ae645877535",
-};
 
 /**
  * The installation.
@@ -142,6 +136,31 @@ export function HomePage({ initial }: { initial: HateState }) {
   const atTheBlock = frozen ?? sentenced ?? standing[0];
   const notice = executionNotice(hate);
 
+  // The broadcast: the site's own lines, written for this room. The receipts
+  // are the record itself, so the screen is showing its sources rather than
+  // inventing an atmosphere behind them.
+  const transmissions = state.voice.subliminal.length
+    ? state.voice.subliminal
+    : content.subliminalMessages;
+  const receipts: TelescreenReceipt[] = [
+    {
+      meta: "record",
+      text: `${(hate.ledgerTotal ?? 0).toLocaleString()} charges on record. Every claim links to the article that states it, and a quote not found in the stored text is not on the record.`,
+    },
+    {
+      meta: "line",
+      text: `${standing.length} names in the line. The blade takes the worst of the last 180 days. Nothing recent means nothing to sentence.`,
+    },
+    {
+      meta: "blades",
+      text: `${chopTotal} blades felled across ${hate.chops.length} ${hate.chops.length === 1 ? "name" : "names"}. A chop is a tally, not a death.`,
+    },
+    ...standing.slice(0, 6).map((figure, i) => ({
+      meta: `subject ${String(i + 1).padStart(2, "0")}`,
+      text: `${figure.name}. ${figure.reason || "On the record."}`,
+    })),
+  ];
+
   // The countdown reaches zero: drop the blade, let the head roll, then ask
   // the server for the line after the chop.
   const onZero = useCallback(
@@ -174,90 +193,110 @@ export function HomePage({ initial }: { initial: HateState }) {
     <div className="relative min-h-screen bg-canvasBlack">
       <FsdBanner />
 
-      <SubliminalVideo
-        src="/static/musk_is_presented_with_the_reality.mp4"
-        poster="/appwrite-icon.svg"
-        messages={content.subliminalMessages}
-      />
-
       <NavBar />
 
       <main className="relative z-10 flex flex-col pb-20 md:pb-8">
-        {/* ── The front page: the argument, and the set ───────────────── */}
-        <div className="order-1 mt-5 grid items-center gap-6 px-[clamp(1rem,2vw,2rem)] lg:mt-8 lg:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
-              {content.hero.badge}
-            </p>
-            <h1 className="mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tighter text-sheetWhite md:text-5xl">
-              {heroLead}
-              {heroLast && (
-                <>
-                  {" "}
-                  <span className="text-spiteCrimson">{heroLast}</span>
-                </>
-              )}
-            </h1>
-            {(hate.wire?.count || typeof hate.ledgerTotal === "number") && (
-              /* Two numbers, both checkable: how much record there is, and what
-                 is on the wire right now. The second one lands on the feed, so
-                 the line is a door rather than a slogan. */
-              <p className="mt-3 flex flex-col items-start gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-chop-muted sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2">
-                {typeof hate.ledgerTotal === "number" && (
-                  <>
-                    <span>{hate.ledgerTotal.toLocaleString()} charges on record</span>
-                    <span aria-hidden="true" className="hidden sm:inline">·</span>
-                  </>
-                )}
-                <a
-                  href="#home-feed"
-                  className="underline decoration-chop-border decoration-1 underline-offset-[3px] hover:text-sheetWhite hover:decoration-hypeNeon"
-                >
-                  {hate.wire?.count ? `${hate.wire.count} in the feed` : "the feed"}
-                  {hate.wire?.newestAt ? `, newest ${updatedAgo(hate.wire.newestAt)}` : ""}
-                  <span aria-hidden="true"> →</span>
-                </a>
-              </p>
-            )}
-            {/* One paragraph, both widths. The narrow screen used to get its own
-                hand-written version of the intro, and the two drifted: the
-                desktop copy explained the number and the phone copy did not. */}
-            <p className="mt-5 max-w-2xl font-mono text-[11px] leading-relaxed text-chop-muted md:text-[13px]">
-              {heroSubheadline}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => show("propose")}
-                className="border-2 border-black bg-spiteCrimson px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-              >
-                Propose a name
-              </button>
-              <button
-                type="button"
-                onClick={() => show("fund")}
-                className="hidden border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon sm:block"
-              >
-                The fund
-              </button>
-              <button
-                type="button"
-                onClick={() => show("fund")}
-                className="border-2 border-hypeNeon px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
-              >
-                Buy $CHOP
-              </button>
+        {/* ── The front page: the argument, and the set ─────────────────
+            The whole first screen is the broadcast. The headline and the counts
+            sit on top of it; the console carries the same numbers the archive
+            uses, and the bar carries one line of the transmission at a time. */}
+        <TelescreenProvider messages={transmissions}>
+          <section className="tele-stage order-1 mt-5 flex min-h-[calc(100svh-12rem)] flex-col lg:mt-8 lg:min-h-[calc(100svh-10rem)]">
+            <TelescreenCanvas messages={transmissions} receipts={receipts} />
+            <div className="tele-shade" aria-hidden />
+            <div className="tele-scan" aria-hidden />
+            <div className="tele-grain" aria-hidden />
+            <div className="tele-vignette" aria-hidden />
+            <div className="tele-sweep" aria-hidden />
+
+            <div className="tele-hud" aria-hidden>
+              <span className="tele-hud-corner tl" />
+              <span className="tele-hud-corner tr" />
+              <span className="tele-hud-corner bl" />
+              <span className="tele-hud-corner br" />
+              <span className="tele-hud-top">
+                <span className="tele-rec tele-rec-pulse" /> REC · <TelescreenClock /> UTC
+              </span>
             </div>
-          </div>
-          <div className="hidden lg:block">
-            <NewsReel
-              cutIn={CUT_IN}
-              messages={
-                state.voice.subliminal.length ? state.voice.subliminal : content.subliminalMessages
-              }
-            />
-          </div>
-        </div>
+
+            <div className="relative z-10 mx-auto flex w-full max-w-[1680px] flex-1 flex-col justify-center px-[clamp(1rem,2vw,2rem)] py-8 lg:py-12">
+              <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:gap-12">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-chop-muted">
+                    {content.hero.badge}
+                  </p>
+                  <h1 className="mt-3 text-[clamp(2.1rem,6.2vw,5.2rem)] font-black uppercase leading-[0.92] tracking-tighter text-sheetWhite">
+                    {heroLead}
+                    {heroLast && (
+                      <>
+                        {" "}
+                        <span className="text-spiteCrimson">{heroLast}</span>
+                      </>
+                    )}
+                  </h1>
+                  {(hate.wire?.count || typeof hate.ledgerTotal === "number") && (
+                    /* Two numbers, both checkable: how much record there is, and
+                       what is on the wire right now. The second one lands on the
+                       feed, so the line is a door rather than a slogan. */
+                    <p className="mt-4 flex flex-col items-start gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-chop-muted sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2">
+                      {typeof hate.ledgerTotal === "number" && (
+                        <>
+                          <span>{hate.ledgerTotal.toLocaleString()} charges on record</span>
+                          <span aria-hidden="true" className="hidden sm:inline">·</span>
+                        </>
+                      )}
+                      <a
+                        href="#home-feed"
+                        className="underline decoration-chop-border decoration-1 underline-offset-[3px] hover:text-sheetWhite hover:decoration-hypeNeon"
+                      >
+                        {hate.wire?.count ? `${hate.wire.count} in the feed` : "the feed"}
+                        {hate.wire?.newestAt ? `, newest ${updatedAgo(hate.wire.newestAt)}` : ""}
+                        <span aria-hidden="true"> →</span>
+                      </a>
+                    </p>
+                  )}
+                  <p className="mt-5 max-w-2xl font-mono text-[11px] leading-relaxed text-chop-muted md:text-[13px]">
+                    {heroSubheadline}
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => show("propose")}
+                      className="border-2 border-black bg-spiteCrimson px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all hover:bg-black hover:text-hypeNeon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                    >
+                      Propose a name
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => show("fund")}
+                      className="hidden border-2 border-chop-border px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-sheetWhite transition-colors hover:border-hypeNeon hover:text-hypeNeon sm:block"
+                    >
+                      The fund
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => show("fund")}
+                      className="border-2 border-hypeNeon px-4 py-2.5 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-hypeNeon transition-colors hover:bg-hypeNeon hover:text-canvasBlack"
+                    >
+                      Buy $CHOP
+                    </button>
+                  </div>
+                </div>
+
+                <div className="hidden lg:block">
+                  <TelescreenConsole
+                    waiting={standing.length}
+                    charges={hate.ledgerTotal ?? 0}
+                    blades={chopTotal}
+                    names={hate.chops.length}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <TelescreenSlate />
+          </section>
+        </TelescreenProvider>
 
         {/* ── The blade: full width, the main piece ───────────────────── */}
         <div className="order-2 mt-6 px-[clamp(1rem,2vw,2rem)] lg:mt-8">

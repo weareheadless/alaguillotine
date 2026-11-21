@@ -1189,3 +1189,393 @@ body::after {
 .dispatch-prose { font-family: Georgia, "Times New Roman", serif; font-size: 1.15rem; line-height: 1.85; max-width: 65ch; }
 .dispatch-prose > div:first-child > p { font-size: 1.3rem; line-height: 1.7; color: #f4f4f5; }
 .dispatch-pullquote { font-family: Arial, sans-serif; font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.15; font-weight: 800; letter-spacing: -.04em; padding: 22px 0 22px 22px; border-left: 5px solid; margin: 36px 0 12px; }
+
+/* ─── THE TELESCREEN ──────────────────────────────────────────────────────
+   The whole first screen is the broadcast. Three.js paints the room; these
+   rules are the glass in front of it: scanlines, grain, the shade that keeps
+   the headline readable, and the lower third that holds one line long enough
+   to read. No strobe: one line every few seconds, and nothing at all when the
+   reader has asked for less motion. */
+
+.tele-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #0b0b0c;
+}
+
+.tele-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.tele-canvas[data-screen="off"] {
+  display: none;
+}
+
+.tele-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(11, 11, 12, 0.97) 0%,
+      rgba(11, 11, 12, 0.9) 30%,
+      rgba(11, 11, 12, 0.42) 62%,
+      rgba(11, 11, 12, 0.5) 100%
+    ),
+    radial-gradient(ellipse at 66% 42%, transparent 0%, rgba(11, 11, 12, 0.35) 58%, rgba(11, 11, 12, 0.9) 100%);
+}
+
+.tele-scan,
+.tele-grain,
+.tele-vignette,
+.tele-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.tele-sweep {
+  overflow: hidden;
+  z-index: 3;
+}
+
+.tele-sweep::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -22%;
+  height: 18%;
+  background: linear-gradient(180deg, transparent, rgba(244, 244, 245, 0.05), transparent);
+  animation: tele-sweep 11s linear infinite;
+}
+
+@keyframes tele-sweep {
+  from { transform: translateY(0); }
+  to { transform: translateY(720%); }
+}
+
+.tele-scan {
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.34) 0px,
+    rgba(0, 0, 0, 0.34) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+.tele-grain {
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.tele-vignette {
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+/* The corner marks are the set, not a claim: a screen has edges. */
+.tele-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.5rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(244, 244, 245, 0.42);
+}
+
+.tele-hud-corner {
+  position: absolute;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-color: rgba(244, 244, 245, 0.22);
+  border-style: solid;
+  border-width: 0;
+}
+.tele-hud-corner.tl { top: 0.9rem; left: 0.9rem; border-top-width: 1px; border-left-width: 1px; }
+.tele-hud-corner.tr { top: 0.9rem; right: 0.9rem; border-top-width: 1px; border-right-width: 1px; }
+.tele-hud-corner.bl { bottom: 0.9rem; left: 0.9rem; border-bottom-width: 1px; border-left-width: 1px; }
+.tele-hud-corner.br { bottom: 0.9rem; right: 0.9rem; border-bottom-width: 1px; border-right-width: 1px; }
+
+.tele-hud-top {
+  position: absolute;
+  top: 1.15rem;
+  right: 1.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.tele-hud-top-left {
+  position: absolute;
+  top: 1.15rem;
+  left: 1.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tele-rec {
+  display: inline-block;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #e11d48;
+  box-shadow: 0 0 8px rgba(225, 29, 72, 0.85);
+}
+
+.tele-rec-pulse {
+  animation: tele-rec 2.6s ease-in-out infinite;
+}
+
+@keyframes tele-rec {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* ── the lower third ─────────────────────────────────────────────────────── */
+.tele-slate {
+  position: relative;
+  z-index: 6;
+  border-top: 2px solid #e11d48;
+  background: rgba(5, 5, 6, 0.94);
+  padding: 0.6rem clamp(1rem, 2vw, 2rem) 0.7rem;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.tele-slate-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.tele-slate-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #e11d48;
+}
+
+.tele-slate-window {
+  display: flex;
+  align-items: center;
+  min-height: 2.4rem;
+  overflow: hidden;
+}
+
+.tele-slate-text {
+  margin: 0;
+  font-size: clamp(1.05rem, 3.4vw, 2rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: #f4f4f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: tele-wipe 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.tele-slate-idle {
+  color: #71717a;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  animation: none;
+}
+
+@keyframes tele-wipe {
+  from { clip-path: inset(0 100% 0 0); transform: translateX(-0.6rem); }
+  to { clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+
+/* ── the operator's console ──────────────────────────────────────────────── */
+.tele-console {
+  position: relative;
+  border: 1px solid rgba(39, 39, 42, 0.9);
+  background: rgba(6, 6, 7, 0.9);
+  backdrop-filter: blur(8px);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.tele-console::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(244, 244, 245, 0.045), transparent 28%);
+}
+
+.tele-console-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.9);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.5rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.tele-console-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #e11d48;
+}
+
+.tele-console-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0;
+}
+
+.tele-console-stats > div {
+  border-bottom: 1px solid rgba(39, 39, 42, 0.55);
+  padding: 0.75rem;
+}
+
+.tele-console-stats > div:nth-child(odd) {
+  border-right: 1px solid rgba(39, 39, 42, 0.55);
+}
+
+.tele-console-stats dt {
+  font-size: 0.46rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.tele-console-stats dd {
+  margin: 0.2rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #f4f4f5;
+  font-variant-numeric: tabular-nums;
+}
+
+.tele-console-note {
+  margin: 0;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.55);
+  padding: 0.7rem 0.75rem;
+  font-size: 0.58rem;
+  line-height: 1.6;
+  color: #a1a1aa;
+}
+
+.tele-console-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.tele-console-channel {
+  font-size: 0.46rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #52525b;
+}
+
+.tele-switch {
+  border: 1px solid #3f3f46;
+  background: transparent;
+  padding: 0.35rem 0.55rem;
+  font: inherit;
+  font-size: 0.48rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #d4d4d8;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+  pointer-events: auto;
+}
+
+.tele-switch:hover {
+  border-color: #e11d48;
+  color: #f4f4f5;
+  background: rgba(225, 29, 72, 0.12);
+}
+
+.tele-switch:focus-visible {
+  outline: 2px solid #f4f4f5;
+  outline-offset: 2px;
+}
+
+@media (max-width: 1023px) {
+  .tele-shade {
+    background:
+      linear-gradient(180deg, rgba(11, 11, 12, 0.9) 0%, rgba(11, 11, 12, 0.52) 42%, rgba(11, 11, 12, 0.86) 100%),
+      radial-gradient(ellipse at 64% 40%, transparent 0%, rgba(11, 11, 12, 0.45) 66%, rgba(11, 11, 12, 0.92) 100%);
+  }
+  .tele-slate-text {
+    font-size: clamp(0.95rem, 4.6vw, 1.4rem);
+    white-space: normal;
+  }
+  .tele-hud-top-left {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tele-rec-pulse { animation: none; }
+  .tele-slate-text { animation: none; }
+  .tele-sweep::after { animation: none; opacity: 0; }
+}
+
+.tele-slate-head {
+  flex-wrap: wrap;
+  row-gap: 0.35rem;
+}
+
+.tele-slate-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.tele-slate-right .tele-switch {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.46rem;
+}
+
+@media (max-width: 640px) {
+  .tele-slate {
+    padding-bottom: 0.55rem;
+  }
+  .tele-slate-head > span:first-child {
+    letter-spacing: 0.18em;
+  }
+  .tele-slate-window {
+    min-height: 2.9rem;
+  }
+}
+
+.tele-slate-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
