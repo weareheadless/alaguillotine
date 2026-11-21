@@ -41,6 +41,7 @@ The editorial rule is the product:
 |---|---|
 | `src/app/page.tsx` | Server component: builds the reading, renders `home-client.tsx` |
 | `src/app/home-client.tsx` | The front page itself (client) |
+| `src/components/Telescreen.tsx` | The front-page broadcast: Three.js scene, transmission bar, the switch |
 | `src/lib/hate-state.ts` | `buildHateState` — the one reading shared by page and API |
 | `src/lib/archive-store.ts` | The record: `getLedgerFor`, `readLedgerSummaries`, scoring |
 | `src/lib/findings-query.ts` | `/archive` query; `PRESS` excludes retracted claims |

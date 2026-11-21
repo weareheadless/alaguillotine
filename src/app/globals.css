@@ -1391,19 +1391,12 @@ body::after {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  animation: tele-wipe 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .tele-slate-idle {
   color: #71717a;
   font-weight: 600;
   letter-spacing: 0.08em;
-  animation: none;
-}
-
-@keyframes tele-wipe {
-  from { clip-path: inset(0 100% 0 0); transform: translateX(-0.6rem); }
-  to { clip-path: inset(0 0 0 0); transform: translateX(0); }
 }
 
 /* ── the operator's console ──────────────────────────────────────────────── */
@@ -1541,7 +1534,6 @@ body::after {
 
 @media (prefers-reduced-motion: reduce) {
   .tele-rec-pulse { animation: none; }
-  .tele-slate-text { animation: none; }
   .tele-sweep::after { animation: none; opacity: 0; }
 }
 

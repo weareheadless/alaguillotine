@@ -497,8 +497,8 @@ function mount(
   const aperture = new THREE.Group();
   // On a phone the lens moves into the corner of the room: a camera watching
   // the page, not a spotlight burning through the copy.
-  aperture.position.set(mobile ? 4.5 : 0.9, mobile ? 2.75 : 0.1, -16.5);
-  let apertureScale = mobile ? 0.52 : 1;
+  aperture.position.set(mobile ? 3.9 : 0.9, mobile ? 0.8 : 0.1, -16.5);
+  let apertureScale = mobile ? 0.55 : 1;
   aperture.scale.setScalar(apertureScale);
   scene.add(aperture);
 
@@ -672,8 +672,8 @@ function mount(
     // A phone that rotates, or a window that is dragged narrow, gets the
     // corner camera rather than a lens the size of the paragraph.
     const narrow = narrowQuery.matches;
-    aperture.position.set(narrow ? 4.5 : 0.9, narrow ? 2.75 : 0.1, -16.5);
-    apertureScale = narrow ? 0.52 : 1;
+    aperture.position.set(narrow ? 3.9 : 0.9, narrow ? 0.8 : 0.1, -16.5);
+    apertureScale = narrow ? 0.55 : 1;
     if (reduced) renderer.render(scene, camera);
   };
   resize();
@@ -726,6 +726,10 @@ function mount(
     camera.position.y += (pointer.y * 0.34 - camera.position.y) * 0.035;
     camera.lookAt(1.15 * 0.35, 0.3 * 0.35, -12);
 
+    const narrow = narrowQuery.matches;
+    aperture.position.x += ((narrow ? 3.9 : 0.9) - aperture.position.x) * 0.06;
+    aperture.position.y += ((narrow ? 0.8 : 0.1) - aperture.position.y) * 0.06;
+    apertureScale += ((narrow ? 0.55 : 1) - apertureScale) * 0.06;
     aperture.scale.setScalar(apertureScale * (1 + Math.sin(elapsed * 0.34) * 0.018));
     ticks.rotation.z += 0.035 * delta;
     scan.position.y = Math.sin(elapsed * 0.5) * 1.5;
