@@ -5,16 +5,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /**
  * THE BROKEN SIGNAL.
  *
- * A fixed layer over the whole page: scanlines, grain, a rolling band, torn
- * strips where the picture inverts, and a line of the transmission burned
- * across the frame for a moment before it is gone. The page underneath is
- * unchanged; this is the set it is being watched on.
+ * The page is normal most of the time. Then, at no fixed interval, the picture
+ * loses hold: scanlines, grain, a rolling band, torn strips that invert, a jolt
+ * of the whole page, and — sometimes, partway into the break — one line of the
+ * transmission, printed through the same glass for a tenth of a second.
  *
- * Nothing strobes. The overlay moves continuously and the subliminal line
- * appears once every few seconds for about a tenth of a second; the bar in the
- * hero holds the same line, so the content is not hidden. The switch turns the
- * whole treatment off, motion sensitivity is honoured, and the layer never
- * takes a click away from the page.
+ * The break is the event, not the default. Between breaks the page is exactly
+ * itself and the text is clean. The switch turns it all off, and reduced motion
+ * means it never starts.
  */
 
 const OFF_KEY = "fye:signal:off:v1";
@@ -36,6 +34,7 @@ const pick = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)]
 export function BrokenTV({ messages }: { messages: string[] }) {
   const [on, setOn] = useState(true);
   const [reduced, setReduced] = useState(false);
+  const [broken, setBroken] = useState(false);
   const [tears, setTears] = useState<Tear[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
   const id = useRef(0);
@@ -66,66 +65,28 @@ export function BrokenTV({ messages }: { messages: string[] }) {
     });
   }, []);
 
-  const rolling = on && !reduced;
-
-  // The page itself is part of the set: the signal can knock it a pixel or two
-  // off hold. The class goes on the root so the rules can reach the content
-  // without wrapping it in another element.
+  // The break: a stretch of broken picture, at a random interval, for a random
+  // length. Sometimes a line is printed inside it; most of the time it is only
+  // the picture failing.
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("crt-on", on && !reduced);
-    return () => root.classList.remove("crt-on");
-  }, [on, reduced]);
-
-  // The tear: the picture loses hold for a frame or two, at random heights.
-  useEffect(() => {
-    if (!rolling) {
-      setTears([]);
-      return;
-    }
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout>;
-
-    const cut = () => {
-      const count = 1 + Math.floor(Math.random() * 3);
-      setTears(
-        Array.from({ length: count }, () => ({
-          id: id.current++,
-          top: 4 + Math.random() * 90,
-          height: 5 + Math.random() * 24,
-          hue: Math.random() < 0.6,
-        })),
-      );
-      const hold = 80 + Math.random() * 120;
-      if (Math.random() < 0.55) {
-        document.documentElement.classList.add("crt-jolt");
-      }
-      timer = setTimeout(() => {
-        if (!alive) return;
-        document.documentElement.classList.remove("crt-jolt");
-        setTears([]);
-        timer = setTimeout(cut, 900 + Math.random() * 2400);
-      }, hold);
-    };
-
-    timer = setTimeout(cut, 1400 + Math.random() * 2400);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [rolling]);
-
-  // The line: full frame, one tenth of a second, then gone.
-  useEffect(() => {
-    if (!rolling || messages.length === 0) {
+    if (!on || reduced) {
+      setBroken(false);
       setFlash(null);
       return;
     }
+
     let alive = true;
-    let timer: ReturnType<typeof setTimeout>;
+    const timers: number[] = [];
+    const at = (fn: () => void, ms: number) => {
+      const timer = window.setTimeout(() => {
+        if (alive) fn();
+      }, ms);
+      timers.push(timer);
+      return timer;
+    };
 
     const burn = () => {
-      // Random every time, and never the line that was just on screen.
+      if (messages.length === 0) return;
       let text = pick(messages);
       if (messages.length > 1) {
         let guard = 0;
@@ -136,61 +97,112 @@ export function BrokenTV({ messages }: { messages: string[] }) {
       }
       lastLine.current = text;
       setFlash({ id: id.current++, text });
-      const hold = 80 + Math.random() * 50;
-      timer = setTimeout(() => {
-        if (!alive) return;
-        setFlash(null);
-        // Most gaps are long; some are very long. A flash that can be timed is
-        // not a subliminal, it is a slideshow.
-        const roll = Math.random();
-        const gap =
-          roll < 0.3
-            ? 18_000 + Math.random() * 14_000
-            : roll < 0.65
-              ? 10_000 + Math.random() * 7_000
-              : 6_500 + Math.random() * 4_000;
-        timer = setTimeout(burn, gap);
-      }, hold);
+      at(() => setFlash(null), 85 + Math.random() * 55);
     };
 
-    timer = setTimeout(burn, 5_500 + Math.random() * 7_500);
+    const schedule = (first: boolean) => {
+      // Nothing is on a timer a reader can learn. The first wait is a little
+      // shorter so a visitor who stays sees one; after that the gaps run long.
+      const wait = first
+        ? 4_500 + Math.random() * 6_000
+        : 7_000 + Math.random() * 15_000;
+      at(() => {
+        setBroken(true);
+        const duration = 900 + Math.random() * 2_400;
+        // The line comes partway into the break, if it comes at all.
+        if (Math.random() < 0.62) {
+          at(burn, 140 + Math.random() * Math.max(120, duration - 360));
+        }
+        at(() => {
+          setFlash(null);
+          setBroken(false);
+          schedule(false);
+        }, duration);
+      }, wait);
+    };
+
+    schedule(true);
     return () => {
       alive = false;
-      clearTimeout(timer);
+      timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [rolling, messages]);
+  }, [on, reduced, messages]);
+
+  // While the picture is broken, the tears keep coming.
+  useEffect(() => {
+    if (!broken) {
+      setTears([]);
+      document.documentElement.classList.remove("crt-jolt");
+      return;
+    }
+
+    let alive = true;
+    let timer: number;
+    const cut = () => {
+      const count = 1 + Math.floor(Math.random() * 3);
+      setTears(
+        Array.from({ length: count }, () => ({
+          id: id.current++,
+          top: 4 + Math.random() * 90,
+          height: 5 + Math.random() * 26,
+          hue: Math.random() < 0.6,
+        })),
+      );
+      if (Math.random() < 0.5) document.documentElement.classList.add("crt-jolt");
+      timer = window.setTimeout(() => {
+        if (!alive) return;
+        document.documentElement.classList.remove("crt-jolt");
+        setTears([]);
+        timer = window.setTimeout(cut, 170 + Math.random() * 420);
+      }, 70 + Math.random() * 120);
+    };
+
+    timer = window.setTimeout(cut, 40);
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+      document.documentElement.classList.remove("crt-jolt");
+    };
+  }, [broken]);
+
+  // The page carries the treatment only while it is breaking.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("crt-on", on && !reduced && broken);
+    return () => root.classList.remove("crt-on");
+  }, [on, reduced, broken]);
 
   return (
-    <div className={`broken-tv ${on ? "is-on" : "is-off"} ${reduced ? "is-calm" : ""}`}>
-      <div className="bt-layer" aria-hidden>
-        {flash ? (
-          <div key={flash.id} className="bt-flash">
-            <span className="bt-flash-main">{flash.text}</span>
-            <span className="bt-flash-band band-a">{flash.text}</span>
-            <span className="bt-flash-band band-b">{flash.text}</span>
-          </div>
-        ) : null}
+    <div className={`broken-tv ${on ? "is-on" : "is-off"} ${broken ? "is-broken" : ""}`}>
+      {broken ? (
+        <div className="bt-layer" aria-hidden>
+          {flash ? (
+            <div key={flash.id} className="bt-flash">
+              <span className="bt-flash-main">{flash.text}</span>
+              <span className="bt-flash-band band-a">{flash.text}</span>
+              <span className="bt-flash-band band-b">{flash.text}</span>
+            </div>
+          ) : null}
 
-        <div className="bt-scan" />
-        <div className="bt-grain" />
-        <div className="bt-hue" />
-        <div className="bt-roll" />
-        <div className="bt-flicker" />
-        <div className="bt-blink" />
-        <div className="bt-edge" />
-        <div className="bt-vignette" />
-        <div className="bt-bezel" />
+          <div className="bt-scan" />
+          <div className="bt-grain" />
+          <div className="bt-hue" />
+          <div className="bt-roll" />
+          <div className="bt-flicker" />
+          <div className="bt-blink" />
+          <div className="bt-edge" />
+          <div className="bt-vignette" />
+          <div className="bt-bezel" />
 
-        {on
-          ? tears.map((tear) => (
-              <div
-                key={tear.id}
-                className={`bt-tear ${tear.hue ? "is-hue" : ""}`}
-                style={{ top: `${tear.top}%`, height: `${tear.height}px` }}
-              />
-            ))
-          : null}
-      </div>
+          {tears.map((tear) => (
+            <div
+              key={tear.id}
+              className={`bt-tear ${tear.hue ? "is-hue" : ""}`}
+              style={{ top: `${tear.top}%`, height: `${tear.height}px` }}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <button
         type="button"
