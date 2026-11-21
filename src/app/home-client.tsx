@@ -201,7 +201,7 @@ export function HomePage({ initial }: { initial: HateState }) {
             sit on top of it; the console carries the same numbers the archive
             uses, and the bar carries one line of the transmission at a time. */}
         <TelescreenProvider messages={transmissions}>
-          <section className="tele-stage order-1 mt-5 flex min-h-[calc(100svh-12rem)] flex-col lg:mt-8 lg:min-h-[calc(100svh-10rem)]">
+          <section className="tele-stage order-1 mt-5 flex min-h-[calc(100svh-11rem)] flex-col lg:mt-8 lg:min-h-[calc(100svh-12rem)]">
             <TelescreenCanvas messages={transmissions} receipts={receipts} />
             <div className="tele-shade" aria-hidden />
             <div className="tele-scan" aria-hidden />

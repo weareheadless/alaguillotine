@@ -212,10 +212,10 @@ export function TelescreenSlate() {
           <span>
             TRANSMISSION {String(count + 1).padStart(2, "0")} · MINISTRY OF RECORD
           </span>
+          <span className="tele-slate-live">
+            <span className="tele-rec" /> {on ? "LIVE" : "OFF"}
+          </span>
           <ScreenSwitch />
-        </span>
-        <span className="tele-slate-live">
-          <span className="tele-rec" /> {on ? "LIVE" : "OFF"}
         </span>
       </div>
       <div className="tele-slate-window">
@@ -345,9 +345,9 @@ function receiptTexture(
 
   // Paper, not a screen: the record is printed.
   const paper = ctx.createLinearGradient(0, 0, width, height);
-  paper.addColorStop(0, "#b7b3a6");
-  paper.addColorStop(0.55, "#a5a196");
-  paper.addColorStop(1, "#918e84");
+  paper.addColorStop(0, "#c6c2b4");
+  paper.addColorStop(0.55, "#b2aea1");
+  paper.addColorStop(1, "#9b988d");
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, width, height);
 
@@ -469,7 +469,7 @@ function mount(
     const material = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
-      opacity: 0.54,
+      opacity: 0.62,
       depthWrite: false,
       fog: true,
       side: THREE.DoubleSide,
@@ -524,7 +524,7 @@ function mount(
       new THREE.MeshBasicMaterial({
         color: 0xe11d48,
         transparent: true,
-        opacity: 0.72 - i * 0.08,
+        opacity: 0.82 - i * 0.09,
         depthWrite: false,
         fog: false,
         side: THREE.DoubleSide,
