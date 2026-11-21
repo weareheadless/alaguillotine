@@ -64,10 +64,7 @@ export function AdPopups({ notice }: { notice?: ExecutionNotice | null }) {
     const id = nextId.current++;
 
     setStack((prev) => {
-      // Four cards piled at the bottom of a desktop is the joke. Four on a
-      // phone is a wall: there is no page left behind them.
-      const ceiling = window.matchMedia("(max-width: 767px)").matches ? 1 : MAX_POPUPS;
-      if (prev.length >= ceiling) return prev;
+      if (prev.length >= MAX_POPUPS) return prev;
 
       const available = ads
         .map((_, i) => i)

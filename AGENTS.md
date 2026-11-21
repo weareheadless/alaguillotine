@@ -41,13 +41,13 @@ The editorial rule is the product:
 |---|---|
 | `src/app/page.tsx` | Server component: builds the reading, renders `home-client.tsx` |
 | `src/app/home-client.tsx` | The front page itself (client) |
-| `src/components/Telescreen.tsx` | The front-page broadcast: Three.js scene, transmission bar, the switch |
 | `src/lib/hate-state.ts` | `buildHateState` — the one reading shared by page and API |
 | `src/lib/archive-store.ts` | The record: `getLedgerFor`, `readLedgerSummaries`, scoring |
 | `src/lib/findings-query.ts` | `/archive` query; `PRESS` excludes retracted claims |
 | `src/lib/act-judge.ts` | The judge: actor + harm + category, cached in `act_verdicts` |
 | `src/lib/claim-take.ts` | Ada's take per claim (`claims.take`): why the act counts, not what happened |
 | `src/lib/passage.ts` | `PASSAGE_SQL` — the rule that a row needs a verifying quote |
+| `src/components/BrokenTV.tsx` | The fixed broken-signal overlay: scanlines, tears, full-frame slogans, the switch |
 | `src/components/ChallengeClaim.tsx` | The per-claim challenge form on profiles and the archive |
 | `src/app/api/challenges/route.ts` | Public POST: file a challenge against a claim |
 | `src/app/api/admin/challenges/route.ts` | Review: uphold (retract) or reject a challenge |
