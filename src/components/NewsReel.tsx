@@ -431,6 +431,15 @@ export function NewsReel({ messages, cutIn }: { messages: string[]; cutIn?: CutI
               page at the reader. */}
           <div key={`cover-${clip.src}`} className="reel-cover" aria-hidden />
 
+          {/* The archive keeps playing whatever the feed does. It is a second
+              picture laid over the first: the record under the broadcast. */}
+          <div className="reel-pip" aria-hidden>
+            <video autoPlay muted loop playsInline preload="metadata">
+              <source src="/static/musk_is_presented_with_the_reality.mp4" type="video/mp4" />
+            </video>
+            <span>ARCHIVE · 02</span>
+          </div>
+
           <div className="reel-scanlines pointer-events-none absolute inset-0" aria-hidden />
           <div className="reel-vignette pointer-events-none absolute inset-0" aria-hidden />
 
