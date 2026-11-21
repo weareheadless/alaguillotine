@@ -436,7 +436,8 @@ function mount(
     alpha: false,
     powerPreference: "low-power",
   });
-  const mobile = window.innerWidth < 768;
+  const narrowQuery = window.matchMedia("(max-width: 767px)");
+  const mobile = narrowQuery.matches;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1 : 1.5));
   renderer.setClearColor(0x0b0b0c, 1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -670,7 +671,7 @@ function mount(
     camera.updateProjectionMatrix();
     // A phone that rotates, or a window that is dragged narrow, gets the
     // corner camera rather than a lens the size of the paragraph.
-    const narrow = window.innerWidth < 768;
+    const narrow = narrowQuery.matches;
     aperture.position.set(narrow ? 4.5 : 0.9, narrow ? 2.75 : 0.1, -16.5);
     apertureScale = narrow ? 0.52 : 1;
     if (reduced) renderer.render(scene, camera);
