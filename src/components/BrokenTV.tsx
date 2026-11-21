@@ -29,10 +29,6 @@ interface Tear {
 interface Flash {
   id: number;
   text: string;
-  rotate: number;
-  scale: number;
-  x: number;
-  y: number;
 }
 
 const pick = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)];
@@ -43,6 +39,7 @@ export function BrokenTV({ messages }: { messages: string[] }) {
   const [tears, setTears] = useState<Tear[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
   const id = useRef(0);
+  const lastLine = useRef("");
 
   useEffect(() => {
     try {
@@ -71,6 +68,15 @@ export function BrokenTV({ messages }: { messages: string[] }) {
 
   const rolling = on && !reduced;
 
+  // The page itself is part of the set: the signal can knock it a pixel or two
+  // off hold. The class goes on the root so the rules can reach the content
+  // without wrapping it in another element.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("crt-on", on && !reduced);
+    return () => root.classList.remove("crt-on");
+  }, [on, reduced]);
+
   // The tear: the picture loses hold for a frame or two, at random heights.
   useEffect(() => {
     if (!rolling) {
@@ -91,10 +97,14 @@ export function BrokenTV({ messages }: { messages: string[] }) {
         })),
       );
       const hold = 80 + Math.random() * 120;
+      if (Math.random() < 0.55) {
+        document.documentElement.classList.add("crt-jolt");
+      }
       timer = setTimeout(() => {
         if (!alive) return;
+        document.documentElement.classList.remove("crt-jolt");
         setTears([]);
-        timer = setTimeout(cut, 900 + Math.random() * 2600);
+        timer = setTimeout(cut, 900 + Math.random() * 2400);
       }, hold);
     };
 
@@ -115,19 +125,22 @@ export function BrokenTV({ messages }: { messages: string[] }) {
     let timer: ReturnType<typeof setTimeout>;
 
     const burn = () => {
-      setFlash({
-        id: id.current++,
-        text: pick(messages),
-        rotate: (Math.random() * 2 - 1) * 2.2,
-        scale: 0.9 + Math.random() * 0.22,
-        x: (Math.random() * 2 - 1) * 4,
-        y: (Math.random() * 2 - 1) * 4,
-      });
-      const hold = 90 + Math.random() * 60;
+      // Random every time, and never the line that was just on screen.
+      let text = pick(messages);
+      if (messages.length > 1) {
+        let guard = 0;
+        while (text === lastLine.current && guard < 8) {
+          text = pick(messages);
+          guard += 1;
+        }
+      }
+      lastLine.current = text;
+      setFlash({ id: id.current++, text });
+      const hold = 80 + Math.random() * 50;
       timer = setTimeout(() => {
         if (!alive) return;
         setFlash(null);
-        timer = setTimeout(burn, 2800 + Math.random() * 3800);
+        timer = setTimeout(burn, 2400 + Math.random() * 2600);
       }, hold);
     };
 
@@ -149,6 +162,7 @@ export function BrokenTV({ messages }: { messages: string[] }) {
         <div className="bt-blink" />
         <div className="bt-edge" />
         <div className="bt-vignette" />
+        <div className="bt-bezel" />
 
         {on
           ? tears.map((tear) => (
@@ -161,13 +175,7 @@ export function BrokenTV({ messages }: { messages: string[] }) {
           : null}
 
         {flash ? (
-          <div
-            key={flash.id}
-            className="bt-flash"
-            style={{
-              transform: `translate(${flash.x}vw, ${flash.y}vh) rotate(${flash.rotate}deg) scale(${flash.scale})`,
-            }}
-          >
+          <div key={flash.id} className="bt-flash">
             <span>{flash.text}</span>
           </div>
         ) : null}

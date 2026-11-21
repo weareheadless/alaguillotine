@@ -1317,10 +1317,7 @@ body::after {
   text-align: center;
   color: #f4f4f5;
   max-width: 96vw;
-  text-shadow:
-    0 0 40px rgba(0, 0, 0, 0.95),
-    5px 0 rgba(225, 29, 72, 0.92),
-    -5px 0 rgba(0, 220, 200, 0.55);
+  text-shadow: none;
 }
 
 .bt-switch {
@@ -1475,4 +1472,58 @@ body::after {
   text-transform: uppercase;
   color: #f4f4f5;
   text-shadow: 0 1px 3px #000;
+}
+
+/* The page is inside the set. The signal can knock the picture off hold by a
+   pixel or two, the glass is curved at the corners, and every line of type
+   carries a touch of the red/cyan split. All of it is off with the switch. */
+
+html.crt-on .tele-stage,
+html.crt-on main,
+html.crt-on header {
+  text-shadow:
+    0.55px 0 rgba(255, 30, 90, 0.32),
+    -0.55px 0 rgba(0, 225, 220, 0.26);
+}
+
+html.crt-on main {
+  filter: contrast(1.05) saturate(1.08);
+}
+
+html.crt-jolt main {
+  transform: translate3d(2px, -1px, 0) skewX(0.08deg);
+}
+
+.bt-bezel {
+  position: absolute;
+  inset: 0;
+  border: 3px solid #000;
+  border-radius: 1.4vmin;
+  box-shadow:
+    inset 0 0 110px 24px rgba(0, 0, 0, 0.82),
+    inset 0 0 16px 4px rgba(0, 0, 0, 0.9);
+}
+
+@media (max-width: 767px) {
+  html.crt-jolt main {
+    transform: translate3d(1px, 0, 0);
+  }
+  .bt-bezel {
+    border-width: 2px;
+    border-radius: 6px;
+    box-shadow: inset 0 0 60px 12px rgba(0, 0, 0, 0.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.crt-on main,
+  html.crt-on header {
+    text-shadow: none;
+  }
+  html.crt-on main {
+    filter: none;
+  }
+  .bt-bezel {
+    box-shadow: inset 0 0 80px 20px rgba(0, 0, 0, 0.6);
+  }
 }
